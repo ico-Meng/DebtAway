@@ -187,6 +187,22 @@
     border-radius: 4px;
     margin-bottom: 2rem;
     text-align: center;
+    border: 1px solid #f5c6cb;
+    font-weight: 500;
+    box-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
+    animation: errorPulse 2s infinite;
+}
+
+@keyframes errorPulse {
+    0% {
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
+    }
 }
 
 .footer {
@@ -314,4 +330,39 @@
         max-width: none;
         text-align: center;
     }
+}
+
+.applicationIdContainer {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #0066cc;
+}
+
+.applicationId {
+    font-weight: bold;
+    color: #0066cc;
+    font-family: monospace;
+    font-size: 1.1rem;
+    background-color: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+}
+
+.button {
+    background-color: #0066cc;
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 1.5rem;
+}
+
+.button:hover {
+    background-color: #0052a3;
 } 

@@ -7,6 +7,7 @@ import Head from 'next/head';
 import styles from './Form.module.css';
 import '../globals.css'; // Import global CSS
 import { API_ENDPOINT } from "@/app/components/config";
+import { countries } from '../utils/countries';
 
 // Add global styles to ensure proper rendering
 const globalStyles = `
@@ -255,6 +256,8 @@ export default function VustApplicationForm() {
         email?: string;
         phone?: string;
         agreement?: string;
+        agreementDate?: string;
+        agreementSignature?: string;
         passportNumber?: string;
         sevisIdNumber?: string;
         undergraduateEducation?: {
@@ -274,6 +277,7 @@ export default function VustApplicationForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [applicationId, setApplicationId] = useState<string | null>(null);
 
     const validateForm = () => {
         const errors: FormErrors = {};
@@ -410,35 +414,63 @@ export default function VustApplicationForm() {
         if (Object.keys(errors).length === 0) {
             setIsSubmitting(true);
             setSubmitError(null);
+            setApplicationId(null);
 
             try {
                 // Create form data for file uploads
                 const formData = new FormData();
                 
-                // Add all files to the form data
+                // Add all files to the form data (with proper field name 'files')
                 if (formState.transcriptFile) formData.append('files', formState.transcriptFile);
                 if (formState.degreeFile) formData.append('files', formState.degreeFile);
                 if (formState.transcriptEvaluationFile) formData.append('files', formState.transcriptEvaluationFile);
                 if (formState.englishProficiencyFile) formData.append('files', formState.englishProficiencyFile);
                 if (formState.resumeFile) formData.append('files', formState.resumeFile);
                 
-                // Add form data as JSON string
+                // Add form data as JSON string with the correct field name 'form_data'
                 formData.append('form_data', JSON.stringify(formState));
+                
+                console.log('Submitting form data with files:', 
+                    [formState.transcriptFile, formState.degreeFile, 
+                     formState.transcriptEvaluationFile, formState.englishProficiencyFile, 
+                     formState.resumeFile].filter(Boolean).map(f => f?.name)
+                );
                 
                 // Send the form data to the backend API
                 const apiEndpoint = `${API_ENDPOINT}/submit-application`;
+                console.log('Submitting to endpoint:', apiEndpoint);
+                
                 const apiResponse = await fetch(apiEndpoint, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    // Don't set Content-Type header - browser will set it with the boundary
                 });
                 
                 if (!apiResponse.ok) {
-                    throw new Error(`API responded with status: ${apiResponse.status}`);
+                    const errorText = await apiResponse.text();
+                    const errorMessage = `Submission failed: API responded with status: ${apiResponse.status}`;
+                    console.error(errorMessage, errorText);
+                    
+                    // Set the error in the state for display in the UI
+                    setSubmitError(errorMessage);
+                    
+                    // Also show an alert for immediate visibility
+                    alert(`Application submission failed. Please try again later. \n\nError: ${errorMessage}`);
+                    
+                    throw new Error(errorMessage);
                 }
                 
                 const responseData = await apiResponse.json();
                 console.log('Form submission successful:', responseData);
 
+                // Save the application ID
+                if (responseData.applicant_id) {
+                    setApplicationId(responseData.applicant_id);
+                }
+
+                // Show a success alert
+                alert(`Application submitted successfully! Your application ID is: ${responseData.applicant_id || 'Unknown'}`);
+                
                 setSubmitSuccess(true);
                 // Reset form state after successful submission
                 setFormState({
@@ -518,7 +550,19 @@ export default function VustApplicationForm() {
                 });
             } catch (error) {
                 console.error('Form submission error:', error);
-                setSubmitError('There was an error submitting your form. Please try again.');
+                
+                // Create a more user-friendly error message
+                const errorMessage = error instanceof Error 
+                    ? error.message 
+                    : 'There was an unknown error submitting your form. Please try again.';
+                
+                // Set the error in the state for display in the UI
+                setSubmitError(errorMessage);
+                
+                // If we haven't already shown an alert (from the previous block), show one now
+                if (!errorMessage.includes('Submission failed: API responded with status:')) {
+                    alert(`Error submitting application: ${errorMessage}`);
+                }
             } finally {
                 setIsSubmitting(false);
             }
@@ -544,6 +588,12 @@ export default function VustApplicationForm() {
                         <div className={styles.successMessage}>
                             <h2>Thank you for your application!</h2>
                             <p>Your application has been received. We will contact you shortly.</p>
+                            {applicationId && (
+                                <div className={styles.applicationIdContainer}>
+                                    <p>Your Application ID: <span className={styles.applicationId}>{applicationId}</span></p>
+                                    <p>Please save this ID for your records.</p>
+                                </div>
+                            )}
                             <button
                                 className={styles.button}
                                 onClick={() => setSubmitSuccess(false)}
@@ -666,9 +716,11 @@ export default function VustApplicationForm() {
                                             className={`${styles.select} ${formErrors.citizenship ? styles.inputError : ''}`}
                                         >
                                             <option value="">Select Citizenship</option>
-                                            <option value="US">United States of America</option>
-                                            <option value="CA">Canada</option>
-                                            {/* Add more countries */}
+                                            {countries.map((country) => (
+                                                <option key={country.code} value={country.name}>
+                                                    {country.name}
+                                                </option>
+                                            ))}
                                         </select>
                                         {formErrors.citizenship && (
                                             <p className={styles.errorText}>{formErrors.citizenship}</p>
@@ -905,9 +957,11 @@ export default function VustApplicationForm() {
                                             className={styles.select}
                                         >
                                         <option value="">Choose a country...</option>
-                                        <option value="US">United States of America</option>
-                                        <option value="CA">Canada</option>
-                                        {/* Add more countries */}
+                                        {countries.map((country) => (
+                                            <option key={`home-${country.code}`} value={country.name}>
+                                                {country.name}
+                                            </option>
+                                        ))}
                                         </select>
                                     </div>
                                 </div>
@@ -1340,14 +1394,24 @@ export default function VustApplicationForm() {
                                         <label htmlFor="program" className={styles.label}>
                                             Program <span className={styles.required}>*</span>
                                     </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             id="program"
                                             name="program"
                                             value={formState.program}
-                                        onChange={handleChange}
-                                            className={`${styles.input} ${formErrors.program ? styles.inputError : ''}`}
-                                        />
+                                            onChange={handleChange}
+                                            className={`${styles.select} ${formErrors.program ? styles.inputError : ''}`}
+                                        >
+                                            <option value="">Select Program</option>
+                                            <option value="Master of Science in Cybersecurity & Information Assurance (MSCIA)">
+                                                Master of Science in Cybersecurity & Information Assurance (MSCIA)
+                                            </option>
+                                            <option value="Master of Business Administration (MBA)">
+                                                Master of Business Administration (MBA)
+                                            </option>
+                                            <option value="Master of Science In Information Technology (MSIT)">
+                                                Master of Science In Information Technology (MSIT)
+                                            </option>
+                                        </select>
                                         {formErrors.program && (
                                             <p className={styles.errorText}>{formErrors.program}</p>
                                         )}
@@ -1357,14 +1421,19 @@ export default function VustApplicationForm() {
                                         <label htmlFor="startingSemester" className={styles.label}>
                                             Starting Semester <span className={styles.required}>*</span>
                                     </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             id="startingSemester"
                                             name="startingSemester"
                                             value={formState.startingSemester}
-                                        onChange={handleChange}
-                                            className={`${styles.input} ${formErrors.startingSemester ? styles.inputError : ''}`}
-                                        />
+                                            onChange={handleChange}
+                                            className={`${styles.select} ${formErrors.startingSemester ? styles.inputError : ''}`}
+                                        >
+                                            <option value="">Select Semester</option>
+                                            <option value="Fall">Fall</option>
+                                            <option value="Winter">Winter</option>
+                                            <option value="Summer">Summer</option>
+                                            <option value="Spring">Spring</option>
+                                        </select>
                                         {formErrors.startingSemester && (
                                             <p className={styles.errorText}>{formErrors.startingSemester}</p>
                                         )}
@@ -1501,6 +1570,15 @@ export default function VustApplicationForm() {
                                         >
                                             {formState.degreeFile ? formState.degreeFile.name : 'Upload Degree/Diploma'}
                                         </label>
+                                        {formState.hasDegree && formState.degreeFile && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleSingleFileUpload('degree', formState.degreeFile)}
+                                                className={styles.testUploadButton}
+                                            >
+                                                Test Upload
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1546,6 +1624,15 @@ export default function VustApplicationForm() {
                                         >
                                             {formState.transcriptEvaluationFile ? formState.transcriptEvaluationFile.name : 'Upload Transcript Evaluation'}
                                         </label>
+                                        {formState.hasTranscriptEvaluation && formState.transcriptEvaluationFile && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleSingleFileUpload('transcriptEvaluation', formState.transcriptEvaluationFile)}
+                                                className={styles.testUploadButton}
+                                            >
+                                                Test Upload
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1591,6 +1678,15 @@ export default function VustApplicationForm() {
                                         >
                                             {formState.englishProficiencyFile ? formState.englishProficiencyFile.name : 'Upload English Proficiency'}
                                         </label>
+                                        {formState.hasEnglishProficiency && formState.englishProficiencyFile && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleSingleFileUpload('englishProficiency', formState.englishProficiencyFile)}
+                                                className={styles.testUploadButton}
+                                            >
+                                                Test Upload
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1636,6 +1732,15 @@ export default function VustApplicationForm() {
                                         >
                                             {formState.resumeFile ? formState.resumeFile.name : 'Upload Resume/CV'}
                                         </label>
+                                        {formState.hasResume && formState.resumeFile && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleSingleFileUpload('resume', formState.resumeFile)}
+                                                className={styles.testUploadButton}
+                                            >
+                                                Test Upload
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1662,6 +1767,44 @@ export default function VustApplicationForm() {
                                     {formErrors.agreement && (
                                         <p className={styles.errorText}>{formErrors.agreement}</p>
                                     )}
+                                </div>
+
+                                {/* Sign Date and Signature Fields */}
+                                <div className={styles.formRow}>
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="agreementDate" className={styles.label}>
+                                            Sign Date <span className={styles.required}>*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            id="agreementDate"
+                                            name="agreementDate"
+                                            value={formState.agreementDate}
+                                            onChange={handleChange}
+                                            className={`${styles.input} ${formErrors.agreementDate ? styles.inputError : ''}`}
+                                        />
+                                        {formErrors.agreementDate && (
+                                            <p className={styles.errorText}>{formErrors.agreementDate}</p>
+                                        )}
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="agreementSignature" className={styles.label}>
+                                            Signature (Type your full name) <span className={styles.required}>*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="agreementSignature"
+                                            name="agreementSignature"
+                                            value={formState.agreementSignature}
+                                            onChange={handleChange}
+                                            className={`${styles.input} ${formErrors.agreementSignature ? styles.inputError : ''}`}
+                                            placeholder="Type your full legal name"
+                                        />
+                                        {formErrors.agreementSignature && (
+                                            <p className={styles.errorText}>{formErrors.agreementSignature}</p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

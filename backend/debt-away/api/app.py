@@ -15,7 +15,7 @@ from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 
 
-from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile
+from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Form
 from mangum import Mangum  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -476,13 +476,13 @@ async def upload_document(file: UploadFile = File(...)):
         logger.info(f"File size: {len(file_content)} bytes")
         
         # Upload to S3
-        object_key = f"documents/{file_name}"
-        #s3.put_object(
-        #    Bucket=bucket_name, 
-        #    Key=object_key,
-        #    Body=file_content, 
-        #    ContentType=file.content_type
-        #)
+        object_key = f"vust/{file_name}"
+        s3.put_object(
+            Bucket=bucket_name, 
+            Key=object_key,
+            Body=file_content, 
+            ContentType=file.content_type
+        )
         
         return {
             "status": "success", 
@@ -497,43 +497,96 @@ async def upload_document(file: UploadFile = File(...)):
 @app.post("/submit-application")
 async def submit_application(
     files: list[UploadFile] = File(None),
-    form_data: str = Query(...)
+    form_data: str = Form(...)  # Changed from Query to Form
 ):
     try:
+        logger.info(f"Received form_data: {form_data[:100]}...") # Log the beginning of form_data
+        
         # Parse form data
         form_data_json = json.loads(form_data)
         logger.info(f"Received form submission with {len(files) if files else 0} files")
+        logger.info(f"Form data contains keys: {list(form_data_json.keys())}")
+        
+        if files:
+            logger.info(f"Received files: {[file.filename for file in files if file.filename]}")
+        
+        # Get applicant identifiers for organization
+        applicant_last_name = form_data_json.get('lastName', 'unknown')
+        applicant_email = form_data_json.get('email', 'unknown-email')
+        applicant_id = f"{applicant_last_name}-{int(time.time())}"  # Add timestamp to make it unique
         
         # Process each file
         uploaded_files = []
+        bucket_name = "chat-ai-s3-bucket"
+        
+        # First, save the form data as a JSON file in S3
+        try:
+            # Convert form data to pretty-printed JSON for readability
+            form_data_formatted = json.dumps(form_data_json, indent=2)
+            
+            # Create object key for application data
+            form_data_key = f"vust/applications/{applicant_id}/application-data.json"
+            
+            # Upload JSON data to S3
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=form_data_key,
+                Body=form_data_formatted,
+                ContentType="application/json"
+            )
+            
+            logger.info(f"Successfully saved application data to S3: {form_data_key}")
+            
+            # Add to uploaded files list
+            uploaded_files.append({
+                "filename": "application-data.json",
+                "s3_path": f"s3://{bucket_name}/{form_data_key}",
+                "type": "application_data"
+            })
+            
+        except Exception as data_error:
+            logger.error(f"Error saving application data: {str(data_error)}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # Then process each uploaded file
         if files:
-            bucket_name = "chat-ai-s3-bucket"
             for file in files:
                 if file.filename:
-                    file_content = await file.read()
-                    file_name = file.filename
-                    logger.info(f"Processing file: {file_name}")
-                    
-                    # Upload to S3
-                    object_key = f"applications/{form_data_json.get('lastName', 'unknown')}/{file_name}"
-                    #s3.put_object(
-                    #    Bucket=bucket_name, 
-                    #    Key=object_key,
-                    #    Body=file_content, 
-                    #    ContentType=file.content_type
-                    #)
-                    
-                    uploaded_files.append({
-                        "filename": file_name,
-                        "s3_path": f"s3://{bucket_name}/{object_key}"
-                    })
+                    try:
+                        file_content = await file.read()
+                        file_name = file.filename
+                        logger.info(f"Processing file: {file_name}, size: {len(file_content)} bytes")
+                        
+                        # Upload to S3 with better organization
+                        object_key = f"vust/applications/{applicant_id}/files/{file_name}"
+                        s3.put_object(
+                            Bucket=bucket_name, 
+                            Key=object_key,
+                            Body=file_content, 
+                            ContentType=file.content_type
+                        )
+                        logger.info(f"Successfully uploaded {file_name} to S3")
+                        
+                        uploaded_files.append({
+                            "filename": file_name,
+                            "s3_path": f"s3://{bucket_name}/{object_key}",
+                            "type": "document"
+                        })
+                    except Exception as file_error:
+                        logger.error(f"Error processing file {file.filename}: {str(file_error)}")
+                        import traceback
+                        logger.error(traceback.format_exc())
         
-        # Here you would typically store the form data in a database
+        # Return success response with information about all saved data
         return {
             "status": "success",
             "message": "Application submitted successfully",
+            "applicant_id": applicant_id,
             "uploaded_files": uploaded_files
         }
     except Exception as e:
         logger.error(f"Error submitting application: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error submitting application: {str(e)}")
