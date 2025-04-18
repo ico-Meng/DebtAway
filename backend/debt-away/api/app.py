@@ -4,6 +4,7 @@ import json
 import plaid
 import experian_handler
 import plaid_handler
+import requests
 
 from plaid.api import plaid_api
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
@@ -14,16 +15,17 @@ from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 
 
-from fastapi import FastAPI, Request, Query, HTTPException
+from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile
 from mangum import Mangum  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from config import PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV
+from config import PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV, OPENROUTER_APIKEY
 
 from aws_lambda_powertools import Logger
-
+import time
+from openai import OpenAI
 
 # Global Variable Cache
 # dynamodb = boto3.resource(
@@ -78,6 +80,11 @@ from aws_lambda_powertools import Logger
 # PlaidTokenTable = ensure_table_exists()
 
 logger = Logger()
+
+# icoico
+transcribe = boto3.client("transcribe", region_name="us-east-1")
+polly = boto3.client("polly", region_name="us-east-1")
+bedrock = boto3.client("bedrock-runtime")
 
 plaid_env = plaid.Environment.Sandbox if PLAID_ENV == "sandbox" else (
     plaid.Environment.Development if PLAID_ENV == "development" else plaid.Environment.Production
@@ -340,5 +347,193 @@ async def test2_api():
     #    "body": json.dumps({"link_token": "Plaid provided your link token"})
     # }
 
+# s3 = boto3.client(
+#    "s3",
+#    # endpoint_url="http://localhost:4566",
+#    endpoint_url="http://host.docker.internal:4566",
+#    aws_access_key_id="test",
+#    aws_secret_access_key="test",
+#    region_name="us-east-1"
+# )
+s3 = boto3.client("s3", region_name="us-east-1")
+
+
+@app.post("/comment-out-video-chat-ai")
+# async def chat_ai(file: UploadFile = File(...)):
+async def chat_ai(file: UploadFile = File(...)):
+    print("icoico chat-ai 1")
+    print("icoico file: ", file.filename)
+
+    audio_bytes = await file.read()
+    print(f"✅ Audio file size: {len(audio_bytes)} bytes")
+
+    bucket_name = "chat-ai-s3-bucket"
+    input_obj_key = "record.wav"
+
+    s3.put_object(Bucket=bucket_name, Key=input_obj_key,
+                  Body=audio_bytes, ContentType="audio/wav")
+    print("✅ Uploaded user audio to S3.")
+
+    job_name = f"transcribe-job-{int(time.time())}"
+    print("icoico job 1")
+    s3_uri = f"s3://{bucket_name}/{input_obj_key}"
+    print("icoico job 2")
+    print("icoico s3_uri: ", s3_uri)
+    transcribe.start_transcription_job(
+        TranscriptionJobName=job_name,
+        Media={"MediaFileUri": s3_uri},
+        MediaFormat="wav",
+        LanguageCode="en-US"
+    )
+    print("icoico job 3")
+    print(f"✅ Started Transcription Job: {job_name}")
+
+    # ✅ Wait for Transcription Job to Complete
+    while True:
+        job_status = transcribe.get_transcription_job(
+            TranscriptionJobName=job_name)
+        if job_status["TranscriptionJob"]["TranscriptionJobStatus"] in ["COMPLETED", "FAILED"]:
+            break
+        time.sleep(3)  # Wait and check again
+
+    if job_status["TranscriptionJob"]["TranscriptionJobStatus"] == "FAILED":
+        print("❌ AWS Transcribe Job Failed")
+        raise HTTPException(
+            status_code=500, detail="Speech-to-text conversion failed.")
+
+    # ✅ Extract Transcription URL
+    transcript_uri = job_status["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+    print(f"✅ Transcription completed! Transcript URL: {transcript_uri}")
+
+    # ✅ Download Transcription Result
+    transcript_response = s3.get_object(
+        Bucket=bucket_name, Key="transcript.json")
+    transcript_data = json.loads(
+        transcript_response["Body"].read().decode("utf-8"))
+    extracted_text = transcript_data["results"]["transcripts"][0]["transcript"]
+
+    print(f"✅ Transcribed Text: {extracted_text}")
+
+    # inputText = "This is your AI agent to deal with your debt issue."
+    # print(f"inputText = {inputText}")
+    response = polly.synthesize_speech(
+        Text=extracted_text,
+        OutputFormat="mp3",
+        VoiceId="Joanna"
+    )
+    print("icoico after response")
+    print(f"icoico response: {response}")
+    audio_stream = response["AudioStream"].read()
+
+    object_key = "response.mp3"
+
+    s3.put_object(Bucket=bucket_name, Key=object_key,
+                  Body=audio_stream, ContentType="audio/mpeg")
+
+    print("Finished chat_ai")
+
+    return {"audio_url": f"http://localhost:4566/{bucket_name}/{object_key}"}
+
 
 handler = Mangum(app, lifespan="off")
+
+
+@app.post("/chat-deepseek")
+async def chat_deepseek(request: Request):
+    body = await request.json()
+    chatContent = body.get("chatContent")
+
+    logger.info(f"chatContent: {chatContent}")
+
+    openai_client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=OPENROUTER_APIKEY,
+    )
+
+    completion = openai_client.chat.completions.create(
+        model="deepseek/deepseek-chat:free",
+        messages=[
+            {
+                "role": "user",
+                "content": str(chatContent)
+            }
+        ],
+        timeout=60
+    )
+    logger.info("chatResponse: ", completion.choices[0].message.content)
+
+    return {"chatResponse": completion.choices[0].message.content}
+
+
+@app.post("/upload-document")
+async def upload_document(file: UploadFile = File(...)):
+    try:
+        bucket_name = "chat-ai-s3-bucket"
+        file_content = await file.read()
+        file_name = file.filename
+        
+        logger.info(f"Received file: {file_name}")
+        logger.info(f"File size: {len(file_content)} bytes")
+        
+        # Upload to S3
+        object_key = f"documents/{file_name}"
+        #s3.put_object(
+        #    Bucket=bucket_name, 
+        #    Key=object_key,
+        #    Body=file_content, 
+        #    ContentType=file.content_type
+        #)
+        
+        return {
+            "status": "success", 
+            "message": f"File {file_name} uploaded successfully",
+            "file_url": f"s3://{bucket_name}/{object_key}"
+        }
+    except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+
+@app.post("/submit-application")
+async def submit_application(
+    files: list[UploadFile] = File(None),
+    form_data: str = Query(...)
+):
+    try:
+        # Parse form data
+        form_data_json = json.loads(form_data)
+        logger.info(f"Received form submission with {len(files) if files else 0} files")
+        
+        # Process each file
+        uploaded_files = []
+        if files:
+            bucket_name = "chat-ai-s3-bucket"
+            for file in files:
+                if file.filename:
+                    file_content = await file.read()
+                    file_name = file.filename
+                    logger.info(f"Processing file: {file_name}")
+                    
+                    # Upload to S3
+                    object_key = f"applications/{form_data_json.get('lastName', 'unknown')}/{file_name}"
+                    #s3.put_object(
+                    #    Bucket=bucket_name, 
+                    #    Key=object_key,
+                    #    Body=file_content, 
+                    #    ContentType=file.content_type
+                    #)
+                    
+                    uploaded_files.append({
+                        "filename": file_name,
+                        "s3_path": f"s3://{bucket_name}/{object_key}"
+                    })
+        
+        # Here you would typically store the form data in a database
+        return {
+            "status": "success",
+            "message": "Application submitted successfully",
+            "uploaded_files": uploaded_files
+        }
+    except Exception as e:
+        logger.error(f"Error submitting application: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error submitting application: {str(e)}")

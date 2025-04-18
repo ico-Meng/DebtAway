@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@aws-amplify/ui-react": "^6.9.1",
+    "@aws-amplify/ui-react": "^6.11.0",
     "@aws-amplify/ui-react-core": "^3.3.1",
     "@parcel/watcher": "^2.5.1",
     "aws-amplify": "^6.12.0",

@@ -8,7 +8,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 10
+    Timeout: 60
     LoggingConfig:
       LogFormat: JSON
 
@@ -27,9 +27,39 @@ Parameters:
     Type: String
   ExperianSecret:
     Type: String
+  OpenRouterApiKey:
+    Type: String
 
 
 Resources:
+  ChatAiS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: chat-ai-s3-bucket
+      #AccessControl: Private  # Change to PublicRead if needed
+      VersioningConfiguration:
+        Status: Enabled  # Enables versioning
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  ChatAiS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ChatAiS3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:ListBucket"
+            Resource:
+              - !Sub "arn:aws:s3:::${ChatAiS3Bucket}"
+              - !Sub "arn:aws:s3:::${ChatAiS3Bucket}/*"
+ 
   ApiGatewayApi:
       Type: AWS::Serverless::Api
       Properties:
@@ -39,6 +69,10 @@ Resources:
           AllowMethods: "'OPTIONS,POST,GET'"
           AllowHeaders: "'Content-Type,Authorization'"
           AllowCredentials: "'true'"
+        BinaryMediaTypes:  # ✅ Add binary media types
+          - "audio/wav"
+          - "audio/mpeg"
+          - "multipart/form-data"
   UnifiedApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -54,6 +88,12 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /{proxy+} # Match all routes
             Method: ANY
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ChatAiS3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref ChatAiS3Bucket
+        - AWSLambdaBasicExecutionRole
       Environment:
         Variables:
           PLAID_CLIENT_ID: !Ref PlaidClientId
@@ -63,7 +103,8 @@ Resources:
           EXPERIAN_PASSWORD: !Ref ExperianPassword
           EXPERIAN_CLIENT_ID: !Ref ExperianClientId
           EXPERIAN_SECRET: !Ref ExperianSecret
-
+          S3_BUCKET_NAME: !Ref ChatAiS3Bucket
+          OPENROUTER_APIKEY: !Ref OpenRouterApiKey
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
@@ -91,3 +132,7 @@ Outputs:
   UnifiedApiFunctionRole:
     Description: Implicit IAM Role created for Unified function
     Value: !GetAtt UnifiedApiFunctionRole.Arn
+  ChatAiS3BucketName:
+    Value: !Ref ChatAiS3Bucket
+    Export:
+      Name: ChatAiS3BucketName

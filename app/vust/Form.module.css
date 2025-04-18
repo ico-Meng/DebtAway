@@ -1,0 +1,317 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    overflow-x: hidden;
+    background-color: transparent;
+}
+
+.main {
+    min-height: 100vh;
+    padding: 1rem 0;
+    overflow-y: visible;
+    background-color: transparent;
+}
+
+.formContainer {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    overflow: visible;
+    max-height: none;
+    height: auto !important;
+    position: static !important;
+    display: block !important;
+}
+
+.title {
+    font-size: 2rem;
+    color: #333;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #666;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow: visible;
+}
+
+.formSection {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 1rem;
+    position: static !important;
+    visibility: visible !important;
+    display: block !important;
+    overflow: visible !important;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background-color: #ffffff;
+    color: #333;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: #0066cc;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.radioGroup {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    color: #333;
+}
+
+.radioInput {
+    margin: 0;
+    cursor: pointer;
+    background-color: #ffffff;
+}
+
+.required {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+.inputError {
+    border-color: #dc3545;
+}
+
+.errorText {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.submitButton {
+    background-color: #0066cc;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+    background-color: #0052a3;
+}
+
+.submitButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.successMessage {
+    text-align: center;
+    padding: 2rem;
+    background-color: #d4edda;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.errorBanner {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    border-top: 1px solid #eee;
+    background-color: transparent;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.checkboxLabelError {
+    color: #dc3545;
+}
+
+.checkbox {
+    margin-top: 0.25rem;
+}
+
+.checkboxText {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* File Upload Styles */
+.fileUploadContainer {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fileInput {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+.fileInputLabel {
+    display: inline-block;
+    background-color: #0066cc;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+}
+
+.fileInputLabel:hover {
+    background-color: #0052a3;
+}
+
+.fileInputDisabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.fileInputDisabled:hover {
+    background-color: #ccc;
+}
+
+.testUploadButton {
+    display: inline-block;
+    background-color: #28a745;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    margin-left: 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.testUploadButton:hover {
+    background-color: #218838;
+}
+
+.testUploadButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        overflow-x: hidden;
+    }
+
+    .formContainer {
+        padding: 1rem;
+        overflow: visible;
+    }
+
+    .formSection {
+        padding: 1rem;
+    }
+
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+
+    .radioGroup {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .fileInputLabel {
+        width: 100%;
+        max-width: none;
+        text-align: center;
+    }
+} 
