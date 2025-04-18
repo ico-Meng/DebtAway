@@ -373,7 +373,7 @@ export default function VustApplicationForm() {
             const apiEndpoint = `${API_ENDPOINT}/upload-document`;
             const apiResponse = await fetch(apiEndpoint, {
                 method: 'POST',
-                headers: { "Content-Type": "application/json" },
+                //headers: { "Content-Type": "application/json" },
                 body: formData
             });
             
