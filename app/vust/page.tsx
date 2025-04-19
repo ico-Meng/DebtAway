@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
 import { post } from 'aws-amplify/api';
 import Head from 'next/head';
@@ -8,6 +8,7 @@ import styles from './Form.module.css';
 import '../globals.css'; // Import global CSS
 import { API_ENDPOINT } from "@/app/components/config";
 import { countries } from '../utils/countries';
+import SignaturePad from 'react-signature-canvas';
 
 // Add global styles to ensure proper rendering
 const globalStyles = `
@@ -247,6 +248,13 @@ export default function VustApplicationForm() {
         bankStatementFile: null
     });
 
+    // Add signature pad reference
+    const signaturePadRef = useRef<SignaturePad>(null);
+    
+    // Add state for signature modal
+    const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+    const [tempSignature, setTempSignature] = useState('');
+
     interface FormErrors {
         firstName?: string;
         lastName?: string;
@@ -336,6 +344,10 @@ export default function VustApplicationForm() {
         if (!formState.program) errors.program = 'Program is required';
         if (!formState.startingSemester) errors.startingSemester = 'Starting semester is required';
 
+        if (!formState.agreement) errors.agreement = 'You must agree to the terms';
+        if (!formState.agreementDate) errors.agreementDate = 'Sign date is required';
+        if (!formState.agreementSignature) errors.agreementSignature = 'Signature is required';
+
         return errors;
     };
 
@@ -405,6 +417,66 @@ export default function VustApplicationForm() {
         }));
     };
 
+    // Function to handle signature change
+    const handleSignatureEnd = () => {
+        if (signaturePadRef.current) {
+            const signatureDataURL = signaturePadRef.current.toDataURL();
+            setTempSignature(signatureDataURL);
+        }
+    };
+    
+    // Function to open signature modal
+    const openSignatureModal = () => {
+        setIsSignatureModalOpen(true);
+    };
+    
+    // Function to confirm signature and close modal
+    const confirmSignature = () => {
+        if (tempSignature) {
+            setFormState(prev => ({
+                ...prev,
+                agreementSignature: tempSignature
+            }));
+            setIsSignatureModalOpen(false);
+        }
+    };
+    
+    // Function to cancel signature and close modal
+    const cancelSignature = () => {
+        setTempSignature('');
+        setIsSignatureModalOpen(false);
+    };
+    
+    // Function to clear signature
+    const clearSignature = () => {
+        if (signaturePadRef.current) {
+            signaturePadRef.current.clear();
+            setTempSignature('');
+        }
+    };
+    
+    // Reset signature pad when modal opens
+    useEffect(() => {
+        if (isSignatureModalOpen && signaturePadRef.current) {
+            signaturePadRef.current.clear();
+            setTempSignature('');
+        }
+    }, [isSignatureModalOpen]);
+
+    // Close modal when escape key is pressed
+    useEffect(() => {
+        const handleEscKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isSignatureModalOpen) {
+                cancelSignature();
+            }
+        };
+        
+        window.addEventListener('keydown', handleEscKey);
+        return () => {
+            window.removeEventListener('keydown', handleEscKey);
+        };
+    }, [isSignatureModalOpen]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -412,6 +484,15 @@ export default function VustApplicationForm() {
         setFormErrors(errors);
 
         if (Object.keys(errors).length === 0) {
+            // Check if signature exists
+            if (!formState.agreementSignature) {
+                setFormErrors(prev => ({
+                    ...prev,
+                    agreementSignature: 'Signature is required'
+                }));
+                return;
+            }
+
             setIsSubmitting(true);
             setSubmitError(null);
             setApplicationId(null);
@@ -426,6 +507,13 @@ export default function VustApplicationForm() {
                 if (formState.transcriptEvaluationFile) formData.append('files', formState.transcriptEvaluationFile);
                 if (formState.englishProficiencyFile) formData.append('files', formState.englishProficiencyFile);
                 if (formState.resumeFile) formData.append('files', formState.resumeFile);
+                
+                // Handle signature - convert the data URL to a file if needed
+                if (formState.agreementSignature) {
+                    const signatureBlob = dataURLtoBlob(formState.agreementSignature);
+                    const signatureFile = new File([signatureBlob], 'signature.png', { type: 'image/png' });
+                    formData.append('files', signatureFile);
+                }
                 
                 // Add form data as JSON string with the correct field name 'form_data'
                 formData.append('form_data', JSON.stringify(formState));
@@ -567,6 +655,22 @@ export default function VustApplicationForm() {
                 setIsSubmitting(false);
             }
         }
+    };
+
+    // Helper function to convert data URL to Blob
+    const dataURLtoBlob = (dataURL: string): Blob => {
+        // Split the dataURL to get the base64 string
+        const arr = dataURL.split(',');
+        // Match the MIME type
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+        // Convert base64 to raw binary data
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
     };
 
     return (
@@ -1790,17 +1894,48 @@ export default function VustApplicationForm() {
 
                                     <div className={styles.formGroup}>
                                         <label htmlFor="agreementSignature" className={styles.label}>
-                                            Signature (Type your full name) <span className={styles.required}>*</span>
+                                            Signature <span className={styles.required}>*</span>
                                         </label>
-                                        <input
-                                            type="text"
-                                            id="agreementSignature"
-                                            name="agreementSignature"
-                                            value={formState.agreementSignature}
-                                            onChange={handleChange}
-                                            className={`${styles.input} ${formErrors.agreementSignature ? styles.inputError : ''}`}
-                                            placeholder="Type your full legal name"
-                                        />
+                                        <div className={formErrors.agreementSignature ? styles.signatureBoxError : styles.signatureBox}>
+                                            {formState.agreementSignature ? (
+                                                <div className={styles.signaturePreview}>
+                                                    <img 
+                                                        src={formState.agreementSignature} 
+                                                        alt="Your signature" 
+                                                        className={styles.signatureImage} 
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        className={styles.changeSignatureBtn}
+                                                        onClick={openSignatureModal}
+                                                    >
+                                                        Change Signature
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className={styles.signatureButton}
+                                                    onClick={openSignatureModal}
+                                                >
+                                                    <svg 
+                                                        xmlns="http://www.w3.org/2000/svg" 
+                                                        width="16" 
+                                                        height="16" 
+                                                        viewBox="0 0 24 24"
+                                                        fill="none" 
+                                                        stroke="currentColor" 
+                                                        strokeWidth="2" 
+                                                        strokeLinecap="round" 
+                                                        strokeLinejoin="round"
+                                                        className={styles.signatureIcon}
+                                                    >
+                                                        <path d="M22 13C22 13 19.0464 16.7955 17.75 18C16.4536 19.2045 14.7194 20 12.8611 20C11.0028 20 5 20 5 20C5 20 5 19.1925 5 18.0869C5 16.9814 6 12.5 11 7C16 1.5 22 13 22 13Z" />
+                                                    </svg>
+                                                    <span className={styles.signatureButtonText}>Click to Sign</span>
+                                                </button>
+                                            )}
+                                        </div>
                                         {formErrors.agreementSignature && (
                                             <p className={styles.errorText}>{formErrors.agreementSignature}</p>
                                         )}
@@ -1825,6 +1960,73 @@ export default function VustApplicationForm() {
             <footer className={styles.footer}>
                 <p>&copy; {new Date().getFullYear()} Virginia University of Science & Technology. All rights reserved.</p>
             </footer>
+
+            {/* Signature Modal */}
+            {isSignatureModalOpen && (
+                <div 
+                    className={styles.modalOverlay} 
+                    role="dialog" 
+                    aria-modal="true" 
+                    aria-labelledby="signature-modal-title"
+                >
+                    <div className={styles.signatureModal}>
+                        <div className={styles.modalHeader}>
+                            <h3 id="signature-modal-title">Draw Your Signature</h3>
+                            <button 
+                                type="button" 
+                                className={styles.closeButton}
+                                onClick={cancelSignature}
+                                aria-label="Close signature dialog"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div className={styles.modalContent}>
+                            <p className={styles.signatureInstructions}>
+                                Draw your signature using your mouse or finger (on touch devices).
+                            </p>
+                            <div className={styles.signaturePadContainer}>
+                                <SignaturePad
+                                    ref={signaturePadRef}
+                                    onEnd={handleSignatureEnd}
+                                    canvasProps={{
+                                        className: styles.signaturePad,
+                                        width: 500,
+                                        height: 200,
+                                        "aria-label": "Signature drawing area"
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <button 
+                                type="button" 
+                                className={styles.clearSignatureBtn}
+                                onClick={clearSignature}
+                            >
+                                Clear
+                            </button>
+                            <div className={styles.modalActions}>
+                                <button 
+                                    type="button" 
+                                    className={styles.cancelButton}
+                                    onClick={cancelSignature}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className={styles.confirmButton}
+                                    onClick={confirmSignature}
+                                    disabled={!tempSignature}
+                                >
+                                    Confirm Signature
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
