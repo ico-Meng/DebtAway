@@ -4,20 +4,34 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import styles from './ResumeForm.module.css';
 import '../globals.css';
+import './global-override.css';
 import { API_ENDPOINT } from "@/app/components/config";
 
 // Add global styles to ensure proper rendering
 const globalStyles = `
   html, body {
     overflow-y: auto !important;
-    height: auto !important;
-    min-height: 100%;
-    background-color: #f5f7fa;
+    height: 100% !important;
+    max-height: 100vh;
+    background-color: #F5F5F5 !important;
+    padding: 0;
+    margin: 0;
+  }
+  
+  body {
+    overflow: auto;
+    overflow-x: hidden;
   }
   
   input, select, textarea, button, label {
     background-color: #ffffff !important;
     color: #333 !important;
+  }
+  
+  body.resume-analysis-page {
+    background: #F5F5F5 !important;
+    background-color: #F5F5F5 !important;
+    background-image: none !important;
   }
 `;
 
@@ -353,18 +367,36 @@ export default function ResumeAnalysisForm() {
         }
     };
 
+    // Add useEffect to set body class
+    useEffect(() => {
+        // Add class to body for specific styling
+        document.body.classList.add('resume-analysis-page');
+        
+        // Clean up function
+        return () => {
+            document.body.classList.remove('resume-analysis-page');
+        };
+    }, []);
+
     return (
-        <div className={styles.container}>
+        <div className={styles.container} style={{ backgroundColor: '#F5F5F5' }}>
             <Head>
                 <title>Resume Analysis Lab</title>
                 <meta name="description" content="Upload your resume for AI-powered analysis and optimization" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
                 <style>{globalStyles}</style>
+                <style>{`
+                    body {
+                        background: #F5F5F5 !important;
+                        background-color: #F5F5F5 !important;
+                        background-image: none !important;
+                    }
+                `}</style>
             </Head>
 
-            <main className={styles.main}>
+            <main className={styles.main} style={{ backgroundColor: '#F5F5F5' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title}>Drop-Off Your Resume</h1>
+                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff' }}>Drop-Off Your Resume</h1>
                     <br/>
 
                     {submitSuccess ? (
@@ -598,10 +630,6 @@ export default function ResumeAnalysisForm() {
                     )}
                 </div>
             </main>
-
-            <footer className={styles.footer}>
-                <p>&copy; {new Date().getFullYear()} Resume Analysis Lab. All rights reserved.</p>
-            </footer>
         </div>
     );
 } 
