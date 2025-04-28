@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Head from 'next/head';
-import styles from './ResumeForm.module.css';
+import styles from './ChatForm.module.css';
 import '../globals.css';
 import './global-override.css';
 import { API_ENDPOINT } from "@/app/components/config";
@@ -28,20 +28,20 @@ const globalStyles = `
     color: #333 !important;
   }
   
-  body.resume-analysis-page {
+  body.flash-chat-page {
     background: #F5F5F5 !important;
     background-color: #F5F5F5 !important;
     background-image: none !important;
   }
 `;
 
-interface ResumeFormState {
+interface ChatFormState {
     email: string;
     fullName: string;
     currentRole: string;
     targetRole: string;
-    resume: File | null;
-    careerObjectives: string;
+    message: string;
+    selectedQuestions: string[];
 }
 
 interface FormErrors {
@@ -49,21 +49,18 @@ interface FormErrors {
     fullName?: string;
     currentRole?: string;
     targetRole?: string;
-    resume?: string;
-    careerObjectives?: string;
+    message?: string;
 }
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
-
-export default function ResumeAnalysisForm() {
+export default function FlashChatForm() {
     // Form state
-    const [formState, setFormState] = useState<ResumeFormState>({
+    const [formState, setFormState] = useState<ChatFormState>({
         email: '',
         fullName: '',
         currentRole: '',
         targetRole: '',
-        resume: null,
-        careerObjectives: ''
+        message: '',
+        selectedQuestions: []
     });
 
     // Form validation errors
@@ -73,19 +70,23 @@ export default function ResumeAnalysisForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const [analysisId, setAnalysisId] = useState<string | null>(null);
+    const [chatId, setChatId] = useState<string | null>(null);
     
-    // Drag and drop state
-    const [isDragging, setIsDragging] = useState(false);
-    
-    // File input ref
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
     // Add state for custom dropdowns
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isCurrentRoleDropdownOpen, setIsCurrentRoleDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const currentRoleDropdownRef = useRef<HTMLDivElement>(null);
+    
+    // Common questions for checkboxes
+    const commonQuestions = [
+        "How can I make my resume stand out for software/AI engineering roles?",
+        "Which programming languages and frameworks are most in-demand for my target role?",
+        "How do I prepare for coding interviews and system design interviews?",
+        "How important is a master's or PhD degree for AI engineering positions?",
+        "What AI/ML projects or personal portfolio work impress recruiters the most?",
+        "How can I transition into AI engineering from a traditional software development background?"
+    ];
     
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -141,6 +142,24 @@ export default function ResumeAnalysisForm() {
         }));
     };
 
+    // Handle checkbox changes
+    const handleCheckboxChange = (question: string) => {
+        setFormState(prev => {
+            const selectedQuestions = [...prev.selectedQuestions];
+            if (selectedQuestions.includes(question)) {
+                return {
+                    ...prev,
+                    selectedQuestions: selectedQuestions.filter(q => q !== question)
+                };
+            } else {
+                return {
+                    ...prev, 
+                    selectedQuestions: [...selectedQuestions, question]
+                };
+            }
+        });
+    };
+
     // Validate the form
     const validateForm = (): FormErrors => {
         const errors: FormErrors = {};
@@ -167,115 +186,12 @@ export default function ResumeAnalysisForm() {
             errors.targetRole = 'Target role is required';
         }
 
-        // Resume file validation
-        if (!formState.resume) {
-            errors.resume = 'Resume is required';
+        // Message validation - only validate length if provided
+        if (formState.message && formState.message.length < 10) {
+            errors.message = 'Message must be at least 10 characters';
         }
 
         return errors;
-    };
-
-    // Handle drag events
-    const handleDrag = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (e.type === 'dragenter' || e.type === 'dragover') {
-            setIsDragging(true);
-        } else if (e.type === 'dragleave') {
-            setIsDragging(false);
-        }
-    }, []);
-
-    // Handle drop event
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            const file = files[0];
-            validateAndSetFile(file);
-        }
-    }, []);
-
-    // Handle file input change
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            validateAndSetFile(file);
-        }
-    };
-
-    // Validate and set file
-    const validateAndSetFile = (file: File) => {
-        // Reset previous errors
-        setFormErrors(prev => ({ ...prev, resume: undefined }));
-        
-        // Check file size
-        if (file.size > MAX_FILE_SIZE) {
-            setFormErrors(prev => ({ 
-                ...prev, 
-                resume: 'File size exceeds 2MB limit' 
-            }));
-            return;
-        }
-        
-        // Check file type
-        const allowedTypes = [
-            // Documents
-            'application/pdf', 
-            'application/msword', 
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            // Images
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'image/tiff',
-            'image/bmp'
-        ];
-        
-        if (!allowedTypes.includes(file.type)) {
-            setFormErrors(prev => ({ 
-                ...prev, 
-                resume: 'Unsupported file type. Please upload PDF, Word document, or common image formats (JPG, PNG, etc.)' 
-            }));
-            return;
-        }
-        
-        // Set the file in state
-        setFormState(prev => ({
-            ...prev,
-            resume: file
-        }));
-    };
-
-    // Remove the selected file
-    const removeFile = () => {
-        setFormState(prev => ({
-            ...prev,
-            resume: null
-        }));
-        
-        // Reset file input
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    };
-
-    // Format file size
-    const formatFileSize = (bytes: number): string => {
-        if (bytes < 1024) return bytes + ' bytes';
-        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / 1048576).toFixed(1) + ' MB';
-    };
-    
-    // Check if file is an image
-    const isImageFile = (mimeType: string): boolean => {
-        return mimeType.startsWith('image/');
     };
 
     // Handle form submission
@@ -292,28 +208,20 @@ export default function ResumeAnalysisForm() {
             setSubmitError(null);
 
             try {
-                // Create FormData
-                const formData = new FormData();
-                
-                // Add resume file
-                if (formState.resume) {
-                    formData.append('file', formState.resume);
-                }
-                
-                // Add other form data as JSON string
-                const jsonData = JSON.stringify({
-                    email: formState.email,
-                    fullName: formState.fullName,
-                    currentRole: formState.currentRole,
-                    targetRole: formState.targetRole,
-                    careerObjectives: formState.careerObjectives
-                });
-                formData.append('form_data', jsonData);
-                
                 // Submit form data to the endpoint
-                const response = await fetch(`${API_ENDPOINT}/resume-analysis-lab`, {
+                const response = await fetch(`${API_ENDPOINT}/flash-chat`, {
                     method: 'POST',
-                    body: formData,
+                    //headers: {
+                    //    'Content-Type': 'application/json',
+                    //},
+                    body: JSON.stringify({
+                        email: formState.email,
+                        fullName: formState.fullName,
+                        currentRole: formState.currentRole,
+                        targetRole: formState.targetRole,
+                        message: formState.message,
+                        selectedQuestions: formState.selectedQuestions
+                    }),
                 });
                 
                 if (!response.ok) {
@@ -324,7 +232,7 @@ export default function ResumeAnalysisForm() {
                 const data = await response.json();
                 
                 // Store the submission ID
-                setAnalysisId(data.submission_id);
+                setChatId(data.chat_id);
                 
                 // Redirect to payment page (Stripe checkout with custom fields)
                 if (data.payment_url) {
@@ -342,7 +250,7 @@ export default function ResumeAnalysisForm() {
         }
     };
 
-    // Add keyboard navigation for dropdown
+    // Add keyboard navigation for target role dropdown
     const handleDropdownKeyDown = (e: React.KeyboardEvent) => {
         if (!isDropdownOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
             e.preventDefault();
@@ -466,19 +374,19 @@ export default function ResumeAnalysisForm() {
     // Add useEffect to set body class
     useEffect(() => {
         // Add class to body for specific styling
-        document.body.classList.add('resume-analysis-page');
+        document.body.classList.add('flash-chat-page');
         
         // Clean up function
         return () => {
-            document.body.classList.remove('resume-analysis-page');
+            document.body.classList.remove('flash-chat-page');
         };
     }, []);
 
     return (
         <div className={styles.container} style={{ backgroundColor: '#F5F5F5' }}>
             <Head>
-                <title>Resume Analysis Lab</title>
-                <meta name="description" content="Upload your resume for AI-powered analysis and optimization" />
+                <title>Flash Chat</title>
+                <meta name="description" content="Ask career questions and get quick expert answers" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
                 <style>{globalStyles}</style>
                 <style>{`
@@ -492,24 +400,24 @@ export default function ResumeAnalysisForm() {
 
             <main className={styles.main} style={{ backgroundColor: '#F5F5F5' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff' }}>Drop-Off Your Resume</h1>
+                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff' }}>Initiate a chat with your questions</h1>
                     <br/>
 
                     {submitSuccess ? (
                         <div className={styles.successMessage}>
-                            <h2>Thank you for your submission!</h2>
-                            <p>Your resume has been received and is being analyzed.</p>
-                            {analysisId && (
+                            <h2>Thank you for your message!</h2>
+                            <p>Your question has been received and will be answered by our experts.</p>
+                            {chatId && (
                                 <div>
-                                    <p>Your Analysis ID: <strong>{analysisId}</strong></p>
-                                    <p>Please save this ID for reference. We will also email your results to {formState.email}.</p>
+                                    <p>Your Chat ID: <strong>{chatId}</strong></p>
+                                    <p>Please save this ID for reference. We will also email our response to {formState.email}.</p>
                                 </div>
                             )}
                             <button
                                 className={styles.submitButton}
                                 onClick={() => setSubmitSuccess(false)}
                             >
-                                Submit Another Resume
+                                Submit Another Question
                             </button>
                         </div>
                     ) : (
@@ -721,97 +629,41 @@ export default function ResumeAnalysisForm() {
                             </div>
 
                             <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle}>Upload Resume</h2>
+                                <h2 className={styles.sectionTitle}>Start your chat with:</h2>
                                 
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>
-                                        Resume or Screenshot (PDF, Word, or Images, max 2MB) <span className={styles.required}>*</span>
-                                    </label>
-                                    
-                                    <div 
-                                        className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''} ${formErrors.resume ? styles.dropzoneError : ''}`}
-                                        onDragEnter={handleDrag}
-                                        onDragOver={handleDrag}
-                                        onDragLeave={handleDrag}
-                                        onDrop={handleDrop}
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <div className={styles.dropzoneIcon}>
-                                            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                <path d="M3 15V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                            </svg>
-                                        </div>
-                                        <p className={styles.dropzoneText}>
-                                            Drag and drop your resume or screenshot here, or click to select a file
-                                        </p>
-                                        <input
-                                            type="file"
-                                            id="resume"
-                                            name="resume"
-                                            ref={fileInputRef}
-                                            onChange={handleFileChange}
-                                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp"
-                                            style={{ display: 'none' }}
-                                        />
+                                    <div className={styles.commonQuestionsContainer}>
+                                        <p className={styles.commonQuestionsTitle}>Common questions (select any that apply):</p>
+                                        {commonQuestions.map((question, index) => (
+                                            <div key={index} className={styles.checkboxContainer}>
+                                                <input
+                                                    type="checkbox"
+                                                    id={`question-${index}`}
+                                                    checked={formState.selectedQuestions.includes(question)}
+                                                    onChange={() => handleCheckboxChange(question)}
+                                                    className={styles.checkbox}
+                                                />
+                                                <label htmlFor={`question-${index}`} className={styles.checkboxLabel}>
+                                                    {question}
+                                                </label>
+                                            </div>
+                                        ))}
                                     </div>
                                     
-                                    {formState.resume && (
-                                        <div className={styles.filePreview}>
-                                            {isImageFile(formState.resume.type) ? (
-                                                <div className={styles.imagePreviewContainer}>
-                                                    <img 
-                                                        src={URL.createObjectURL(formState.resume)} 
-                                                        alt="Preview" 
-                                                        className={styles.imagePreview} 
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className={styles.fileIcon}>
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        <path d="M10 9H9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                    </svg>
-                                                </div>
-                                            )}
-                                            <div className={styles.fileInfo}>
-                                                <span className={styles.fileName}>{formState.resume.name}</span>
-                                                <span className={styles.fileSize}> - {formatFileSize(formState.resume.size)}</span>
-                                            </div>
-                                            <button 
-                                                type="button" 
-                                                className={styles.fileRemove} 
-                                                onClick={removeFile}
-                                                aria-label="Remove file"
-                                            >
-                                                &times;
-                                            </button>
-                                        </div>
-                                    )}
-                                    
-                                    {formErrors.resume && (
-                                        <p className={styles.errorText}>{formErrors.resume}</p>
-                                    )}
-                                </div>
-                                
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="careerObjectives" className={styles.label}>
-                                        Provide details about your career objectives
+                                    <label htmlFor="message" className={styles.label}>
+                                        What else would you like to ask?
                                     </label>
                                     <textarea
-                                        id="careerObjectives"
-                                        name="careerObjectives"
-                                        value={formState.careerObjectives}
+                                        id="message"
+                                        name="message"
+                                        value={formState.message}
                                         onChange={handleChange}
-                                        className={`${styles.textarea} ${formErrors.careerObjectives ? styles.inputError : ''}`}
-                                        placeholder="Describe your career goals or specific feedback you're looking for..."
+                                        className={`${styles.textarea} ${formErrors.message ? styles.inputError : ''}`}
+                                        placeholder="Ask a question about your resume, job search, interview preparation, or career transition..."
                                         rows={4}
                                     />
-                                    {formErrors.careerObjectives && (
-                                        <p className={styles.errorText}>{formErrors.careerObjectives}</p>
+                                    {formErrors.message && (
+                                        <span className={styles.errorText}>{formErrors.message}</span>
                                     )}
                                 </div>
                             </div>
@@ -822,7 +674,7 @@ export default function ResumeAnalysisForm() {
                                     className={styles.submitButton}
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? 'Submitting...' : 'Submit & Checkout'}
+                                    {isSubmitting ? 'Submitting...' : 'Subscribe - $19/month'}
                                 </button>
                             </div>
                         </form>
