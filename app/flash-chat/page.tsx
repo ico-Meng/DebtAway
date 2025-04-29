@@ -429,7 +429,7 @@ export default function FlashChatForm() {
                             )}
 
                             <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle}>Personal Information</h2>
+                                <h2 className={styles.sectionTitle}>Basic Information</h2>
                                 
                                 <div className={styles.formRowContainer}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
@@ -674,7 +674,7 @@ export default function FlashChatForm() {
                                     className={styles.submitButton}
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? 'Submitting...' : 'Subscribe - $19/month'}
+                                    {isSubmitting ? 'Submitting...' : 'Subscribe - $39/month'}
                                 </button>
                             </div>
                         </form>

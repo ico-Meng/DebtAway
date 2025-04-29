@@ -570,7 +570,7 @@ export default function InstantMockInterviewForm() {
                             )}
 
                             <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle}>Background Information</h2>
+                                <h2 className={styles.sectionTitle}>Basic Information</h2>
                                 
                                 <div className={styles.formRowContainer}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
