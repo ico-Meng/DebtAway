@@ -142,8 +142,8 @@ export default function FlashChatForm() {
         }));
     };
 
-    // Handle checkbox changes
-    const handleCheckboxChange = (question: string) => {
+    // Handle question selection
+    const handleQuestionSelect = (question: string) => {
         setFormState(prev => {
             const selectedQuestions = [...prev.selectedQuestions];
             if (selectedQuestions.includes(question)) {
@@ -632,25 +632,33 @@ export default function FlashChatForm() {
                                 <h2 className={styles.sectionTitle}>Start your chat with:</h2>
                                 
                                 <div className={styles.formGroup}>
+                                    {/* Common Questions Section */}
                                     <div className={styles.commonQuestionsContainer}>
-                                        <p className={styles.commonQuestionsTitle}>Common questions (select any that apply):</p>
-                                        {commonQuestions.map((question, index) => (
-                                            <div key={index} className={styles.checkboxContainer}>
-                                                <input
-                                                    type="checkbox"
-                                                    id={`question-${index}`}
-                                                    checked={formState.selectedQuestions.includes(question)}
-                                                    onChange={() => handleCheckboxChange(question)}
-                                                    className={styles.checkbox}
-                                                />
-                                                <label htmlFor={`question-${index}`} className={styles.checkboxLabel}>
+                                        <h3 className={styles.commonQuestionsTitle}>Common Questions</h3>
+                                        <div className={styles.questionsGrid}>
+                                            {commonQuestions.map((question: string, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className={`${styles.questionItem} ${
+                                                        formState.selectedQuestions.includes(question) ? styles.questionItemSelected : ''
+                                                    }`}
+                                                    onClick={() => handleQuestionSelect(question)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            handleQuestionSelect(question);
+                                                        }
+                                                    }}
+                                                >
                                                     {question}
-                                                </label>
-                                            </div>
-                                        ))}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     
-                                    <label htmlFor="message" className={styles.label}>
+                                    <label htmlFor="message" className={styles.messageLabel}>
                                         What else would you like to ask?
                                     </label>
                                     <textarea
