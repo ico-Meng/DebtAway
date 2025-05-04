@@ -74,6 +74,7 @@ export default function ResumeAnalysisForm() {
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [analysisId, setAnalysisId] = useState<string | null>(null);
+    const [submissionId, setSubmissionId] = useState<string | null>(null);
     
     // Drag and drop state
     const [isDragging, setIsDragging] = useState(false);
@@ -278,67 +279,75 @@ export default function ResumeAnalysisForm() {
         return mimeType.startsWith('image/');
     };
 
+    // Add this utility function at the top level
+    const openStripeCheckout = (url: string) => {
+        // Try to open in new tab first
+        const newWindow = window.open(url, '_blank');
+        
+        // If popup is blocked or failed, try to break out of iframe
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            try {
+                // Try to access top level window
+                if (window.top) {
+                    window.top.location.href = url;
+                } else {
+                    // If we can't access top, fallback to current window
+                    window.location.href = url;
+                }
+            } catch (e) {
+                // If we get a security error trying to access top
+                // Open in current window/frame
+                window.location.href = url;
+            }
+        }
+    };
+
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        setSubmitError(null);
 
-        // Validate form
-        const errors = validateForm();
-        setFormErrors(errors);
-
-        // If no errors, submit form
-        if (Object.keys(errors).length === 0) {
-            setIsSubmitting(true);
-            setSubmitError(null);
-
-            try {
-                // Create FormData
-                const formData = new FormData();
-                
-                // Add resume file
-                if (formState.resume) {
-                    formData.append('file', formState.resume);
-                }
-                
-                // Add other form data as JSON string
-                const jsonData = JSON.stringify({
-                    email: formState.email,
-                    fullName: formState.fullName,
-                    currentRole: formState.currentRole,
-                    targetRole: formState.targetRole,
-                    careerObjectives: formState.careerObjectives
-                });
-                formData.append('form_data', jsonData);
-                
-                // Submit form data to the endpoint
-                const response = await fetch(`${API_ENDPOINT}/resume-analysis-lab`, {
-                    method: 'POST',
-                    body: formData,
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Submission failed: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                
-                // Store the submission ID
-                setAnalysisId(data.submission_id);
-                
-                // Redirect to payment page (Stripe checkout with custom fields)
-                if (data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    // Fallback to direct payment link if Stripe checkout URL is not available
-                    window.location.href = data.direct_payment_link;
-                }
-                
-            } catch (error) {
-                console.error('Form submission error:', error);
-                setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred');
-                setIsSubmitting(false);
+        try {
+            const formData = new FormData();
+            if (formState.resume) {
+                formData.append('file', formState.resume);
             }
+            formData.append('form_data', JSON.stringify({
+                email: formState.email,
+                fullName: formState.fullName,
+                currentRole: formState.currentRole,
+                targetRole: formState.targetRole,
+                careerObjectives: formState.careerObjectives
+            }));
+
+            const response = await fetch(`${API_ENDPOINT}/resume-analysis-lab`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.payment_url) {
+                // Use our new utility function
+                openStripeCheckout(data.payment_url);
+                
+                // Show a message to the user
+                setSubmitSuccess(true);
+                setAnalysisId(data.submission_id);
+            } else {
+                throw new Error('No payment URL received from server');
+            }
+
+        } catch (error) {
+            console.error('Submission error:', error);
+            setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -498,18 +507,18 @@ export default function ResumeAnalysisForm() {
                     {submitSuccess ? (
                         <div className={styles.successMessage}>
                             <h2>Thank you for your submission!</h2>
-                            <p>Your resume has been received and is being analyzed.</p>
-                            {analysisId && (
+                            <p>Your request has been received and is being processed.</p>
+                            {submissionId && (
                                 <div>
-                                    <p>Your Analysis ID: <strong>{analysisId}</strong></p>
-                                    <p>Please save this ID for reference. We will also email your results to {formState.email}.</p>
+                                    <p>Your Submission ID: <strong>{submissionId}</strong></p>
+                                    <p>Please save this ID for reference. We will also email updates to {formState.email}.</p>
                                 </div>
                             )}
                             <button
                                 className={styles.submitButton}
                                 onClick={() => setSubmitSuccess(false)}
                             >
-                                Submit Another Resume
+                                Submit Another Request
                             </button>
                         </div>
                     ) : (

@@ -52,6 +52,29 @@ interface FormErrors {
     message?: string;
 }
 
+// Add this utility function at the top level
+const openStripeCheckout = (url: string) => {
+    // Try to open in new tab first
+    const newWindow = window.open(url, '_blank');
+    
+    // If popup is blocked or failed, try to break out of iframe
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        try {
+            // Try to access top level window
+            if (window.top) {
+                window.top.location.href = url;
+            } else {
+                // If we can't access top, fallback to current window
+                window.location.href = url;
+            }
+        } catch (e) {
+            // If we get a security error trying to access top
+            // Open in current window/frame
+            window.location.href = url;
+        }
+    }
+};
+
 export default function FlashChatForm() {
     // Form state
     const [formState, setFormState] = useState<ChatFormState>({
@@ -197,54 +220,47 @@ export default function FlashChatForm() {
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        setSubmitError(null);
 
-        // Validate form
-        const errors = validateForm();
-        setFormErrors(errors);
+        try {
+            const response = await fetch(`${API_ENDPOINT}/flash-chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formState.email,
+                    fullName: formState.fullName,
+                    currentRole: formState.currentRole,
+                    targetRole: formState.targetRole,
+                    message: formState.message,
+                    selectedQuestions: formState.selectedQuestions
+                }),
+            });
 
-        // If no errors, submit form
-        if (Object.keys(errors).length === 0) {
-            setIsSubmitting(true);
-            setSubmitError(null);
-
-            try {
-                // Submit form data to the endpoint
-                const response = await fetch(`${API_ENDPOINT}/flash-chat`, {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: formState.email,
-                        fullName: formState.fullName,
-                        currentRole: formState.currentRole,
-                        targetRole: formState.targetRole,
-                        message: formState.message,
-                        selectedQuestions: formState.selectedQuestions
-                    }),
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Submission failed: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                
-                // Store the submission ID
-                setChatId(data.chat_id);
-                
-                // Redirect to payment page (Stripe checkout with custom fields)
-                if (data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    // Fallback to direct payment link if Stripe checkout URL is not available
-                    window.location.href = data.direct_payment_link;
-                }
-                
-            } catch (error) {
-                console.error('Form submission error:', error);
-                setSubmitError(error instanceof Error ? error.message : 'An unknown error occurred');
-                setIsSubmitting(false);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const data = await response.json();
+            
+            if (data.payment_url) {
+                // Use our new utility function
+                openStripeCheckout(data.payment_url);
+                
+                // Show a message to the user
+                setSubmitSuccess(true);
+                setChatId(data.chat_id);
+            } else {
+                throw new Error('No payment URL received from server');
+            }
+
+        } catch (error) {
+            console.error('Submission error:', error);
+            setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
