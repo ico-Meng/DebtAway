@@ -313,7 +313,6 @@ export default function ResumeAnalysisForm() {
                 // Submit form data to the endpoint
                 const response = await fetch(`${API_ENDPOINT}/resume-analysis-lab`, {
                     method: 'POST',
-                    headers: { "Content-Type": "application/json" },
                     body: formData,
                 });
                 

@@ -343,7 +343,6 @@ export default function InstantMockInterviewForm() {
                 // Submit form data to the endpoint
                 const response = await fetch(`${API_ENDPOINT}/instant-mock-interview`, {
                     method: 'POST',
-                    headers: { "Content-Type": "application/json" },
                     body: formData,
                 });
                 
