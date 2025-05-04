@@ -211,9 +211,7 @@ export default function FlashChatForm() {
                 // Submit form data to the endpoint
                 const response = await fetch(`${API_ENDPOINT}/flash-chat`, {
                     method: 'POST',
-                    //headers: {
-                    //    'Content-Type': 'application/json',
-                    //},
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         email: formState.email,
                         fullName: formState.fullName,
