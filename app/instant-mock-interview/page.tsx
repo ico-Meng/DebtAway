@@ -98,7 +98,6 @@ export default function InstantMockInterviewForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const [analysisId, setAnalysisId] = useState<string | null>(null);
     
     // Drag and drop state
     const [isDragging, setIsDragging] = useState(false);
@@ -365,7 +364,6 @@ export default function InstantMockInterviewForm() {
                 openStripeCheckout(data.payment_url);
                 
                 setSubmitSuccess(true);
-                setAnalysisId(data.submission_id);
             } else {
                 throw new Error('No payment URL received from server');
             }
@@ -551,21 +549,29 @@ export default function InstantMockInterviewForm() {
                     <br/>
 
                     {submitSuccess ? (
-                        <div className={styles.successMessage}>
-                            <h2>Thank you for your submission!</h2>
-                            <p>Your resume has been received and is being processed for a mock interview.</p>
-                            {analysisId && (
-                                <div>
-                                    <p>Your Submission ID: <strong>{analysisId}</strong></p>
-                                    <p>Please save this ID for reference. We will also email your results to {formState.email}.</p>
-                                </div>
-                            )}
-                            <button
-                                className={styles.submitButton}
-                                onClick={() => setSubmitSuccess(false)}
-                            >
-                                Submit Another Resume
-                            </button>
+                        <div className={styles.successMessage} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)', padding: '2.5rem 2rem', maxWidth: 420, margin: '2rem auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
+                                <svg width="60" height="60" viewBox="0 0 52 52" style={{ marginBottom: 12 }}>
+                                    <circle cx="26" cy="26" r="25" fill="none" stroke="#00c853" strokeWidth="3" />
+                                    <path fill="none" stroke="#00c853" strokeWidth="4" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                                </svg>
+                                <h2 style={{ fontSize: '1.7rem', fontWeight: 700, color: '#2d3748', marginBottom: 8 }}>Submission Received!</h2>
+                            </div>
+                            <p style={{ color: '#4a5568', fontSize: '1.08rem', marginBottom: 8 }}>
+                                Thank you for your submission. Please complete your payment to start your instant mock interview session.
+                            </p>
+                            <p style={{ color: '#4a5568', fontSize: '1.08rem', marginBottom: 24 }}>
+                                We appreciate your trust and will contact you via email soon with next steps.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                                <button
+                                    className={styles.submitButton}
+                                    style={{ minWidth: 200, marginBottom: 0 }}
+                                    onClick={() => setSubmitSuccess(false)}
+                                >
+                                    Submit Another Resume
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className={styles.form}>
