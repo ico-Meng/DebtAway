@@ -17,13 +17,6 @@ export default function SuccessContent() {
         setEmail(urlEmail);
         setServicePath(urlServicePath);
         setIsAnimating(true);
-        //if (sessionId) {
-        //    fetch(`/api/stripe-session?session_id=${sessionId}`)
-        //        .then(res => res.json())
-        //        .then(data => {
-        //            setEmail(data.email || '');
-        //        });
-        //}
     }, [sessionId]);
 
     return (
@@ -63,7 +56,7 @@ export default function SuccessContent() {
                         Book Another Session
                     </button>
                     <button 
-                        onClick={() => window.location.href = '/'}
+                        onClick={() => window.location.href = 'https://www.careerlandinggroup.com'}
                         className={`${styles.button} ${styles.secondary}`}
                     >
                         Return to Home
