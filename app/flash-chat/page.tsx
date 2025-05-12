@@ -103,12 +103,12 @@ export default function FlashChatForm() {
     
     // Common questions for checkboxes
     const commonQuestions = [
-        "How can I make my resume stand out for software/AI engineering roles?",
+        "How can I maximize my chances of receiving interview opportunities with my resume?",
         "Which programming languages and frameworks are most in-demand for my target role?",
-        "How do I prepare for coding interviews and system design interviews?",
-        "How important is a master's or PhD degree for AI engineering positions?",
+        "Does practice LeetCode questions still necessary for software engineering roles?",
+        "Is my background in software engineering sufficient to pursue a role in AI engineering?",
         "What AI/ML projects or personal portfolio work impress recruiters the most?",
-        "How can I transition into AI engineering from a traditional software development background?"
+        "What do recruiters and hiring managers look for when evaluating software engineers for AI roles?"
     ];
     
     // Close dropdowns when clicking outside
