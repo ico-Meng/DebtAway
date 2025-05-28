@@ -56,7 +56,13 @@ export default function SuccessContent() {
                         Book Another Session
                     </button>
                     <button 
-                        onClick={() => window.location.href = 'https://www.careerlandinggroup.com'}
+                        onClick={() => {
+                            if (window.top) {
+                                window.top.location.href = 'https://www.careerlandinggroup.com';
+                            } else {
+                                window.location.href = 'https://www.careerlandinggroup.com';
+                            }
+                        }}
                         className={`${styles.button} ${styles.secondary}`}
                     >
                         Return to Home
