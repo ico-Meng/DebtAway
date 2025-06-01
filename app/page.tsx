@@ -19,8 +19,6 @@ import {
 
 import Image from "next/image";
 
-import ChatUI from "@/app/components/ChatUI";
-
 Amplify.configure(outputs);
 
 // Define an interface for the render prop
@@ -111,10 +109,6 @@ export default function App() {
             <br />
             <button onClick={handleGetAccount}>Bank Account</button>
 
-            <br />
-            <ChatUI />
-            <br />
-
             <button
               onClick={handleChatRedirect}
               className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none">
@@ -191,9 +185,6 @@ export default function App() {
   
             <br />
             <br />
-            <div>
-              <ChatUI />
-            </div>
             <br />
             <br />
             {process.env.NODE_ENV === "development" && (

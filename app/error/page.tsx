@@ -24,7 +24,8 @@ export default function PaymentError() {
                     There was an issue processing your payment.<br/>
                     Please contact <a href="mailto:support@careerlandinggroup.com" className={styles.link}>support@careerlandinggroup.com</a> to check if your payment was completed.
                 </p>
-                <div className={styles.actions}>
+
+                {/* <div className={styles.actions}>
                     <button 
                         onClick={() => {
                             if (window.top) {
@@ -37,7 +38,7 @@ export default function PaymentError() {
                     >
                         Return to Home
                     </button>
-                </div>
+                </div> */}
             </div>
         </div>
     );
