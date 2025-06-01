@@ -571,17 +571,14 @@
 }
 
 .noticeBox {
-    background: #fcfcfd;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    background: #f8fafc;
     color: #444;
-    font-size: 0.98rem;
-    padding: 1.1rem 1.3rem;
-    margin: 1.1rem 0 0.5rem 0;
-    line-height: 1.7;
-    box-shadow: none;
-    font-weight: 400;
+    border-radius: 7px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
     text-align: left;
+    border: 1px solid #e5e7eb;
 }
 
 .noticeBox ul {

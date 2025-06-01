@@ -420,6 +420,21 @@ export default function FlashChatForm() {
         };
     }, []);
 
+    useEffect(() => {
+        const postHeight = () => {
+          if (window.parent !== window) {
+            window.parent.postMessage({
+              type: 'setHeight',
+              height: document.body.scrollHeight
+            }, '*');
+          }
+        };
+      
+        postHeight(); // Call on mount
+        const interval = setInterval(postHeight, 500); // Call repeatedly in case height changes
+        return () => clearInterval(interval);
+      }, []);
+
     return (
         <div className={styles.container} style={{ backgroundColor: '#F5F5F5' }}>
             <Head>
