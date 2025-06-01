@@ -675,19 +675,19 @@ export default function FlashChatForm() {
                                     </div>
                                     <div className={styles.noticeBox}>
                                         This service includes:<br /><br />
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                        <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                             Match with one of our experts and discuss any topics of your interest;
                                         </span><br />
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                        <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                             Unlimited chat supported during your subscription;
                                         </span><br />
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                        <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                             Live or asynchronous communication;
                                         </span><br />
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                        <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                             Send us your career questions, our experts will get back to you within 12 hours.
                                         </span>

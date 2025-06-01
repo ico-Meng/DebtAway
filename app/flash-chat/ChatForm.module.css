@@ -591,3 +591,29 @@
     margin-bottom: 0.25em;
     padding-left: 0;
 } 
+
+.bulletLine {
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    line-height: 1.6;
+    font-size: 1rem;
+  }
+  
+  .bulletLine svg {
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+  }
+
+  @media (max-width: 768px) {
+    /* Add space above Full Name input */
+    .formGroup:nth-child(2) {
+      margin-top: 1rem;
+    }
+  
+    /* Add space above Target Role dropdown */
+    .formRowContainer .formGroup:last-child {
+      margin-top: 1rem;
+    }
+  }
