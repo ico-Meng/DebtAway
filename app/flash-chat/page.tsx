@@ -75,6 +75,31 @@ const openStripeCheckout = (url: string) => {
     }
 };
 
+// Add ProgressBar component
+function ProgressBar({ step, totalSteps }: { step: number, totalSteps: number }) {
+    const targetPercent = Math.round(((step - 1) / (totalSteps - 1)) * 100);
+    const [displayPercent, setDisplayPercent] = useState(targetPercent);
+    useEffect(() => {
+        if (displayPercent === targetPercent) return;
+        const increment = displayPercent < targetPercent ? 1 : -1;
+        const timer = setTimeout(() => {
+            setDisplayPercent(displayPercent + increment);
+        }, 10);
+        return () => clearTimeout(timer);
+    }, [displayPercent, targetPercent]);
+    return (
+        <div className={styles.progressBarContainer}>
+            <div className={styles.progressBarTrack}>
+                <div
+                    className={styles.progressBarFill}
+                    style={{ width: `${displayPercent}%` }}
+                />
+            </div>
+            <div className={styles.progressBarLabel}>{displayPercent}% completed</div>
+        </div>
+    );
+}
+
 export default function FlashChatForm() {
     // Form state
     const [formState, setFormState] = useState<ChatFormState>({
@@ -183,38 +208,36 @@ export default function FlashChatForm() {
         });
     };
 
-    // Validate the form
-    const validateForm = (): FormErrors => {
+    // Add subscriptionType and step state
+    const [step, setStep] = useState(1);
+    const [subscriptionType, setSubscriptionType] = useState<'biweekly' | 'monthly' | null>(null);
+
+    // Add a function to validate the current step
+    const validateStep = (stepNum: number): boolean => {
         const errors: FormErrors = {};
-
-        // Email validation
-        if (!formState.email) {
-            errors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
-            errors.email = 'Email is invalid';
+        if (stepNum === 1) {
+            if (!formState.email) errors.email = 'Email is required';
+            else if (!/\S+@\S+\.\S+/.test(formState.email)) errors.email = 'Email is invalid';
+            if (!formState.fullName) errors.fullName = 'Full name is required';
+            if (!formState.currentRole) errors.currentRole = 'Current role is required';
+            if (!formState.targetRole) errors.targetRole = 'Target role is required';
         }
-
-        // Full name validation
-        if (!formState.fullName) {
-            errors.fullName = 'Full name is required';
+        if (stepNum === 3) {
+            if (formState.message && formState.message.length < 10) errors.message = 'Message must be at least 10 characters';
         }
-        
-        // Current role validation
-        if (!formState.currentRole) {
-            errors.currentRole = 'Current role is required';
-        }
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
 
-        // Target role validation
-        if (!formState.targetRole) {
-            errors.targetRole = 'Target role is required';
+    // Handler for Next button
+    const handleNext = () => {
+        if (validateStep(step)) {
+            setStep(step + 1);
         }
-
-        // Message validation - only validate length if provided
-        if (formState.message && formState.message.length < 10) {
-            errors.message = 'Message must be at least 10 characters';
-        }
-
-        return errors;
+    };
+    // Handler for Previous button
+    const handlePrevious = () => {
+        if (step > 1) setStep(step - 1);
     };
 
     // Handle form submission
@@ -235,7 +258,8 @@ export default function FlashChatForm() {
                     currentRole: formState.currentRole,
                     targetRole: formState.targetRole,
                     message: formState.message,
-                    selectedQuestions: formState.selectedQuestions
+                    selectedQuestions: formState.selectedQuestions,
+                    subscriptionType: subscriptionType || 'monthly',
                 }),
             });
 
@@ -414,8 +438,8 @@ export default function FlashChatForm() {
 
             <main className={styles.main} style={{ backgroundColor: '#F5F5F5' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff' }}>Initiate a chat with your questions</h1>
-                    <br/>
+                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>Initiate a chat with your questions</h1>
+                    <ProgressBar step={step} totalSteps={4} />
 
                     {submitSuccess ? (
                         <div className={styles.successMessage} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)', padding: '2.5rem 2rem', maxWidth: 420, margin: '2rem auto' }}>
@@ -450,213 +474,225 @@ export default function FlashChatForm() {
                                 </div>
                             )}
 
-                            <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle}>Basic Information</h2>
-                                
-                                <div className={styles.formRowContainer}>
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="email" className={styles.label}>
-                                            Email <span className={styles.required}>*</span>
-                                        </label>
-                                        <input
-                                            type="email"
-                                            id="email"
-                                            name="email"
-                                            value={formState.email}
-                                            onChange={handleChange}
-                                            className={`${styles.input} ${formErrors.email ? styles.inputError : ''}`}
-                                            placeholder="your.email@example.com"
-                                        />
-                                        {formErrors.email && (
-                                            <p className={styles.errorText}>{formErrors.email}</p>
-                                        )}
-                                    </div>
-
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="fullName" className={styles.label}>
-                                            Full Name <span className={styles.required}>*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="fullName"
-                                            name="fullName"
-                                            value={formState.fullName}
-                                            onChange={handleChange}
-                                            className={`${styles.input} ${formErrors.fullName ? styles.inputError : ''}`}
-                                            placeholder="John Doe"
-                                        />
-                                        {formErrors.fullName && (
-                                            <p className={styles.errorText}>{formErrors.fullName}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className={styles.formRowContainer}>
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="currentRole" className={styles.label}>
-                                            Current Role <span className={styles.required}>*</span>
-                                        </label>
-                                        <div 
-                                            className={`${styles.customDropdown} ${formErrors.currentRole ? styles.dropdownError : ''}`}
-                                            ref={currentRoleDropdownRef}
-                                        >
-                                            <div 
-                                                className={styles.dropdownSelected} 
-                                                onClick={toggleCurrentRoleDropdown}
-                                                onKeyDown={handleCurrentRoleKeyDown}
-                                                aria-haspopup="listbox"
-                                                aria-expanded={isCurrentRoleDropdownOpen}
-                                                role="combobox"
-                                                tabIndex={0}
-                                            >
-                                                <span className={formState.currentRole ? '' : styles.placeholderText}>
-                                                    {formState.currentRole || 'Select your current role'}
-                                                </span>
-                                                <svg 
-                                                    className={`${styles.dropdownArrow} ${isCurrentRoleDropdownOpen ? styles.dropdownArrowUp : ''}`}
-                                                    width="16" 
-                                                    height="16" 
-                                                    viewBox="0 0 24 24" 
-                                                    fill="none" 
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                >
-                                                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                </svg>
-                                            </div>
-                                            
-                                            {isCurrentRoleDropdownOpen && (
-                                                <ul className={styles.dropdownOptions} role="listbox">
-                                                    {[
-                                                        "College Student", 
-                                                        "Recent Graduate(within 1-2 years)", 
-                                                        "Employeed Professional", 
-                                                        "Freelancer / Contractor / Self Employed", 
-                                                        "Entrepreneur / Startup Founder", 
-                                                        "Other"
-                                                    ].map((option) => (
-                                                        <li 
-                                                            key={option} 
-                                                            className={`${styles.dropdownOption} ${formState.currentRole === option ? styles.dropdownOptionSelected : ''}`}
-                                                            onClick={() => handleCurrentRoleSelect(option)}
-                                                            role="option"
-                                                            aria-selected={formState.currentRole === option}
-                                                        >
-                                                            {option}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            
-                                            {/* Hidden real select for form submission */}
-                                            <select
-                                                id="currentRole"
-                                                name="currentRole"
-                                                value={formState.currentRole}
-                                                onChange={handleChange}
-                                                className={styles.hiddenSelect}
-                                                aria-hidden="true"
-                                                tabIndex={-1}
-                                            >
-                                                <option value="" disabled>Select your current role</option>
-                                                <option value="College Student">College Student</option>
-                                                <option value="Recent Graduate(within 1-2 years)">Recent Graduate(within 1-2 years)</option>
-                                                <option value="Employeed Professional">Employeed Professional</option>
-                                                <option value="Freelancer / Contractor / Self Employed">Freelancer / Contractor / Self Employed</option>
-                                                <option value="Entrepreneur / Startup Founder">Entrepreneur / Startup Founder</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                        {formErrors.currentRole && (
-                                            <p className={styles.errorText}>{formErrors.currentRole}</p>
-                                        )}
-                                    </div>
-
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="targetRole" className={styles.label}>
-                                            Target Role <span className={styles.required}>*</span>
-                                        </label>
-                                        <div 
-                                            className={`${styles.customDropdown} ${formErrors.targetRole ? styles.dropdownError : ''}`}
-                                            ref={dropdownRef}
-                                        >
-                                            <div 
-                                                className={styles.dropdownSelected} 
-                                                onClick={toggleDropdown}
-                                                onKeyDown={handleDropdownKeyDown}
-                                                aria-haspopup="listbox"
-                                                aria-expanded={isDropdownOpen}
-                                                role="combobox"
-                                                tabIndex={0}
-                                            >
-                                                <span className={formState.targetRole ? '' : styles.placeholderText}>
-                                                    {formState.targetRole || 'Select your target role'}
-                                                </span>
-                                                <svg 
-                                                    className={`${styles.dropdownArrow} ${isDropdownOpen ? styles.dropdownArrowUp : ''}`}
-                                                    width="16" 
-                                                    height="16" 
-                                                    viewBox="0 0 24 24" 
-                                                    fill="none" 
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                >
-                                                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                </svg>
-                                            </div>
-                                            
-                                            {isDropdownOpen && (
-                                                <ul className={styles.dropdownOptions} role="listbox">
-                                                    {[
-                                                        "Software Engineer", 
-                                                        "AI Engineer", 
-                                                        "Machine Learning Engineer", 
-                                                        "Data Scientist", 
-                                                        "Applied Scientist"
-                                                    ].map((option) => (
-                                                        <li 
-                                                            key={option} 
-                                                            className={`${styles.dropdownOption} ${formState.targetRole === option ? styles.dropdownOptionSelected : ''}`}
-                                                            onClick={() => handleOptionSelect(option)}
-                                                            role="option"
-                                                            aria-selected={formState.targetRole === option}
-                                                        >
-                                                            {option}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            
-                                            {/* Hidden real select for form submission */}
-                                            <select
-                                                id="targetRole"
-                                                name="targetRole"
-                                                value={formState.targetRole}
-                                                onChange={handleChange}
-                                                className={styles.hiddenSelect}
-                                                aria-hidden="true"
-                                                tabIndex={-1}
-                                            >
-                                                <option value="" disabled>Select your target role</option>
-                                                <option value="Software Engineer">Software Engineer</option>
-                                                <option value="AI Engineer">AI Engineer</option>
-                                                <option value="ML Engineer">ML Engineer</option>
-                                                <option value="Data Scientist">Data Scientist</option>
-                                                <option value="Applied Scientist">Applied Scientist</option>
-                                            </select>
-                                        </div>
-                                        {formErrors.targetRole && (
-                                            <p className={styles.errorText}>{formErrors.targetRole}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle}>Start your chat with:</h2>
-                                
-                                <div className={styles.formGroup}>
-                                    {/* Common Questions Section */}
+                            {step === 1 && (
+                                <div className={styles.formSection}>
+                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Basic Information</h2>
                                     <div className={styles.commonQuestionsContainer}>
-                                        <h3 className={styles.commonQuestionsTitle}>Common Questions</h3>
+                                        <div className={styles.formRowContainer}>
+                                            <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                                <label htmlFor="email" className={styles.label}>
+                                                    Email <span className={styles.required}>*</span>
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    id="email"
+                                                    name="email"
+                                                    value={formState.email}
+                                                    onChange={handleChange}
+                                                    className={`${styles.input} ${formErrors.email ? styles.inputError : ''}`}
+                                                    placeholder="your.email@example.com"
+                                                />
+                                                {formErrors.email && (
+                                                    <p className={styles.errorText}>{formErrors.email}</p>
+                                                )}
+                                            </div>
+                                            <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                                <label htmlFor="fullName" className={styles.label}>
+                                                    Full Name <span className={styles.required}>*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    id="fullName"
+                                                    name="fullName"
+                                                    value={formState.fullName}
+                                                    onChange={handleChange}
+                                                    className={`${styles.input} ${formErrors.fullName ? styles.inputError : ''}`}
+                                                    placeholder="John Doe"
+                                                />
+                                                {formErrors.fullName && (
+                                                    <p className={styles.errorText}>{formErrors.fullName}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className={styles.formRowContainer}>
+                                            <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                                <label htmlFor="currentRole" className={styles.label}>
+                                                    Current Role <span className={styles.required}>*</span>
+                                                </label>
+                                                <div 
+                                                    className={`${styles.customDropdown} ${formErrors.currentRole ? styles.dropdownError : ''}`}
+                                                    ref={currentRoleDropdownRef}
+                                                >
+                                                    <div 
+                                                        className={styles.dropdownSelected} 
+                                                        onClick={toggleCurrentRoleDropdown}
+                                                        onKeyDown={handleCurrentRoleKeyDown}
+                                                        aria-haspopup="listbox"
+                                                        aria-expanded={isCurrentRoleDropdownOpen}
+                                                        role="combobox"
+                                                        tabIndex={0}
+                                                    >
+                                                        <span className={formState.currentRole ? '' : styles.placeholderText}>
+                                                            {formState.currentRole || 'Select your current role'}
+                                                        </span>
+                                                        <svg 
+                                                            className={`${styles.dropdownArrow} ${isCurrentRoleDropdownOpen ? styles.dropdownArrowUp : ''}`}
+                                                            width="16" 
+                                                            height="16" 
+                                                            viewBox="0 0 24 24" 
+                                                            fill="none" 
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </div>
+                                                    
+                                                    {isCurrentRoleDropdownOpen && (
+                                                        <ul className={styles.dropdownOptions} role="listbox">
+                                                            {["College Student", "Recent Graduate(within 1-2 years)", "Employeed Professional", "Freelancer / Contractor / Self Employed", "Entrepreneur / Startup Founder", "Other"].map((option) => (
+                                                                <li 
+                                                                    key={option} 
+                                                                    className={`${styles.dropdownOption} ${formState.currentRole === option ? styles.dropdownOptionSelected : ''}`}
+                                                                    onClick={() => handleCurrentRoleSelect(option)}
+                                                                    role="option"
+                                                                    aria-selected={formState.currentRole === option}
+                                                                >
+                                                                    {option}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    
+                                                    {/* Hidden real select for form submission */}
+                                                    <select
+                                                        id="currentRole"
+                                                        name="currentRole"
+                                                        value={formState.currentRole}
+                                                        onChange={handleChange}
+                                                        className={styles.hiddenSelect}
+                                                        aria-hidden="true"
+                                                        tabIndex={-1}
+                                                    >
+                                                        <option value="" disabled>Select your current role</option>
+                                                        <option value="College Student">College Student</option>
+                                                        <option value="Recent Graduate(within 1-2 years)">Recent Graduate(within 1-2 years)</option>
+                                                        <option value="Employeed Professional">Employeed Professional</option>
+                                                        <option value="Freelancer / Contractor / Self Employed">Freelancer / Contractor / Self Employed</option>
+                                                        <option value="Entrepreneur / Startup Founder">Entrepreneur / Startup Founder</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+                                                {formErrors.currentRole && (
+                                                    <p className={styles.errorText}>{formErrors.currentRole}</p>
+                                                )}
+                                            </div>
+                                            <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                                <label htmlFor="targetRole" className={styles.label}>
+                                                    Target Role <span className={styles.required}>*</span>
+                                                </label>
+                                                <div 
+                                                    className={`${styles.customDropdown} ${formErrors.targetRole ? styles.dropdownError : ''}`}
+                                                    ref={dropdownRef}
+                                                >
+                                                    <div 
+                                                        className={styles.dropdownSelected} 
+                                                        onClick={toggleDropdown}
+                                                        onKeyDown={handleDropdownKeyDown}
+                                                        aria-haspopup="listbox"
+                                                        aria-expanded={isDropdownOpen}
+                                                        role="combobox"
+                                                        tabIndex={0}
+                                                    >
+                                                        <span className={formState.targetRole ? '' : styles.placeholderText}>
+                                                            {formState.targetRole || 'Select your target role'}
+                                                        </span>
+                                                        <svg 
+                                                            className={`${styles.dropdownArrow} ${isDropdownOpen ? styles.dropdownArrowUp : ''}`}
+                                                            width="16" 
+                                                            height="16" 
+                                                            viewBox="0 0 24 24" 
+                                                            fill="none" 
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </div>
+                                                    
+                                                    {isDropdownOpen && (
+                                                        <ul className={styles.dropdownOptions} role="listbox">
+                                                            {["Software Engineer", "AI Engineer", "Machine Learning Engineer", "Data Scientist", "Applied Scientist"].map((option) => (
+                                                                <li 
+                                                                    key={option} 
+                                                                    className={`${styles.dropdownOption} ${formState.targetRole === option ? styles.dropdownOptionSelected : ''}`}
+                                                                    onClick={() => handleOptionSelect(option)}
+                                                                    role="option"
+                                                                    aria-selected={formState.targetRole === option}
+                                                                >
+                                                                    {option}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    
+                                                    {/* Hidden real select for form submission */}
+                                                    <select
+                                                        id="targetRole"
+                                                        name="targetRole"
+                                                        value={formState.targetRole}
+                                                        onChange={handleChange}
+                                                        className={styles.hiddenSelect}
+                                                        aria-hidden="true"
+                                                        tabIndex={-1}
+                                                    >
+                                                        <option value="" disabled>Select your target role</option>
+                                                        <option value="Software Engineer">Software Engineer</option>
+                                                        <option value="AI Engineer">AI Engineer</option>
+                                                        <option value="ML Engineer">ML Engineer</option>
+                                                        <option value="Data Scientist">Data Scientist</option>
+                                                        <option value="Applied Scientist">Applied Scientist</option>
+                                                    </select>
+                                                </div>
+                                                {formErrors.targetRole && (
+                                                    <p className={styles.errorText}>{formErrors.targetRole}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.noticeBox}>
+                                        This service includes:<br /><br />
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                            Match with one of our experts and discuss any topics of your interest;
+                                        </span><br />
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                            Unlimited chat supported during your subscription;
+                                        </span><br />
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                            Live or asynchronous communication;
+                                        </span><br />
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                            Send us your career questions, our experts will get back to you within 12 hours.
+                                        </span>
+                                    </div>
+                                    <div className={styles.navButtonsRight}>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handleNext}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {step === 2 && (
+                                <div className={styles.formSection}>
+                                    <h2 className={styles.sectionTitle}>Start Chat With Common Questions</h2>
+                                    <div className={styles.commonQuestionsContainer}>
                                         <div className={styles.questionsGrid}>
                                             {commonQuestions.map((question: string, index: number) => (
                                                 <div
@@ -679,34 +715,102 @@ export default function FlashChatForm() {
                                             ))}
                                         </div>
                                     </div>
-                                    
-                                    <label htmlFor="message" className={styles.messageLabel}>
-                                        What else would you like to ask?
-                                    </label>
-                                    <textarea
-                                        id="message"
-                                        name="message"
-                                        value={formState.message}
-                                        onChange={handleChange}
-                                        className={`${styles.textarea} ${formErrors.message ? styles.inputError : ''}`}
-                                        placeholder="Ask a question about your resume, job search, interview preparation, or career transition..."
-                                        rows={4}
-                                    />
-                                    {formErrors.message && (
-                                        <span className={styles.errorText}>{formErrors.message}</span>
-                                    )}
+                                    <div className={styles.navButtons}>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handlePrevious}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handleNext}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className={styles.buttonContainer}>
-                                <button
-                                    type="submit"
-                                    className={styles.submitButton}
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? 'Submitting...' : 'Subscribe - $39/month'}
-                                </button>
-                            </div>
+                            )}
+                            {step === 3 && (
+                                <div className={styles.formSection}>
+                                    <div className={styles.formGroup}>
+                                        <h2 className={styles.sectionTitle}>What else would you like to ask?</h2>
+                                        <textarea
+                                            id="message"
+                                            name="message"
+                                            value={formState.message}
+                                            onChange={handleChange}
+                                            className={`${styles.textarea} ${formErrors.message ? styles.inputError : ''}`}
+                                            placeholder="Ask a question about your resume, job search, interview preparation, or career transition..."
+                                            rows={4}
+                                        />
+                                        {formErrors.message && (
+                                            <span className={styles.errorText}>{formErrors.message}</span>
+                                        )}
+                                    </div>
+                                    <div className={styles.navButtons}>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handlePrevious}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handleNext}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {step === 4 && (
+                                <div className={styles.formSection}>
+                                    <h2 className={styles.sectionTitle}>Subscription Options</h2>
+                                    <div className={styles.subscriptionOptionsRow}>
+                                        <button
+                                            type="button"
+                                            className={`${styles.subscriptionOptionButton} ${subscriptionType === 'biweekly' ? styles.selected : ''}`}
+                                            onClick={() => setSubscriptionType('biweekly')}
+                                        >
+                                            $24.99<br/>every 2 weeks
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`${styles.subscriptionOptionButton} ${subscriptionType === 'monthly' ? styles.selected : ''}`}
+                                            onClick={() => setSubscriptionType('monthly')}
+                                        >
+                                            $39.00<br/>per month
+                                        </button>
+                                    </div>
+                                    <div className={styles.navButtonsCenter}>
+                                        <button
+                                            type="button"
+                                            className={styles.submitButton}
+                                            onClick={handlePrevious}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className={`${styles.submitButton} ${styles.subscribeSubmitButton}`}
+                                            disabled={isSubmitting || !subscriptionType}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            {isSubmitting ? 'Submitting...' : 'Subscribe'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </form>
                     )}
                 </div>
