@@ -1,6 +1,6 @@
 /* Global override for resume-analysis-lab page */
 :root {
-  --global-bg-color: #F5F5F5;
+  --global-bg-color: #EDECE3;
 }
 
 /* Override the background from app.css with extreme specificity */

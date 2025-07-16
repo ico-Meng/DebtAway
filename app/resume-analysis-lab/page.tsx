@@ -845,6 +845,30 @@ export default function ResumeAnalysisForm() {
                                 </div>
                             </div>
 
+                            <div className={styles.noticeBox}>
+                                This service includes:<br /><br />
+                                <span className={styles.bulletLine}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    The original resume will be reviewed by real hiring experts;
+                                </span><br />
+                                <span className={styles.bulletLine}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    Inline resume critiques and comments and feedback with hiring insights;
+                                </span><br />
+                                <span className={styles.bulletLine}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    Detailed guidance on how to strengthen your technical skills;
+                                </span><br />
+                                <span className={styles.bulletLine}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    Get your professional resume analysis report within 48 hours;
+                                </span><br />
+                                <span className={`${styles.bulletLine} ${styles.bulletLineItalic}`}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    Enjoy 20% off your next Resume Design or Interview Prep service.
+                                </span><br />
+                            </div>
+
                             <div className={styles.buttonContainer}>
                                 <button
                                     type="submit"

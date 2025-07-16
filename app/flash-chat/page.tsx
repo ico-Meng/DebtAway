@@ -13,7 +13,7 @@ const globalStyles = `
     overflow-y: auto !important;
     height: 100% !important;
     max-height: 100vh;
-    background-color: #F5F5F5 !important;
+    background-color: #edece3 !important;
     padding: 0;
     margin: 0;
   }
@@ -24,13 +24,13 @@ const globalStyles = `
   }
   
   input, select, textarea, button, label {
-    background-color: #ffffff !important;
+    background-color: #edece3 !important;
     color: #333 !important;
   }
   
   body.flash-chat-page {
-    background: #F5F5F5 !important;
-    background-color: #F5F5F5 !important;
+    background: #edece3 !important;
+    background-color: #edece3 !important;
     background-image: none !important;
   }
 `;
@@ -436,7 +436,7 @@ export default function FlashChatForm() {
       }, []);
 
     return (
-        <div className={styles.container} style={{ backgroundColor: '#F5F5F5' }}>
+        <div className={styles.container} style={{ backgroundColor: '#edece3' }}>
             <Head>
                 <title>Flash Chat</title>
                 <meta name="description" content="Ask career questions and get quick expert answers" />
@@ -444,14 +444,14 @@ export default function FlashChatForm() {
                 <style>{globalStyles}</style>
                 <style>{`
                     body {
-                        background: #F5F5F5 !important;
-                        background-color: #F5F5F5 !important;
+                        background: #edece3 !important;
+                        background-color: #edece3 !important;
                         background-image: none !important;
                     }
                 `}</style>
             </Head>
 
-            <main className={styles.main} style={{ backgroundColor: '#F5F5F5' }}>
+            <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
                 <div className={styles.formContainer}>
                     <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>Initiate a chat with your questions</h1>
                     <ProgressBar step={step} totalSteps={4} />

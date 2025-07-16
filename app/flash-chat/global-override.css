@@ -1,6 +1,6 @@
 /* Global override for flash-chat page */
 :root {
-  --global-bg-color: #F5F5F5;
+  --global-bg-color: #edece3;
 }
 
 /* Override the background from app.css with extreme specificity */
@@ -82,7 +82,7 @@ h1[class*="title"] {
 
 /* Override for specific body class to ensure proper styling */
 body.flash-chat-page {
-  background-color: #F5F5F5 !important;
+  background-color: #edece3 !important;
   max-height: 100vh;
   overflow-y: auto;
 }
