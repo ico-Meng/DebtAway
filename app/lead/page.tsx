@@ -227,28 +227,28 @@ export default function LeadForm() {
                                             <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                             <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        Access career development resources
+                                        Career development resources
                                     </span><br />
                                     <span className={styles.bulletLine}>
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                             <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        Industry insights and job market trends
+                                        Job market insights and trends
                                     </span><br />
                                     <span className={styles.bulletLine}>
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                             <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        Exclusive invites to free 1-1 sessions
+                                        Invites to FREE 1-1 sessions
                                     </span><br />
                                     <span className={styles.bulletLine}>
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                             <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        Members-only discounts on services
+                                        Promo codes for services
                                     </span>
                                 </div>
 
@@ -269,16 +269,16 @@ export default function LeadForm() {
                                     {formErrors.email && (
                                         <p className={styles.errorText}>{formErrors.email}</p>
                                     )}
-                                </div>
-
-                                <div className={styles.buttonContainer}>
-                                    <button
-                                        type="submit"
-                                        className={styles.submitButton}
-                                        disabled={isSubmitting}
-                                    >
-                                        {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-                                    </button>
+                                    
+                                    <div className={styles.buttonContainerClose}>
+                                        <button
+                                            type="submit"
+                                            className={styles.submitButton}
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </form>
