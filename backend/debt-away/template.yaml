@@ -113,8 +113,20 @@ Resources:
             BucketName: !Ref ChatAiS3Bucket
         - S3WritePolicy:
             BucketName: !Ref ChatAiS3Bucket
-        #- DynamoDBCrudPolicy:
-        #    TableName: !Ref LeadEmailTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:CreateTable
+                - dynamodb:DescribeTable
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: 
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email/*"
         - AWSLambdaBasicExecutionRole
       Environment:
         Variables:

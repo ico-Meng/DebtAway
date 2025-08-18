@@ -97,45 +97,40 @@ export default function LeadForm() {
         if (Object.keys(errors).length === 0) {
             setIsSubmitting(true);
             
-            try {
-                // Call backend API to save email
-                const response = await fetch(`${API_ENDPOINT}/lead_sign_up`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: formState.email
-                    }),
-                });
-
-                if (!response.ok) {
+            // Start the API call in the background (non-blocking)
+            fetch(`${API_ENDPOINT}/lead_sign_up`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formState.email
+                }),
+            }).then(response => {
+                if (response.ok) {
+                    console.log('Lead signup successful');
+                } else {
                     console.log('Failed to write email to dynamodb table lead_sign_up', response);
                 }
-
-                const data = await response.json();
-                console.log('Lead signup successful:', data);
-                
-                setIsSubmitting(false);
-                setSubmitSuccess(true);
-                
-                // Redirect to careerlandinggroup.com after 2 seconds
-                setTimeout(() => {
-                    // Break out of iframe and redirect the parent window
-                    if (window.top && window.top !== window.self) {
-                        // We are in an iframe, redirect the parent
-                        window.top.location.href = 'https://www.careerlandinggroup.com/';
-                    } else {
-                        // We are not in an iframe, redirect normally
-                        window.location.href = 'https://www.careerlandinggroup.com/';
-                    }
-                }, 2000);
-                
-            } catch (error) {
+            }).catch(error => {
                 console.error('Error submitting lead signup:', error);
-                setIsSubmitting(false);
-                setFormErrors({ email: 'Failed to save email. Please try again.' });
-            }
+            });
+            
+            // Immediately show success and redirect (don't wait for API)
+            setIsSubmitting(false);
+            setSubmitSuccess(true);
+            
+            // Redirect to careerlandinggroup.com after 2 seconds
+            setTimeout(() => {
+                // Break out of iframe and redirect the parent window
+                if (window.top && window.top !== window.self) {
+                    // We are in an iframe, redirect the parent
+                    window.top.location.href = 'https://www.careerlandinggroup.com/';
+                } else {
+                    // We are not in an iframe, redirect normally
+                    window.location.href = 'https://www.careerlandinggroup.com/';
+                }
+            }, 2000);
         }
     };
 
