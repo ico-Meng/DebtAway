@@ -9,6 +9,7 @@ Description: >
 Globals:
   Function:
     Timeout: 60
+    MemorySize: 1024
     LoggingConfig:
       LogFormat: JSON
 
@@ -28,6 +29,8 @@ Parameters:
   ExperianSecret:
     Type: String
   OpenRouterApiKey:
+    Type: String
+  StripeSecretKey:
     Type: String
 
 
@@ -59,6 +62,22 @@ Resources:
             Resource:
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}"
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}/*"
+
+  #LeadEmailTable:
+  #  Type: AWS::DynamoDB::Table
+  #  Properties:
+  #    TableName: lead_email
+  #    BillingMode: PAY_PER_REQUEST
+  #    AttributeDefinitions:
+  #      - AttributeName: id
+  #        AttributeType: S
+  #    KeySchema:
+  #      - AttributeName: id
+  #        KeyType: HASH
+  #    SSESpecification:
+  #      SSEEnabled: true
+  #    PointInTimeRecoverySpecification:
+  #      PointInTimeRecoveryEnabled: true
  
   ApiGatewayApi:
       Type: AWS::Serverless::Api
@@ -67,7 +86,8 @@ Resources:
         Cors:
           AllowOrigin: "'*'"
           AllowMethods: "'OPTIONS,POST,GET'"
-          AllowHeaders: "'Content-Type,Authorization'"
+          #AllowHeaders: "'Content-Type,Authorization'"
+          AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
           AllowCredentials: "'true'"
         BinaryMediaTypes:  # ✅ Add binary media types
           - "audio/wav"
@@ -93,6 +113,8 @@ Resources:
             BucketName: !Ref ChatAiS3Bucket
         - S3WritePolicy:
             BucketName: !Ref ChatAiS3Bucket
+        #- DynamoDBCrudPolicy:
+        #    TableName: !Ref LeadEmailTable
         - AWSLambdaBasicExecutionRole
       Environment:
         Variables:
@@ -104,6 +126,7 @@ Resources:
           EXPERIAN_CLIENT_ID: !Ref ExperianClientId
           EXPERIAN_SECRET: !Ref ExperianSecret
           S3_BUCKET_NAME: !Ref ChatAiS3Bucket
+          STRIPE_SECRET_KEY: !Ref StripeSecretKey
           OPENROUTER_APIKEY: !Ref OpenRouterApiKey
 
   ApplicationResourceGroup:
