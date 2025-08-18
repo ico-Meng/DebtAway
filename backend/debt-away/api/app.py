@@ -400,9 +400,7 @@ async def lead_sign_up(request: Request):
             raise HTTPException(status_code=400, detail="Invalid email format")
         
         # Initialize DynamoDB client
-        # dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        dynamodb = boto3.resource(
-           'dynamodb', endpoint_url="http://host.docker.internal:8000")
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
         logger.info("Initializing DynamoDB connection")
         
         # Check if table exists, create if not

@@ -121,7 +121,14 @@ export default function LeadForm() {
                 
                 // Redirect to careerlandinggroup.com after 2 seconds
                 setTimeout(() => {
-                    window.location.href = 'https://www.careerlandinggroup.com/';
+                    // Break out of iframe and redirect the parent window
+                    if (window.top && window.top !== window.self) {
+                        // We are in an iframe, redirect the parent
+                        window.top.location.href = 'https://www.careerlandinggroup.com/';
+                    } else {
+                        // We are not in an iframe, redirect normally
+                        window.location.href = 'https://www.careerlandinggroup.com/';
+                    }
                 }, 2000);
                 
             } catch (error) {
