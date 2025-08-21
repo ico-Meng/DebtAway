@@ -7,7 +7,6 @@ import '../globals.css';
 import './global-override.css';
 import { API_ENDPOINT } from "@/app/components/config";
 
-// Add global styles to ensure proper rendering similar to flash-chat
 const globalStyles = `
   html, body {
     overflow-y: auto !important;
@@ -55,6 +54,7 @@ export default function LeadForm() {
     // Submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [showCloseNotification, setShowCloseNotification] = useState(false);
 
     // Handle form input changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,17 +120,10 @@ export default function LeadForm() {
             setIsSubmitting(false);
             setSubmitSuccess(true);
             
-            // Redirect to careerlandinggroup.com after 2 seconds
+            // Show close notification after 2 seconds
             setTimeout(() => {
-                // Break out of iframe and redirect the parent window
-                if (window.top && window.top !== window.self) {
-                    // We are in an iframe, redirect the parent
-                    window.top.location.href = 'https://www.careerlandinggroup.com/';
-                } else {
-                    // We are not in an iframe, redirect normally
-                    window.location.href = 'https://www.careerlandinggroup.com/';
-                }
-            }, 2000);
+                setShowCloseNotification(true);
+            }, 1500);
         }
     };
 
@@ -173,15 +166,66 @@ export default function LeadForm() {
                         background-color: #edece3 !important;
                         background-image: none !important;
                     }
+                    
+                    /* Prevent responsive changes - maintain desktop layout */
+                    @media (max-width: 768px) {
+                        * {
+                            min-width: unset !important;
+                        }
+                        
+                        .container, .main, .formContainer, .form, .formSection {
+                            width: auto !important;
+                            min-width: 400px !important;
+                            max-width: none !important;
+                            padding: inherit !important;
+                            margin: inherit !important;
+                            transform: none !important;
+                            flex-direction: column !important;
+                        }
+                        
+                        h1, h2, p, span, label, input, button {
+                            font-size: inherit !important;
+                            line-height: inherit !important;
+                            padding: inherit !important;
+                            margin: inherit !important;
+                            white-space: nowrap !important;
+                        }
+                        
+                        img {
+                            height: 40px !important;
+                            width: auto !important;
+                        }
+                        
+                        input[type="email"] {
+                            min-width: 300px !important;
+                        }
+                        
+                        button {
+                            min-width: 140px !important;
+                        }
+                        
+                        /* Align content below "Claim Career Boost Resources" with logo position */
+                        .formSection > *:not(h2) {
+                            margin-left: 52px !important; /* Logo width + gap (40px + 12px) */
+                        }
+                        
+                        .formSection hr {
+                            margin-left: 52px !important;
+                        }
+                        
+                        .formSection .formGroup {
+                            margin-left: 52px !important;
+                        }
+                    }
                 `}</style>
             </Head>
 
             <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>
-                        Claim Free Career Boosts
+                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 2, paddingBottom: 0, display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+                        <img src="/images/logo.svg" alt="Career Landing Group Logo" style={{ height: '40px', width: 'auto' }} />
+                        Career Landing Group
                     </h1>
-
                     {submitSuccess ? (
                         <div className={styles.successMessage} style={{ 
                             background: '#fff', 
@@ -201,61 +245,85 @@ export default function LeadForm() {
                                 </h2>
                             </div>
                             <p style={{ color: '#4a5568', fontSize: '1.08rem', marginBottom: 8, textAlign: 'center' }}>
-                                Thank you for subscribing! You'll receive updates and insights from Career Landing Group.
+                                Thank you for subscribing! You'll receive updates from Career Landing Group.
                             </p>
-                            <p style={{ color: '#4a5568', fontSize: '1.08rem', marginBottom: 16, textAlign: 'center' }}>
-                                Redirecting you to our main website
-                            </p>
-                            <div className={styles.loadingContainer}>
-                                <div className={styles.loadingDots}>
-                                    <div className={styles.dot}></div>
-                                    <div className={styles.dot}></div>
-                                    <div className={styles.dot}></div>
+                            {!showCloseNotification ? (
+                                <div className={styles.loadingContainer}>
+                                    <div className={styles.loadingDots}>
+                                        <div className={styles.dot}></div>
+                                        <div className={styles.dot}></div>
+                                        <div className={styles.dot}></div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div style={{ 
+                                    marginTop: '16px',
+                                    textAlign: 'center' as const
+                                }}>
+                                    <p style={{ 
+                                        color: '#16a34a', 
+                                        fontSize: '1.5rem', 
+                                        margin: 0,
+                                        fontWeight: 700,
+                                        animation: 'slideInFromBottom 0.5s ease-out'
+                                    }}>
+                                        Received!
+                                    </p>
+                                    <style jsx>{`
+                                        @keyframes slideInFromBottom {
+                                            0% {
+                                                transform: translateY(20px);
+                                                opacity: 0;
+                                            }
+                                            100% {
+                                                transform: translateY(0);
+                                                opacity: 1;
+                                            }
+                                        }
+                                    `}</style>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className={styles.form}>
                             <div className={styles.formSection}>
-                                <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>
-                                    Get Career Insights & Resources
+                                <h2 className={styles.sectionTitle} style={{ marginBottom: 16, marginTop: 4 }}>
+                                    Claim Career Boost Resources
                                 </h2>
                                 
-                                <div className={styles.noticeBox}>
-                                    Join our community to receive:
-                                    <br /><br />
-                                    <span className={styles.bulletLine}>
-                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
-                                            <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        Career development resources
-                                    </span><br />
-                                    <span className={styles.bulletLine}>
-                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
-                                            <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        Job market insights and trends
-                                    </span><br />
-                                    <span className={styles.bulletLine}>
-                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
-                                            <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        Invites to FREE 1-1 sessions
-                                    </span><br />
-                                    <span className={styles.bulletLine}>
-                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
-                                            <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        Promo codes for services
-                                    </span>
-                                </div>
+                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
+                                        <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    Career development resources
+                                </span><br />
+                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
+                                        <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    Job market insights and trends
+                                </span><br />
+                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
+                                        <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    Invites to <strong>FREE</strong> 1-on-1 session
+                                </span><br />
+                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
+                                        <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    <strong>30% OFF</strong> for career services
+                                </span>
 
+                                <hr style={{ border: 'none', borderTop: '1px solid #e2e2e2', margin: '24px 0 16px 0' }} />
+                                
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="email" className={styles.label}>
+                                    <label htmlFor="email" className={styles.label} style={{ marginLeft: '24px' }}>
                                         Email Address <span className={styles.required}>*</span>
                                     </label>
                                     <input
@@ -267,6 +335,7 @@ export default function LeadForm() {
                                         className={`${styles.input} ${formErrors.email ? styles.inputError : ''}`}
                                         placeholder="your.email@example.com"
                                         autoFocus
+                                        style={{ width: '320px', display: 'block', margin: '0 auto' }}
                                     />
                                     {formErrors.email && (
                                         <p className={styles.errorText}>{formErrors.email}</p>
@@ -277,6 +346,7 @@ export default function LeadForm() {
                                             type="submit"
                                             className={styles.submitButton}
                                             disabled={isSubmitting}
+                                            style={{ minWidth: '140px', width: 'auto' }}
                                         >
                                             {isSubmitting ? 'Subscribing...' : 'Subscribe'}
                                         </button>
