@@ -288,31 +288,31 @@ export default function LeadForm() {
                         <form onSubmit={handleSubmit} className={styles.form}>
                             <div className={styles.formSection}>
                                 <h2 className={styles.sectionTitle} style={{ marginBottom: 16, marginTop: 4 }}>
-                                    Claim Career Boost Resources
+                                    Claim Following Benefits
                                 </h2>
                                 
-                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                     Career development resources
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    Job market insights and trends
+                                    Join waitlist for resume review
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    Invites to <strong>FREE</strong> 1-on-1 session
+                                    Invite to <strong>FREE</strong> 1-on-1 session
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '44px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
