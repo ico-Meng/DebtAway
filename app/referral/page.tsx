@@ -477,7 +477,7 @@ export default function ReferralForm() {
                                         onChange={handleChange}
                                         className={`${styles.input} ${formErrors.email ? styles.inputError : ''}`}
                                         placeholder="your.email@example.com"
-                                        style={{ width: '320px', display: 'block', margin: '0 auto', backgroundColor: '#faf8f4' }}
+                                        style={{ width: '320px', display: 'block', margin: '0 auto', backgroundColor: '#ffffff' }}
                                     />
                                     {formErrors.email && (
                                         <p className={styles.errorText}>{formErrors.email}</p>

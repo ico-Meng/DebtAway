@@ -31,7 +31,7 @@ body.referral-page button {
 body.referral-page .form input[type="email"],
 body.referral-page .form input[type="text"],
 body.referral-page .form textarea {
-    background-color: #faf8f4 !important;
+    background-color: #ffffff !important;
     color: #333 !important;
     border: 1px solid #ddd !important;
 }
@@ -39,7 +39,7 @@ body.referral-page .form textarea {
 body.referral-page .form input[type="email"]:focus,
 body.referral-page .form input[type="text"]:focus,
 body.referral-page .form textarea:focus {
-    background-color: #faf8f4 !important;
+    background-color: #ffffff !important;
     color: #333 !important;
     border-color: #3B82F6 !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
