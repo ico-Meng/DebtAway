@@ -491,6 +491,74 @@ async def lead_sign_up(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+
+@app.post("/referral_application")
+async def referral_application(file: UploadFile = File(...), form_data: str = Form(...)):
+    try:
+        logger.info(f"Received referral application request")
+        
+        # Parse form data
+        form_data_json = json.loads(form_data)
+        email = form_data_json.get('email', '')
+        
+        logger.info(f"Processing referral application for ({email})")
+        
+        # Save file to S3 for later processing (non-blocking)
+        bucket_name = "career-landing-group"
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        base_submission_id = f"{email}-{current_date}"
+        client_uuid = str(uuid.uuid4())
+        submission_id = f"{base_submission_id}-{client_uuid}"
+        file_content = await file.read()
+        file_name = file.filename
+        object_key = f"referral/{submission_id}/{file_name}"
+        
+        async def upload_file_to_s3():
+            s3.put_object(
+                Bucket=bucket_name, 
+                Key=object_key,
+                Body=file_content, 
+                ContentType=file.content_type
+            )
+            logger.info(f"Resume file saved to S3: {object_key}")
+        asyncio.create_task(upload_file_to_s3())
+        
+        # Save client info JSON to S3 (non-blocking)
+        info_key = f"referral/{submission_id}/client_info.json"
+        client_info = {
+            "client_uuid": client_uuid,
+            "email": email,
+            "submission_id": submission_id,
+            "submission_date": current_date,
+            "file_name": file_name,
+            "resume_link": f"https://career-landing-group.s3.us-east-1.amazonaws.com/{object_key}"
+        }
+        client_info_json = json.dumps(client_info, indent=2)
+        
+        async def upload_client_info_to_s3():
+            s3.put_object(
+                Bucket=bucket_name,
+                Key=info_key,
+                Body=client_info_json,
+                ContentType="application/json"
+            )
+            logger.info(f"Client information saved to S3: {info_key}")
+        asyncio.create_task(upload_client_info_to_s3())
+        
+        logger.info(f"Referral application processed successfully for ({email})")
+        
+        return {
+            "status": "success",
+            "message": "Referral application submitted successfully",
+            "submission_id": submission_id,
+            "client_uuid": client_uuid
+        }
+    except Exception as e:
+        logger.error(f"Error in referral application: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error processing referral application: {str(e)}")
+
 '''
 import os
 import plaid
@@ -944,6 +1012,8 @@ async def upload_document(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+
 
 
 @app.post("/lead_sign_up")
