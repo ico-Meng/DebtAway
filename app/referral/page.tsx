@@ -439,7 +439,7 @@ export default function ReferralForm() {
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    Top tier comapnies and hot startups
+                                    Target top tier company referrals
                                 </span><br />
                                 <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
