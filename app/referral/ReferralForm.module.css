@@ -100,6 +100,7 @@
     color: #333;
     margin-bottom: 0.5rem;
     text-align: left;
+    background-color: #9B6A10;
 }
 
 .input {
@@ -110,7 +111,7 @@
     font-size: 1rem;
     border: 1px solid #ddd;
     border-radius: 7px;
-    background-color: white;
+    background-color: #9B6A10;
     transition: border-color 0.2s ease;
     text-align: center;
 }
@@ -284,6 +285,7 @@
     cursor: pointer;
     transition: border-color 0.2s, background-color 0.2s;
     margin-bottom: 1rem;
+    background-color: #faf8f4;
 }
 
 .dropzone:hover, .dropzoneActive {

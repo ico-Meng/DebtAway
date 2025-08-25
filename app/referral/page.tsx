@@ -369,10 +369,6 @@ export default function ReferralForm() {
 
             <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 2, paddingBottom: 0, display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
-                        <img src="/images/logo.svg" alt="Career Landing Group Logo" style={{ height: '40px', width: 'auto' }} />
-                        Career Landing Group
-                    </h1>
                     {submitSuccess ? (
                         <div className={styles.successMessage} style={{ 
                             background: '#fff', 
@@ -438,28 +434,28 @@ export default function ReferralForm() {
                                     Company Referral Opportunity
                                 </h2>
                                 
-                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                     Top tier comapnies and hot startups
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                     Available roles: SDE, DS/DA, AI/ML
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                     Based on resume and experience
                                 </span><br />
-                                <span className={styles.bulletLine} style={{ marginLeft: '30px' }}>
+                                <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -481,7 +477,7 @@ export default function ReferralForm() {
                                         onChange={handleChange}
                                         className={`${styles.input} ${formErrors.email ? styles.inputError : ''}`}
                                         placeholder="your.email@example.com"
-                                        style={{ width: '320px', display: 'block', margin: '0 auto' }}
+                                        style={{ width: '320px', display: 'block', margin: '0 auto', backgroundColor: '#faf8f4' }}
                                     />
                                     {formErrors.email && (
                                         <p className={styles.errorText}>{formErrors.email}</p>
@@ -501,7 +497,7 @@ export default function ReferralForm() {
                                         onDragLeave={handleDrag}
                                         onDrop={handleDrop}
                                         onClick={() => fileInputRef.current?.click()}
-                                        style={{ width: '320px', margin: '8px auto' }}
+                                        style={{ width: '320px', margin: '8px auto', }}
                                     >
                                         <div className={styles.dropzoneIcon}>
                                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -577,6 +573,23 @@ export default function ReferralForm() {
                             </div>
                         </form>
                     )}
+                    
+                    {/* Career Landing Group branding at bottom */}
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        backgroundColor: '#ffffff',
+                        borderTop: '1px solid #eee',
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: 'bold'
+                    }}>
+                        <img src="/images/logo.svg" alt="Career Landing Group Logo" style={{ height: '24px', width: 'auto' }} />
+                        Career Landing Group
+                    </div>
                 </div>
             </main>
         </div>

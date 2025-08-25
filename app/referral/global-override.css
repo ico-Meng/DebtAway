@@ -13,17 +13,25 @@ body.referral-page {
 
 body.referral-page input,
 body.referral-page select,
-body.referral-page textarea,
-body.referral-page button,
-body.referral-page label {
+body.referral-page textarea {
     background-color: #ffffff !important;
     color: #333 !important;
+}
+
+body.referral-page label {
+    background-color: #faf8f4 !important;
+    color: #333 !important;
+}
+
+body.referral-page button {
+    background-color: #9B6A10 !important;
+    color: white !important;
 }
 
 body.referral-page .form input[type="email"],
 body.referral-page .form input[type="text"],
 body.referral-page .form textarea {
-    background-color: #ffffff !important;
+    background-color: #faf8f4 !important;
     color: #333 !important;
     border: 1px solid #ddd !important;
 }
@@ -31,7 +39,7 @@ body.referral-page .form textarea {
 body.referral-page .form input[type="email"]:focus,
 body.referral-page .form input[type="text"]:focus,
 body.referral-page .form textarea:focus {
-    background-color: #ffffff !important;
+    background-color: #faf8f4 !important;
     color: #333 !important;
     border-color: #3B82F6 !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
