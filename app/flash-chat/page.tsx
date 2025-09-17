@@ -685,11 +685,11 @@ export default function FlashChatForm() {
                                         </span><br />
                                         <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                            Live or asynchronous communication;
+                                            Live communication or schedule a call with your coach;
                                         </span><br />
                                         <span className={styles.bulletLine}>
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#e3c57c"/><path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                            Send us your career questions, our experts will get back to you within 12 hours.
+                                            On-demand guidance and insights from your dedicated career coach.
                                         </span>
                                     </div>
                                     <div className={styles.navButtonsRight}>

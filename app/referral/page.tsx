@@ -431,7 +431,7 @@ export default function ReferralForm() {
                         <form onSubmit={handleSubmit} className={styles.form}>
                             <div className={styles.formSection}>
                                 <h2 className={styles.sectionTitle} style={{ marginBottom: 16, marginTop: 4 }}>
-                                    Company Referral Opportunity
+                                    Career Coaching Opportunity
                                 </h2>
                                 
                                 <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
@@ -439,7 +439,7 @@ export default function ReferralForm() {
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    Target top tier company referrals
+                                    Top company and FAANG experts
                                 </span><br />
                                 <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
@@ -453,14 +453,14 @@ export default function ReferralForm() {
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    Based on resume and experience
+                                    <strong>30% OFF</strong>limited time offer
                                 </span><br />
                                 <span className={styles.bulletLine} style={{ marginLeft: '20px' }}>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle' }} xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="8" cy="8" r="8" fill="#e3c57c"/>
                                         <path d="M5 8.5L7 10.5L11 6.5" stroke="#3a3a3a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
-                                    <strong>FREE</strong> service & limited time offer
+                                    <strong>FREE</strong> call for career coaching
                                 </span>
 
                                 <hr style={{ border: 'none', borderTop: '1px solid #e2e2e2', margin: '24px 0 16px 0' }} />
