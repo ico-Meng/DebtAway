@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from "react";
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
 import {
     Button,
     Table,

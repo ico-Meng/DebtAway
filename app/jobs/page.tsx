@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import Head from 'next/head';
 import { useSearchParams } from 'next/navigation';
 import styles from './JobsForm.module.css';
 import '../globals.css';
 import './global-override.css';
 import { API_ENDPOINT } from "@/app/components/config";
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
 
 // Add global styles to ensure proper rendering
 const globalStyles = `
@@ -96,7 +99,8 @@ const JOB_POSITIONS = [
     "Data Scientist"
 ];
 
-export default function JobsForm() {
+// Component that handles search params
+function JobsFormWithParams() {
     const searchParams = useSearchParams();
     const roleParam = searchParams.get('role');
     
@@ -107,6 +111,12 @@ export default function JobsForm() {
         }
         return "Full Stack Software Engineer";
     };
+
+    return <JobsFormContent defaultPosition={getDefaultPosition()} />;
+}
+
+// Main form component
+function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
 
     // Form state
     const [formState, setFormState] = useState<JobFormState>({
@@ -121,7 +131,7 @@ export default function JobsForm() {
         githubUrl: '',
         portfolioUrl: '',
         websiteUrl: '',
-        selectedPosition: getDefaultPosition()
+        selectedPosition: defaultPosition
     });
 
     // Form validation errors
@@ -1320,5 +1330,14 @@ export default function JobsForm() {
                 </div>
             </main>
         </div>
+    );
+}
+
+// Default export with Suspense wrapper
+export default function JobsForm() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <JobsFormWithParams />
+        </Suspense>
     );
 }

@@ -7,6 +7,9 @@ import '../globals.css';
 import './global-override.css';
 import { API_ENDPOINT } from "@/app/components/config";
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 // Add global styles to ensure proper rendering
 const globalStyles = `
   html, body {

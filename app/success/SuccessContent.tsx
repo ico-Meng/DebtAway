@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './success.module.css';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 export default function SuccessContent() {
     const [isAnimating, setIsAnimating] = useState(false);
     const [email, setEmail] = useState('');
