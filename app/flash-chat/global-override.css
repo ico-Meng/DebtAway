@@ -64,11 +64,33 @@ div[class*="wrapper"] {
 input, 
 select, 
 textarea, 
-button,
+button:not(.submitButton),
 label,
 [class*="formContainer"],
 [class*="form-"] {
   background-color: initial;  /* Remove our override */
+}
+
+/* Ensure submit buttons keep their proper color */
+.submitButton,
+button.submitButton,
+[class*="submitButton"] {
+  background-color: #9B6A10 !important;
+  color: white !important;
+}
+
+.submitButton:hover,
+button.submitButton:hover,
+[class*="submitButton"]:hover {
+  background-color: #9B6A10 !important;
+  box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+}
+
+.submitButton:disabled,
+button.submitButton:disabled,
+[class*="submitButton"]:disabled {
+  background-color: #ccc !important;
+  color: white !important;
 }
 
 /* Ensure form container and title have white backgrounds */

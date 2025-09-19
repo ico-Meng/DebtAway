@@ -23,9 +23,30 @@ const globalStyles = `
     overflow-x: hidden;
   }
   
-  input, select, textarea, button, label {
+  input, select, textarea, button:not(.submitButton), label {
     background-color: #edece3 !important;
     color: #333 !important;
+  }
+  
+  .submitButton,
+  button.submitButton,
+  button[class*="submitButton"] {
+    background-color: #9B6A10 !important;
+    color: white !important;
+  }
+  
+  .submitButton:hover,
+  button.submitButton:hover,
+  button[class*="submitButton"]:hover {
+    background-color: #9B6A10 !important;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+  }
+  
+  .submitButton:disabled,
+  button.submitButton:disabled,
+  button[class*="submitButton"]:disabled {
+    background-color: #ccc !important;
+    color: white !important;
   }
   
   body.flash-chat-page {
