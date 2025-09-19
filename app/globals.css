@@ -51,7 +51,7 @@ body {
 }
 
 /* Form-specific overrides */
-input, select, textarea, button {
+input, select, textarea, button:not(.submitButton) {
   background-color: #ffffff;
   color: #333;
 }

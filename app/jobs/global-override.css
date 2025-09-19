@@ -1,0 +1,83 @@
+/* Global CSS overrides for Jobs page */
+
+/* Ensure background consistency */
+html,
+body {
+    background: #edece3 !important;
+    background-color: #edece3 !important;
+}
+
+/* Override any conflicting styles */
+.jobs-page {
+    background: #edece3 !important;
+    background-color: #edece3 !important;
+    background-image: none !important;
+}
+
+/* Form element styling consistency */
+.jobs-page input,
+.jobs-page select,
+.jobs-page textarea,
+.jobs-page button:not(.submitButton),
+.jobs-page label {
+    background-color: #ffffff !important;
+    color: #333 !important;
+}
+
+/* Submit button specific styling */
+.jobs-page .submitButton,
+.jobs-page button.submitButton,
+button.submitButton,
+button[class*="submitButton"],
+.jobs-page button[class*="submitButton"],
+button[class*="submitButton"]:not(:hover):not(:disabled) {
+    background-color: #9B6A10 !important;
+    color: white !important;
+    border: none !important;
+}
+
+.jobs-page .submitButton:hover,
+.jobs-page button.submitButton:hover,
+button.submitButton:hover,
+button[class*="submitButton"]:hover {
+    background-color: #9B6A10 !important;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+}
+
+.jobs-page .submitButton:disabled,
+.jobs-page button.submitButton:disabled,
+button.submitButton:disabled,
+button[class*="submitButton"]:disabled {
+    background-color: #ccc !important;
+    color: white !important;
+}
+
+/* Ensure dropdown menus have proper background */
+.jobs-page .dropdown-options,
+.jobs-page .custom-dropdown {
+    background-color: #ffffff !important;
+}
+
+/* Form container styling */
+.jobs-page .form-container {
+    background-color: #ffffff !important;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* CRITICAL: Force submit button background color */
+button[class*="submitButton"] {
+    background-color: #9B6A10 !important;
+    color: white !important;
+    border: none !important;
+}
+
+button[class*="submitButton"]:hover {
+    background-color: #9B6A10 !important;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+}
+
+button[class*="submitButton"]:disabled {
+    background-color: #ccc !important;
+    color: white !important;
+}
