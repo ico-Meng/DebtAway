@@ -762,12 +762,14 @@ export default function AlphaPage() {
         if (backgroundDot.empty()) {
             backgroundDot = g.append('circle')
                 .attr('class', 'progress-dot background-dot')
+                .attr('cx', backgroundPoint[0])
+                .attr('cy', backgroundPoint[1])
                 .attr('r', 0)
                 .attr('fill', '#ff6b6b')
                 .attr('stroke', '#ff4757')
                 .attr('stroke-width', 2)
                 .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
-            
+
             backgroundDot
                 .transition()
                 .duration(600)
@@ -775,41 +777,14 @@ export default function AlphaPage() {
                 .attr('r', 6)
                 .attr('opacity', 1);
         } else {
-            // Move existing dot to new position with ultra-smooth animation
+            // Move existing dot to new position with smooth animation
             backgroundDot
                 .transition()
-                .duration(1800)
-                .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                .duration(800)
+                .ease(d3.easeQuadInOut)
                 .attr('cx', backgroundPoint[0])
-                .attr('cy', backgroundPoint[1])
-                .on('start', function() {
-                    // Add enhanced glow and scale effect during movement
-                    const dot = d3.select(this);
-                    dot.transition()
-                        .duration(300)
-                        .attr('r', 10)
-                        .attr('opacity', 0.9)
-                        .transition()
-                        .duration(300)
-                        .attr('r', 6)
-                        .attr('opacity', 1);
-                })
-                .on('end', function() {
-                    // Add a subtle "settle" effect when movement completes
-                    const dot = d3.select(this);
-                    dot.transition()
-                        .duration(400)
-                        .ease(d3.easeBounceOut)
-                        .attr('r', 7)
-                        .transition()
-                        .duration(400)
-                        .ease(d3.easeBounceOut)
-                        .attr('r', 6);
-                });
+                .attr('cy', backgroundPoint[1]);
         }
-        
-        // Set final position for new dots
-        backgroundDot.attr('cx', backgroundPoint[0]).attr('cy', backgroundPoint[1]);
 
 
         // Update or create Job Match dot (don't remove existing)
@@ -817,12 +792,14 @@ export default function AlphaPage() {
         if (jobMatchDot.empty()) {
             jobMatchDot = g.append('circle')
                 .attr('class', 'progress-dot jobmatch-dot')
+                .attr('cx', jobMatchPoint[0])
+                .attr('cy', jobMatchPoint[1])
                 .attr('r', 0)
                 .attr('fill', '#3742fa')
                 .attr('stroke', '#2f3542')
                 .attr('stroke-width', 2)
                 .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
-            
+
             jobMatchDot
                 .transition()
                 .duration(600)
@@ -831,41 +808,14 @@ export default function AlphaPage() {
                 .attr('r', 6)
                 .attr('opacity', 1);
         } else {
-            // Move existing dot to new position with ultra-smooth animation
+            // Move existing dot to new position with smooth animation
             jobMatchDot
                 .transition()
-                .duration(1800)
-                .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                .duration(800)
+                .ease(d3.easeQuadInOut)
                 .attr('cx', jobMatchPoint[0])
-                .attr('cy', jobMatchPoint[1])
-                .on('start', function() {
-                    // Add enhanced glow and scale effect during movement
-                    const dot = d3.select(this);
-                    dot.transition()
-                        .duration(300)
-                        .attr('r', 10)
-                        .attr('opacity', 0.9)
-                        .transition()
-                        .duration(300)
-                        .attr('r', 6)
-                        .attr('opacity', 1);
-                })
-                .on('end', function() {
-                    // Add a subtle "settle" effect when movement completes
-                    const dot = d3.select(this);
-                    dot.transition()
-                        .duration(400)
-                        .ease(d3.easeBounceOut)
-                        .attr('r', 7)
-                        .transition()
-                        .duration(400)
-                        .ease(d3.easeBounceOut)
-                        .attr('r', 6);
-                });
+                .attr('cy', jobMatchPoint[1]);
         }
-        
-        // Set final position for new dots
-        jobMatchDot.attr('cx', jobMatchPoint[0]).attr('cy', jobMatchPoint[1]);
 
 
         // Update or create Education and Professional dots if education fields are filled
@@ -917,6 +867,8 @@ export default function AlphaPage() {
             if (educationDot.empty()) {
                 educationDot = g.append('circle')
                     .attr('class', 'education-dot')
+                    .attr('cx', educationPoint[0])
+                    .attr('cy', educationPoint[1])
                     .attr('r', 0)
                     .attr('fill', '#4ecdc4')
                     .attr('stroke', '#2c3e50')
@@ -931,41 +883,14 @@ export default function AlphaPage() {
                     .attr('r', 6)
                     .attr('opacity', 1);
             } else {
-                // Move existing dot to new position with ultra-smooth animation
+                // Move existing dot to new position with smooth animation
                 educationDot
                     .transition()
-                    .duration(1800)
-                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
                     .attr('cx', educationPoint[0])
-                    .attr('cy', educationPoint[1])
-                    .on('start', function() {
-                        // Add enhanced glow and scale effect during movement
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(300)
-                            .attr('r', 10)
-                            .attr('opacity', 0.9)
-                            .transition()
-                            .duration(300)
-                            .attr('r', 6)
-                            .attr('opacity', 1);
-                    })
-                    .on('end', function() {
-                        // Add a subtle "settle" effect when movement completes
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 7)
-                            .transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 6);
-                    });
+                    .attr('cy', educationPoint[1]);
             }
-            
-            // Set final position for new dots
-            educationDot.attr('cx', educationPoint[0]).attr('cy', educationPoint[1]);
 
 
             // Update or create Professional dot (don't remove existing)
@@ -973,6 +898,8 @@ export default function AlphaPage() {
             if (professionalDot.empty()) {
                 professionalDot = g.append('circle')
                     .attr('class', 'professional-dot')
+                    .attr('cx', professionalPoint[0])
+                    .attr('cy', professionalPoint[1])
                     .attr('r', 0)
                     .attr('fill', '#e74c3c')
                     .attr('stroke', '#c0392b')
@@ -987,52 +914,25 @@ export default function AlphaPage() {
                     .attr('r', 6)
                     .attr('opacity', 1);
             } else {
-                // Move existing dot to new position with ultra-smooth animation
+                // Move existing dot to new position with smooth animation
                 professionalDot
                     .transition()
-                    .duration(1800)
-                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
                     .attr('cx', professionalPoint[0])
-                    .attr('cy', professionalPoint[1])
-                    .on('start', function() {
-                        // Add enhanced glow and scale effect during movement
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(300)
-                            .attr('r', 10)
-                            .attr('opacity', 0.9)
-                            .transition()
-                            .duration(300)
-                            .attr('r', 6)
-                            .attr('opacity', 1);
-                    })
-                    .on('end', function() {
-                        // Add a subtle "settle" effect when movement completes
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 7)
-                            .transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 6);
-                    });
+                    .attr('cy', professionalPoint[1]);
             }
-            
-            // Set final position for new dots
-            professionalDot.attr('cx', professionalPoint[0]).attr('cy', professionalPoint[1]);
 
 
-            // Add pulsing effect to education and professional dots
-            const addPulse = (dot: any) => {
+            // Add subtle pulsing effect to education and professional dots
+            const addSubtlePulse = (dot: any) => {
                 const pulse = () => {
                     dot.transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
-                        .attr('r', 8)
+                        .attr('r', 7)
                         .transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
                         .attr('r', 6)
                         .on('end', () => {
@@ -1043,12 +943,12 @@ export default function AlphaPage() {
                 };
 
                 // Start pulsing after initial animation
-                setTimeout(pulse, 1000);
+                setTimeout(pulse, 1500);
             };
 
-            // Add pulsing to education and professional dots
-            addPulse(educationDot);
-            addPulse(professionalDot);
+            // Add subtle pulsing to education and professional dots
+            addSubtlePulse(educationDot);
+            addSubtlePulse(professionalDot);
         } else {
             // Safely remove education and professional dots if no education data
             const educationDotsToRemove = g.selectAll('.education-dot, .professional-dot');
@@ -1084,6 +984,8 @@ export default function AlphaPage() {
             if (techSkillsDot.empty()) {
                 techSkillsDot = g.append('circle')
                     .attr('class', 'tech-skills-dot')
+                    .attr('cx', techSkillsPoint[0])
+                    .attr('cy', techSkillsPoint[1])
                     .attr('r', 0)
                     .attr('fill', '#f39c12')
                     .attr('stroke', '#e67e22')
@@ -1098,51 +1000,24 @@ export default function AlphaPage() {
                     .attr('r', 6)
                     .attr('opacity', 1);
             } else {
-                // Move existing dot to new position with ultra-smooth animation
+                // Move existing dot to new position with smooth animation
                 techSkillsDot
                     .transition()
-                    .duration(1800)
-                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
                     .attr('cx', techSkillsPoint[0])
-                    .attr('cy', techSkillsPoint[1])
-                    .on('start', function() {
-                        // Add enhanced glow and scale effect during movement
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(300)
-                            .attr('r', 10)
-                            .attr('opacity', 0.9)
-                            .transition()
-                            .duration(300)
-                            .attr('r', 6)
-                            .attr('opacity', 1);
-                    })
-                    .on('end', function() {
-                        // Add a subtle "settle" effect when movement completes
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 7)
-                            .transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 6);
-                    });
+                    .attr('cy', techSkillsPoint[1]);
             }
-            
-            // Set final position for new dots
-            techSkillsDot.attr('cx', techSkillsPoint[0]).attr('cy', techSkillsPoint[1]);
 
-            // Add pulsing effect to tech skills dot
-            const addTechSkillsPulse = (dot: any) => {
+            // Add subtle pulsing effect to tech skills dot
+            const addTechSkillsSubtlePulse = (dot: any) => {
                 const pulse = () => {
                     dot.transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
-                        .attr('r', 8)
+                        .attr('r', 7)
                         .transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
                         .attr('r', 6)
                         .on('end', () => {
@@ -1153,11 +1028,11 @@ export default function AlphaPage() {
                 };
 
                 // Start pulsing after initial animation
-                setTimeout(pulse, 1200);
+                setTimeout(pulse, 1700);
             };
 
-            // Add pulsing to tech skills dot
-            addTechSkillsPulse(techSkillsDot);
+            // Add subtle pulsing to tech skills dot
+            addTechSkillsSubtlePulse(techSkillsDot);
         } else {
             // Safely remove tech skills dot if no skills data
             const techSkillsDotsToRemove = g.selectAll('.tech-skills-dot');
@@ -1193,6 +1068,8 @@ export default function AlphaPage() {
             if (teamworkDot.empty()) {
                 teamworkDot = g.append('circle')
                     .attr('class', 'teamwork-dot')
+                    .attr('cx', teamworkPoint[0])
+                    .attr('cy', teamworkPoint[1])
                     .attr('r', 0)
                     .attr('fill', '#8e44ad')
                     .attr('stroke', '#9b59b6')
@@ -1207,51 +1084,24 @@ export default function AlphaPage() {
                     .attr('r', 6)
                     .attr('opacity', 1);
             } else {
-                // Move existing dot to new position with ultra-smooth animation
+                // Move existing dot to new position with smooth animation
                 teamworkDot
                     .transition()
-                    .duration(1800)
-                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
                     .attr('cx', teamworkPoint[0])
-                    .attr('cy', teamworkPoint[1])
-                    .on('start', function() {
-                        // Add enhanced glow and scale effect during movement
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(300)
-                            .attr('r', 10)
-                            .attr('opacity', 0.9)
-                            .transition()
-                            .duration(300)
-                            .attr('r', 6)
-                            .attr('opacity', 1);
-                    })
-                    .on('end', function() {
-                        // Add a subtle "settle" effect when movement completes
-                        const dot = d3.select(this);
-                        dot.transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 7)
-                            .transition()
-                            .duration(400)
-                            .ease(d3.easeBounceOut)
-                            .attr('r', 6);
-                    });
+                    .attr('cy', teamworkPoint[1]);
             }
-            
-            // Set final position for new dots
-            teamworkDot.attr('cx', teamworkPoint[0]).attr('cy', teamworkPoint[1]);
 
-            // Add pulsing effect to teamwork dot
-            const addTeamworkPulse = (dot: any) => {
+            // Add subtle pulsing effect to teamwork dot
+            const addTeamworkSubtlePulse = (dot: any) => {
                 const pulse = () => {
                     dot.transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
-                        .attr('r', 8)
+                        .attr('r', 7)
                         .transition()
-                        .duration(1000)
+                        .duration(2000)
                         .ease(d3.easeSinInOut)
                         .attr('r', 6)
                         .on('end', () => {
@@ -1262,35 +1112,35 @@ export default function AlphaPage() {
                 };
 
                 // Start pulsing after initial animation
-                setTimeout(pulse, 1400);
+                setTimeout(pulse, 1900);
             };
 
-            // Add pulsing to teamwork dot
-            addTeamworkPulse(teamworkDot);
+            // Add subtle pulsing to teamwork dot
+            addTeamworkSubtlePulse(teamworkDot);
         } else {
             // Safely remove teamwork dot if no work experience data
             const teamworkDotsToRemove = g.selectAll('.teamwork-dot');
             safeRemove(teamworkDotsToRemove);
         }
 
-        // Create comprehensive shape that covers all visible dots and center
-        // Collect all visible dot positions
-        let allDotPoints: [number, number][] = [];
-        
-        // Always include Background and Job Match
-        allDotPoints.push(backgroundPoint);
-        allDotPoints.push(jobMatchPoint);
-        
+        // Create comprehensive shape that encloses all visible dots
+        // Collect all visible dot positions with their proper hexagon indices
+        const dotPositions: { point: [number, number], index: number }[] = [];
+
+        // Always include Background (index 0) and Job Match (index 5)
+        dotPositions.push({ point: backgroundPoint, index: 0 });
+        dotPositions.push({ point: jobMatchPoint, index: 5 });
+
         // Add Education and Professional dots if education data exists
         if (hasEducationData) {
             // Calculate education and professional positions
             const baseEducationLevel = 1.0;
             const maxEducationLevel = 2.5;
             const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
-            
+
             const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
             let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9);
-            
+
             // Professional gets additional boost from skills and work experience data
             if (hasSkillsData) {
                 const skillsBoost = filledSkillsFields.length * 0.15;
@@ -1300,7 +1150,7 @@ export default function AlphaPage() {
                 const workExperienceBoost = filledWorkExperienceFields.length * 0.2;
                 professionalLevel += workExperienceBoost;
             }
-            
+
             const educationAngle = angleSlice * 1 - Math.PI / 2;
             const professionalAngle = angleSlice * 2 - Math.PI / 2;
             const educationRadius = (educationLevel / maxValue) * radius;
@@ -1314,84 +1164,81 @@ export default function AlphaPage() {
                 Math.cos(professionalAngle) * professionalRadius,
                 Math.sin(professionalAngle) * professionalRadius
             ];
-            
-            allDotPoints.push(educationPoint);
-            allDotPoints.push(professionalPoint);
+
+            dotPositions.push({ point: educationPoint, index: 1 });
+            dotPositions.push({ point: professionalPoint, index: 2 });
         }
-        
+
         // Add Tech Skills dot if skills data exists
         if (hasSkillsData) {
             const baseTechSkillsLevel = 1.0;
             const maxTechSkillsLevel = 2.8;
             const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
             const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
-            
+
             const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
             const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
-            
+
             const techSkillsPoint: [number, number] = [
                 Math.cos(techSkillsAngle) * techSkillsRadius,
                 Math.sin(techSkillsAngle) * techSkillsRadius
             ];
-            
-            allDotPoints.push(techSkillsPoint);
+
+            dotPositions.push({ point: techSkillsPoint, index: 3 });
         }
-        
+
         // Add Teamwork dot if work experience data exists
         if (hasWorkExperienceData) {
             const baseTeamworkLevel = 1.0;
             const maxTeamworkLevel = 2.6;
             const teamworkProgressPerField = (maxTeamworkLevel - baseTeamworkLevel) / workExperienceFields.length;
             const teamworkLevel = baseTeamworkLevel + (filledWorkExperienceFields.length * teamworkProgressPerField);
-            
+
             const teamworkAngle = angleSlice * 4 - Math.PI / 2;
             const teamworkRadius = (teamworkLevel / maxValue) * radius;
-            
+
             const teamworkPoint: [number, number] = [
                 Math.cos(teamworkAngle) * teamworkRadius,
                 Math.sin(teamworkAngle) * teamworkRadius
             ];
-            
-            allDotPoints.push(teamworkPoint);
+
+            dotPositions.push({ point: teamworkPoint, index: 4 });
         }
-        
-        // Sort points by angle to create proper polygon
-        const sortedDotPoints = allDotPoints.sort((a, b) => {
-            const angleA = Math.atan2(a[1], a[0]);
-            const angleB = Math.atan2(b[1], b[0]);
-            return angleA - angleB;
-        });
-        
-        // Create shape based on number of dots
-        let trianglePoints: [number, number][];
-        
-        if (allDotPoints.length === 2) {
+
+        // Sort dots by their hexagon index to maintain proper order
+        dotPositions.sort((a, b) => a.index - b.index);
+
+        // Extract the points in correct order
+        const orderedDotPoints = dotPositions.map(dp => dp.point);
+
+        // Create shape that connects all dots and encloses center area
+        let shapePoints: [number, number][];
+
+        if (orderedDotPoints.length === 2) {
             // With only 2 dots, create a triangle using the 2 dots + center point
-            trianglePoints = [
+            shapePoints = [
                 [0, 0], // Center point
-                sortedDotPoints[0],
-                sortedDotPoints[1]
+                orderedDotPoints[0],
+                orderedDotPoints[1]
             ];
         } else {
-            // With 3+ dots, connect only the dots themselves (no center vertex)
-            // This creates a proper polygon that naturally encloses the center area
-            trianglePoints = sortedDotPoints;
+            // With 3+ dots, create a proper polygon connecting all dots
+            // This naturally encloses the center area and defines the shape by the dots
+            shapePoints = orderedDotPoints;
         }
 
-        // Points are already properly sorted and arranged
-
-        // Create line generator for triangle
+        // Create line generator for the shape
         const line = d3.line<[number, number]>()
             .x(d => d[0])
             .y(d => d[1])
             .curve(d3.curveLinearClosed);
 
-        // Update existing triangle or create new one if it doesn't exist
-        let triangle = g.select<SVGPathElement>('.progress-triangle');
-        
-        if (triangle.empty()) {
-            // Create triangle for the first time
-            triangle = g.append('path')
+        // Update existing shape or create new one
+        let progressShape = g.select<SVGPathElement>('.progress-triangle');
+
+        if (progressShape.empty()) {
+            // Create shape for the first time
+            progressShape = g.append('path')
                 .attr('class', 'progress-triangle')
                 .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
                 .attr('stroke', '#CFAEE8')
@@ -1401,19 +1248,19 @@ export default function AlphaPage() {
                 .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
             // Initial appearance animation
-            triangle
-                .datum(trianglePoints)
+            progressShape
+                .datum(shapePoints)
                 .attr('d', line)
                 .transition()
-                .duration(2000)
+                .duration(1000)
                 .delay(400)
-                .ease(d3.easeElasticOut.amplitude(0.8).period(0.4))
+                .ease(d3.easeBackOut.overshoot(1.1))
                 .attr('opacity', 0.7)
                 .style('transform', 'scale(1)');
         } else {
-            // Smoothly transition existing triangle to new shape
-            triangle
-                .datum(trianglePoints)
+            // Smoothly transition existing shape to new configuration
+            progressShape
+                .datum(shapePoints)
                 .transition()
                 .duration(800)
                 .ease(d3.easeQuadInOut)
@@ -1421,47 +1268,31 @@ export default function AlphaPage() {
                 .attr('opacity', 0.7);
         }
 
-        // Add elegant pulsing effect to dots
-        const addPulse = (dot: any) => {
+        // Add gentle pulsing effect to main dots
+        const addGentlePulse = (dot: any) => {
             const pulse = () => {
                 dot.transition()
-                    .duration(1500)
+                    .duration(2500)
                     .ease(d3.easeSinInOut)
-                    .attr('r', 9)
+                    .attr('r', 7)
                     .transition()
-                    .duration(1500)
+                    .duration(2500)
                     .ease(d3.easeSinInOut)
                     .attr('r', 6)
                     .on('end', () => {
-                        if (g.select('.progress-dot, .education-dot, .professional-dot').node()) {
+                        if (g.select('.progress-dot, .background-dot, .jobmatch-dot').node()) {
                             pulse(); // Continue pulsing if elements still exist
                         }
                     });
             };
 
             // Start pulsing after initial animation
-            setTimeout(pulse, 1800);
+            setTimeout(pulse, 2000);
         };
 
-        // Add pulsing to dots
-        addPulse(backgroundDot);
-        addPulse(jobMatchDot);
-        
-        // Add pulsing to tech skills dot if it exists
-        if (hasSkillsData) {
-            const techSkillsDot = g.select('.tech-skills-dot');
-            if (!techSkillsDot.empty()) {
-                addPulse(techSkillsDot);
-            }
-        }
-        
-        // Add pulsing to teamwork dot if it exists
-        if (hasWorkExperienceData) {
-            const teamworkDot = g.select('.teamwork-dot');
-            if (!teamworkDot.empty()) {
-                addPulse(teamworkDot);
-            }
-        }
+        // Add gentle pulsing to main dots
+        addGentlePulse(backgroundDot);
+        addGentlePulse(jobMatchDot);
     };
 
 
@@ -1683,7 +1514,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Target Job</h2>
+                                <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Background</h2>
 
                                 <div className={styles.inputGroup}>
                                     <label htmlFor="targetJob" className={styles.label}>
