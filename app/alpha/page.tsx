@@ -92,27 +92,135 @@ export default function AlphaPage() {
     const levels = 5;
     const angleSlice = (Math.PI * 2) / labels.length;
 
-    // ProgressBar component
+    // Ultra Enhanced ProgressBar component with smooth growing animations
     function ProgressBar({ step, totalSteps }: { step: number, totalSteps: number }) {
         const targetPercent = Math.round(((step - 1) / (totalSteps - 1)) * 100);
         const [displayPercent, setDisplayPercent] = useState(targetPercent);
+        const [barWidth, setBarWidth] = useState(targetPercent);
+        const [isAnimating, setIsAnimating] = useState(false);
+        const [showSparkles, setShowSparkles] = useState(false);
+        const [showFireworks, setShowFireworks] = useState(false);
+        const [showWave, setShowWave] = useState(false);
+        const [bounceEffect, setBounceEffect] = useState(false);
+        
+        // Handle smooth bar width animation
+        useEffect(() => {
+            if (barWidth === targetPercent) return;
+            
+            setIsAnimating(true);
+            
+            // Immediately start smooth bar transition
+            setBarWidth(targetPercent);
+            
+            // Enhanced sparkles for any change
+            if (Math.abs(barWidth - targetPercent) > 0) {
+                setShowSparkles(true);
+                setTimeout(() => setShowSparkles(false), 600);
+            }
+            
+            // Wave effect for significant progress
+            if (Math.abs(barWidth - targetPercent) > 10) {
+                setShowWave(true);
+                setTimeout(() => setShowWave(false), 800);
+            }
+            
+            // Fireworks for major milestones
+            if (targetPercent >= 50 && barWidth < 50) {
+                setTimeout(() => {
+                    setShowFireworks(true);
+                    setTimeout(() => setShowFireworks(false), 1000);
+                }, 400); // Delay to sync with bar animation
+            }
+            if (targetPercent >= 100 && barWidth < 100) {
+                setTimeout(() => {
+                    setShowFireworks(true);
+                    setTimeout(() => setShowFireworks(false), 1500);
+                }, 600); // Delay to sync with bar animation
+            }
+            
+            // Animation cleanup
+            setTimeout(() => {
+                setIsAnimating(false);
+            }, 1200); // Match the CSS transition duration
+            
+        }, [targetPercent]);
+        
+        // Handle smooth number counting animation
         useEffect(() => {
             if (displayPercent === targetPercent) return;
+            
             const increment = displayPercent < targetPercent ? 1 : -1;
             const timer = setTimeout(() => {
                 setDisplayPercent(displayPercent + increment);
-            }, 10);
+            }, 25); // Smooth number counting
+            
+            // Bounce effect when reaching target
+            if (Math.abs(displayPercent - targetPercent) <= 1) {
+                setBounceEffect(true);
+                setTimeout(() => setBounceEffect(false), 500);
+            }
+            
             return () => clearTimeout(timer);
         }, [displayPercent, targetPercent]);
+        
         return (
-            <div className={styles.progressBarContainer}>
-                <div className={styles.progressBarTrack}>
+            <div className={`${styles.progressBarContainer} ${bounceEffect ? styles.progressBounce : ''}`}>
+                <div className={`${styles.progressBarTrack} ${showWave ? styles.progressWave : ''}`}>
                     <div
-                        className={styles.progressBarFill}
-                        style={{ width: `${displayPercent}%` }}
+                        className={`${styles.progressBarFill} ${isAnimating ? styles.progressBarAnimating : ''} ${bounceEffect ? styles.progressFillBounce : ''}`}
+                        style={{ 
+                            width: `${barWidth}%`,
+                            transition: 'width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            boxShadow: isAnimating ? '0 0 30px rgba(155, 106, 16, 0.8), 0 0 60px rgba(155, 106, 16, 0.4)' : 'none',
+                            background: isAnimating ? 
+                                'linear-gradient(90deg, #9B6A10 0%, #FFD700 50%, #e3c57c 100%)' : 
+                                'linear-gradient(90deg, #9B6A10 0%, #e3c57c 100%)'
+                        }}
                     />
+                    
+                    {/* Enhanced Sparkles */}
+                    {showSparkles && (
+                        <div className={styles.progressSparkles}>
+                            <span className={styles.sparkle} style={{ left: '15%', animationDelay: '0s' }}>✨</span>
+                            <span className={styles.sparkle} style={{ left: '35%', animationDelay: '0.1s' }}>⭐</span>
+                            <span className={styles.sparkle} style={{ left: '55%', animationDelay: '0.2s' }}>💫</span>
+                            <span className={styles.sparkle} style={{ left: '75%', animationDelay: '0.3s' }}>✨</span>
+                            <span className={styles.sparkle} style={{ left: '90%', animationDelay: '0.4s' }}>🌟</span>
+                        </div>
+                    )}
+                    
+                    {/* Fireworks for milestones */}
+                    {showFireworks && (
+                        <div className={styles.progressFireworks}>
+                            <span className={styles.firework} style={{ left: '25%', animationDelay: '0s' }}>🎆</span>
+                            <span className={styles.firework} style={{ left: '50%', animationDelay: '0.2s' }}>🎇</span>
+                            <span className={styles.firework} style={{ left: '75%', animationDelay: '0.4s' }}>🎆</span>
+                        </div>
+                    )}
+                    
+                    {/* Progress indicator dot */}
+                    {isAnimating && (
+                        <div 
+                            className={styles.progressDot}
+                            style={{ 
+                                left: `${barWidth}%`,
+                                transition: 'left 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                            }}
+                        />
+                    )}
                 </div>
-                <div className={styles.progressBarLabel}>{displayPercent}% completed</div>
+                
+                <div className={`${styles.progressBarLabel} ${isAnimating ? styles.progressLabelAnimating : ''} ${bounceEffect ? styles.progressLabelBounce : ''}`}>
+                    <span className={styles.progressText}>
+                        {displayPercent}% completed
+                    </span>
+                    {isAnimating && (
+                        <span className={styles.progressPulse}>
+                            {displayPercent < 50 ? '🚀' : displayPercent < 100 ? '⚡' : '🎉'}
+                        </span>
+                    )}
+                    {showFireworks && <span className={styles.celebrationText}>Amazing Progress!</span>}
+                </div>
             </div>
         );
     }
@@ -492,14 +600,21 @@ export default function AlphaPage() {
         const filledEducationFields = educationFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
         const hasEducationData = filledEducationFields.length > 0;
         
+        // Check if any skills fields are filled
+        const skillsFields = ['programmingLanguages', 'frameworks', 'databases', 'tools'];
+        const filledSkillsFields = skillsFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
+        const hasSkillsData = filledSkillsFields.length > 0;
+        
         console.log('Updating chart with filled fields:', filledFields, formData);
         console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
         console.log('Filled education fields:', filledEducationFields);
+        console.log('Skills fields filled:', filledSkillsFields.length, hasSkillsData);
+        console.log('Filled skills fields:', filledSkillsFields);
 
         // Only proceed if there are filled fields
         if (filledFields === 0) {
             // Remove any existing progress dots and triangle
-            g.selectAll('.progress-dot, .progress-triangle, .education-dot, .professional-dot').remove();
+            g.selectAll('.progress-dot, .progress-triangle, .education-dot, .professional-dot, .tech-skills-dot').remove();
             console.log('No filled fields, removing animations');
             return;
         }
@@ -512,7 +627,13 @@ export default function AlphaPage() {
         const progressPerField = (maxLevel - baseLevel) / 4; // 4 total fields to fill
 
         const backgroundValue = baseLevel + (filledFields * progressPerField);
-        const jobMatchValue = baseLevel + (filledFields * progressPerField * 0.8); // Job Match grows slightly slower
+        let jobMatchValue = baseLevel + (filledFields * progressPerField * 0.8); // Job Match grows slightly slower
+        
+        // Job Match gets additional boost from skills data
+        if (hasSkillsData) {
+            const skillsBoost = filledSkillsFields.length * 0.2; // Additional boost per skill field
+            jobMatchValue += skillsBoost;
+        }
 
         // Calculate positions for Background (index 0) and Job Match (index 5)
         const backgroundAngle = angleSlice * 0 - Math.PI / 2;
@@ -650,7 +771,13 @@ export default function AlphaPage() {
             const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
             
             const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
-            const professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9); // Professional grows slightly slower
+            let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9); // Professional grows slightly slower
+            
+            // Professional gets additional boost from skills data
+            if (hasSkillsData) {
+                const skillsBoost = filledSkillsFields.length * 0.15; // Additional boost per skill field
+                professionalLevel += skillsBoost;
+            }
             
             console.log('Education progression:', {
                 filledCount: filledEducationFields.length,
@@ -818,6 +945,114 @@ export default function AlphaPage() {
             g.selectAll('.education-dot, .professional-dot').remove();
         }
 
+        // Update or create Tech Skills dot if skills fields are filled
+        if (hasSkillsData) {
+            // Calculate progressive levels based on number of filled skills fields
+            const baseTechSkillsLevel = 1.0; // Starting level
+            const maxTechSkillsLevel = 2.8; // Maximum level they can reach
+            const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
+            
+            const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
+            
+            console.log('Tech Skills progression:', {
+                filledCount: filledSkillsFields.length,
+                totalFields: skillsFields.length,
+                techSkillsLevel,
+                progressPerField: techSkillsProgressPerField
+            });
+            
+            const techSkillsAngle = angleSlice * 3 - Math.PI / 2; // Tech Skills is at index 3
+            const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
+
+            const techSkillsPoint: [number, number] = [
+                Math.cos(techSkillsAngle) * techSkillsRadius,
+                Math.sin(techSkillsAngle) * techSkillsRadius
+            ];
+
+            // Update or create Tech Skills dot (don't remove existing)
+            let techSkillsDot = g.select('.tech-skills-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+            if (techSkillsDot.empty()) {
+                techSkillsDot = g.append('circle')
+                    .attr('class', 'tech-skills-dot')
+                    .attr('r', 0)
+                    .attr('fill', '#f39c12')
+                    .attr('stroke', '#e67e22')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+
+                techSkillsDot
+                    .transition()
+                    .duration(600)
+                    .delay(800)
+                    .ease(d3.easeBackOut)
+                    .attr('r', 6)
+                    .attr('opacity', 1);
+            } else {
+                // Move existing dot to new position with ultra-smooth animation
+                techSkillsDot
+                    .transition()
+                    .duration(1800)
+                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .attr('cx', techSkillsPoint[0])
+                    .attr('cy', techSkillsPoint[1])
+                    .on('start', function() {
+                        // Add enhanced glow and scale effect during movement
+                        const dot = d3.select(this);
+                        dot.transition()
+                            .duration(300)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(300)
+                            .attr('r', 6)
+                            .attr('opacity', 1);
+                    })
+                    .on('end', function() {
+                        // Add a subtle "settle" effect when movement completes
+                        const dot = d3.select(this);
+                        dot.transition()
+                            .duration(400)
+                            .ease(d3.easeBounceOut)
+                            .attr('r', 7)
+                            .transition()
+                            .duration(400)
+                            .ease(d3.easeBounceOut)
+                            .attr('r', 6);
+                    });
+            }
+            
+            // Set final position for new dots
+            techSkillsDot.attr('cx', techSkillsPoint[0]).attr('cy', techSkillsPoint[1]);
+
+            // Add pulsing effect to tech skills dot
+            const addTechSkillsPulse = (dot: any) => {
+                const pulse = () => {
+                    dot.transition()
+                        .duration(1000)
+                        .ease(d3.easeSinInOut)
+                        .attr('r', 8)
+                        .transition()
+                        .duration(1000)
+                        .ease(d3.easeSinInOut)
+                        .attr('r', 6)
+                        .on('end', () => {
+                            if (g.select('.tech-skills-dot').node()) {
+                                pulse(); // Continue pulsing if element still exists
+                            }
+                        });
+                };
+
+                // Start pulsing after initial animation
+                setTimeout(pulse, 1200);
+            };
+
+            // Add pulsing to tech skills dot
+            addTechSkillsPulse(techSkillsDot);
+        } else {
+            // Remove tech skills dot if no skills data
+            g.selectAll('.tech-skills-dot').remove();
+        }
+
         // Create area that always covers all visible dots
         let trianglePoints: [number, number][] = [
             [0, 0], // Center
@@ -833,7 +1068,13 @@ export default function AlphaPage() {
             const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
             
             const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
-            const professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9);
+            let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9);
+            
+            // Professional gets additional boost from skills data
+            if (hasSkillsData) {
+                const skillsBoost = filledSkillsFields.length * 0.15; // Additional boost per skill field
+                professionalLevel += skillsBoost;
+            }
             
             const educationAngle = angleSlice * 1 - Math.PI / 2;
             const professionalAngle = angleSlice * 2 - Math.PI / 2;
@@ -858,6 +1099,55 @@ export default function AlphaPage() {
                 backgroundPoint,
                 educationPoint,
                 professionalPoint,
+                jobMatchPoint
+            ];
+            
+            // Add Tech Skills dot to the shape if skills data exists
+            if (hasSkillsData) {
+                const baseTechSkillsLevel = 1.0;
+                const maxTechSkillsLevel = 2.8;
+                const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
+                const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
+                
+                const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
+                const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
+                
+                const techSkillsPoint: [number, number] = [
+                    Math.cos(techSkillsAngle) * techSkillsRadius,
+                    Math.sin(techSkillsAngle) * techSkillsRadius
+                ];
+                
+                // Insert Tech Skills point in the correct position (between Professional and Job Match)
+                trianglePoints = [
+                    [0, 0], // Center
+                    backgroundPoint,
+                    educationPoint,
+                    professionalPoint,
+                    techSkillsPoint,
+                    jobMatchPoint
+                ];
+            }
+        }
+
+        // If no education data but skills data exists, create shape with Tech Skills dot
+        if (!hasEducationData && hasSkillsData) {
+            const baseTechSkillsLevel = 1.0;
+            const maxTechSkillsLevel = 2.8;
+            const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
+            const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
+            
+            const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
+            const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
+            
+            const techSkillsPoint: [number, number] = [
+                Math.cos(techSkillsAngle) * techSkillsRadius,
+                Math.sin(techSkillsAngle) * techSkillsRadius
+            ];
+            
+            trianglePoints = [
+                [0, 0], // Center
+                backgroundPoint,
+                techSkillsPoint,
                 jobMatchPoint
             ];
         }
@@ -928,9 +1218,17 @@ export default function AlphaPage() {
             setTimeout(pulse, 1800);
         };
 
-        // Add pulsing to both dots
+        // Add pulsing to dots
         addPulse(backgroundDot);
         addPulse(jobMatchDot);
+        
+        // Add pulsing to tech skills dot if it exists
+        if (hasSkillsData) {
+            const techSkillsDot = g.select('.tech-skills-dot');
+            if (!techSkillsDot.empty()) {
+                addPulse(techSkillsDot);
+            }
+        }
     };
 
 
@@ -1282,7 +1580,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formRowContainer}>
+                                <div className={styles.formRowContainer} style={{ marginTop: '-0.8rem' }}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="databases" className={styles.label}>
                                             Frameworks & Tools
