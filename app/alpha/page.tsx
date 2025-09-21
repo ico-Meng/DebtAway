@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import * as d3 from 'd3';
 import styles from './alpha.module.css';
@@ -75,13 +75,22 @@ export default function AlphaPage() {
         frameworks: '',
         databases: '',
         tools: '',
-        // Work Experience page fields
-        companyName: '',
-        jobTitle: '',
-        employedYears: ''
+        // Work Experience page fields (array to support multiple entries)
+        workExperiences: [
+            {
+                companyName: '',
+                jobTitle: '',
+                employedYears: ''
+            }
+        ]
     });
     const [isAnimating, setIsAnimating] = useState(false);
     const svgRef = useRef<SVGSVGElement>(null);
+    
+    // Resume upload states
+    const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Radar chart data
     const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
@@ -590,23 +599,43 @@ export default function AlphaPage() {
         const svg = d3.select(svgElement);
         const g = svg.select('.chart-group');
 
-        // Count filled fields (excluding target job since it's handled separately)
-        const filledFields = Object.values(formData).filter(value => value.trim() !== '').length;
-        
         // Check if any education fields are filled
         const educationFields = ['collegeName', 'degree', 'major', 'graduationYear'];
-        const filledEducationFields = educationFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
+        const filledEducationFields = educationFields.filter(field => {
+            const value = formData[field as keyof typeof formData];
+            return typeof value === 'string' && value.trim() !== '';
+        });
         const hasEducationData = filledEducationFields.length > 0;
         
         // Check if any skills fields are filled
         const skillsFields = ['programmingLanguages', 'frameworks', 'databases', 'tools'];
-        const filledSkillsFields = skillsFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
+        const filledSkillsFields = skillsFields.filter(field => {
+            const value = formData[field as keyof typeof formData];
+            return typeof value === 'string' && value.trim() !== '';
+        });
         const hasSkillsData = filledSkillsFields.length > 0;
         
         // Check if any work experience fields are filled
         const workExperienceFields = ['companyName', 'jobTitle', 'employedYears'];
-        const filledWorkExperienceFields = workExperienceFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
+        let filledWorkExperienceFields: string[] = [];
+        
+        // Count filled fields across all work experience entries
+        formData.workExperiences.forEach((experience, index) => {
+            workExperienceFields.forEach(field => {
+                if (experience[field as keyof typeof experience].trim() !== '') {
+                    filledWorkExperienceFields.push(`${field}_${index}`);
+                }
+            });
+        });
+        
         const hasWorkExperienceData = filledWorkExperienceFields.length > 0;
+        
+        // Count total filled fields (excluding target job and workExperiences array since they're handled separately)
+        const basicFields = Object.entries(formData).filter(([key, value]) => 
+            key !== 'workExperiences' && typeof value === 'string' && value.trim() !== ''
+        );
+        const workExperienceFieldCount = filledWorkExperienceFields.length;
+        const filledFields = basicFields.length + workExperienceFieldCount;
         
         console.log('Updating chart with filled fields:', filledFields, formData);
         console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
@@ -1395,9 +1424,51 @@ export default function AlphaPage() {
         }
     };
 
+    // Handle work experience input changes
+    const handleWorkExperienceChange = (index: number, field: string, value: string) => {
+        setFormData(prev => {
+            const newWorkExperiences = [...prev.workExperiences];
+            newWorkExperiences[index] = {
+                ...newWorkExperiences[index],
+                [field]: value
+            };
+            return {
+                ...prev,
+                workExperiences: newWorkExperiences
+            };
+        });
+    };
+
+    // Add new work experience entry (maximum 4 entries)
+    const addWorkExperience = () => {
+        if (formData.workExperiences.length < 4) {
+            setFormData(prev => ({
+                ...prev,
+                workExperiences: [
+                    ...prev.workExperiences,
+                    {
+                        companyName: '',
+                        jobTitle: '',
+                        employedYears: ''
+                    }
+                ]
+            }));
+        }
+    };
+
+    // Remove work experience entry
+    const removeWorkExperience = (index: number) => {
+        if (formData.workExperiences.length > 1) {
+            setFormData(prev => ({
+                ...prev,
+                workExperiences: prev.workExperiences.filter((_, i) => i !== index)
+            }));
+        }
+    };
+
 
     const handleNext = () => {
-        if (currentStep < 4) {
+        if (currentStep < 5) {
             setCurrentStep(currentStep + 1);
         }
     };
@@ -1406,6 +1477,85 @@ export default function AlphaPage() {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
         }
+    };
+
+    // Resume upload handlers
+    const handleDrag = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setIsDragging(true);
+        } else if (e.type === 'dragleave') {
+            setIsDragging(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            validateAndSetFile(file);
+        }
+    }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            validateAndSetFile(file);
+        }
+    };
+
+    const validateAndSetFile = (file: File) => {
+        const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+        
+        // Check file size
+        if (file.size > MAX_FILE_SIZE) {
+            alert('File size must be less than 2MB');
+            return;
+        }
+        
+        // Check file type
+        const allowedTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/tiff',
+            'image/bmp'
+        ];
+        
+        if (!allowedTypes.includes(file.type)) {
+            alert('Unsupported file type. Please upload PDF, Word document, or common image formats.');
+            return;
+        }
+        
+        setResumeFile(file);
+    };
+
+    const removeFile = () => {
+        setResumeFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const formatFileSize = (bytes: number): string => {
+        if (bytes < 1024) return bytes + ' bytes';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    };
+
+    const isImageFile = (mimeType: string): boolean => {
+        return mimeType.startsWith('image/');
     };
 
     return (
@@ -1805,57 +1955,122 @@ export default function AlphaPage() {
 
                                 <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Work Experience</h2>
 
-                                <div className={styles.formRowContainer}>
-                                    <div className={styles.formGroup} style={{ width: '40%' }}>
-                                        <label htmlFor="companyName" className={styles.label}>
-                                            Company Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="companyName"
-                                            value={formData.companyName}
-                                            onChange={(e) => handleInputChange('companyName', e.target.value)}
-                                            onBlur={handleInputBlur}
-                                            className={styles.input}
-                                            placeholder="Enter company name"
-                                        />
-                                    </div>
+                                {formData.workExperiences.map((experience, index) => (
+                                    <div key={index} style={{ marginBottom: '16px' }}>
+                                        <div className={styles.formRowContainer}>
+                                            <div className={styles.formGroup} style={{ width: '40%' }}>
+                                                <label htmlFor={`companyName_${index}`} className={styles.label}>
+                                                    Company Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    id={`companyName_${index}`}
+                                                    value={experience.companyName}
+                                                    onChange={(e) => handleWorkExperienceChange(index, 'companyName', e.target.value)}
+                                                    onBlur={handleInputBlur}
+                                                    className={styles.input}
+                                                    placeholder="Enter company name"
+                                                />
+                                            </div>
 
-                                    <div className={styles.formGroup} style={{ width: '35%', marginLeft: '2.5%' }}>
-                                        <label htmlFor="jobTitle" className={styles.label}>
-                                            Job Title
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="jobTitle"
-                                            value={formData.jobTitle}
-                                            onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                                            onBlur={handleInputBlur}
-                                            className={styles.input}
-                                            placeholder="Enter job title"
-                                        />
-                                    </div>
+                                            <div className={styles.formGroup} style={{ width: '35%', marginLeft: '2.5%' }}>
+                                                <label htmlFor={`jobTitle_${index}`} className={styles.label}>
+                                                    Job Title
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    id={`jobTitle_${index}`}
+                                                    value={experience.jobTitle}
+                                                    onChange={(e) => handleWorkExperienceChange(index, 'jobTitle', e.target.value)}
+                                                    onBlur={handleInputBlur}
+                                                    className={styles.input}
+                                                    placeholder="Enter job title"
+                                                />
+                                            </div>
 
-                                    <div className={styles.formGroup} style={{ width: '20%', marginLeft: '2.5%' }}>
-                                        <label htmlFor="employedYears" className={styles.label}>
-                                            Years
-                                        </label>
-                                        <select
-                                            id="employedYears"
-                                            value={formData.employedYears}
-                                            onChange={(e) => handleInputChange('employedYears', e.target.value)}
-                                            onBlur={handleInputBlur}
-                                            className={styles.input}
+                                            <div className={styles.formGroup} style={{ width: '20%', marginLeft: '2.5%' }}>
+                                                <label htmlFor={`employedYears_${index}`} className={styles.label}>
+                                                    Years
+                                                </label>
+                                                <select
+                                                    id={`employedYears_${index}`}
+                                                    value={experience.employedYears}
+                                                    onChange={(e) => handleWorkExperienceChange(index, 'employedYears', e.target.value)}
+                                                    onBlur={handleInputBlur}
+                                                    className={styles.input}
+                                                >
+                                                    <option value="">Select</option>
+                                                    <option value="None">None</option>
+                                                    <option value="Less than 1 year">&lt; 1 year</option>
+                                                    <option value="1 to 3 years">1-3 years</option>
+                                                    <option value="3 to 8 years">3-8 years</option>
+                                                    <option value="8 years or more">8+ years</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Remove button for additional entries */}
+                                            {formData.workExperiences.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeWorkExperience(index)}
+                                                    style={{
+                                                        marginLeft: '10px',
+                                                        marginTop: '30px',
+                                                        background: '#ffcccb',
+                                                        color: '#d63031',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        fontSize: '20px',
+                                                        fontWeight: '300',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        transition: 'all 0.2s ease',
+                                                        padding: '0',
+                                                        flexShrink: 0
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#ffb3b3';
+                                                        e.currentTarget.style.boxShadow = '0 0 8px 4px rgba(214, 48, 49, 0.3)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#ffcccb';
+                                                        e.currentTarget.style.boxShadow = 'none';
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Add button aligned to the right (only show if less than 4 entries) */}
+                                {formData.workExperiences.length < 4 && (
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={addWorkExperience}
+                                            className={styles.submitButton}
+                                            style={{
+                                                minWidth: '32px',
+                                                maxWidth: '32px',
+                                                height: '32px',
+                                                padding: '0',
+                                                fontSize: '16px',
+                                                fontWeight: '600',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
                                         >
-                                            <option value="">Select</option>
-                                            <option value="None">None</option>
-                                            <option value="Less than 1 year">&lt; 1 year</option>
-                                            <option value="1 to 3 years">1-3 years</option>
-                                            <option value="3 to 8 years">3-8 years</option>
-                                            <option value="8 years or more">8+ years</option>
-                                        </select>
+                                            +
+                                        </button>
                                     </div>
-                                </div>
+                                )}
 
                                 <div className={styles.navButtons}>
                                     <button
@@ -1867,11 +2082,146 @@ export default function AlphaPage() {
                                     </button>
                                     <button
                                         className={styles.submitButton}
-                                        onClick={() => alert('Form completed!')}
+                                        onClick={handleNext}
                                         style={{ minWidth: 120, maxWidth: 140 }}
                                     >
-                                        Submit
+                                        Next
                                     </button>
+                                </div>
+                            </div>
+                        ) : currentStep === 5 ? (
+                            <div className={styles.formSection}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                    <div className={styles.chartWrapper}>
+                                        <svg
+                                            ref={svgRef}
+                                            width="400"
+                                            height="400"
+                                            viewBox="0 0 400 400"
+                                            className={styles.radarChart}
+                                        >
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div className={styles.formContainer}>
+                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>Resume Analysis</h2>
+                                    
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>
+                                            Resume or Screenshot (PDF, Word, or Images, max 2MB) <span style={{ color: '#ff4757' }}>*</span>
+                                        </label>
+                                        
+                                        <div 
+                                            className={`${styles.input} ${isDragging ? styles.dropzoneActive : ''}`}
+                                            style={{
+                                                height: '200px',
+                                                border: '2px dashed #ccc',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                backgroundColor: isDragging ? '#f0f8ff' : '#fafafa',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onDragEnter={handleDrag}
+                                            onDragOver={handleDrag}
+                                            onDragLeave={handleDrag}
+                                            onDrop={handleDrop}
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <div style={{ marginBottom: '16px' }}>
+                                                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#666' }}>
+                                                    <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M3 15V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                            </div>
+                                            <p style={{ margin: 0, color: '#666', textAlign: 'center', fontSize: '16px' }}>
+                                                Drag and drop your resume or screenshot here, or click to select a file
+                                            </p>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileChange}
+                                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp"
+                                                style={{ display: 'none' }}
+                                            />
+                                        </div>
+                                        
+                                        {resumeFile && (
+                                            <div style={{ 
+                                                marginTop: '16px', 
+                                                padding: '16px', 
+                                                border: '1px solid #ddd', 
+                                                borderRadius: '8px',
+                                                backgroundColor: '#f9f9f9'
+                                            }}>
+                                                {isImageFile(resumeFile.type) ? (
+                                                    <div style={{ marginBottom: '12px' }}>
+                                                        <img 
+                                                            src={URL.createObjectURL(resumeFile)} 
+                                                            alt="Resume Preview" 
+                                                            style={{ 
+                                                                maxWidth: '200px', 
+                                                                maxHeight: '200px', 
+                                                                objectFit: 'contain',
+                                                                border: '1px solid #ddd',
+                                                                borderRadius: '4px'
+                                                            }} 
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px', color: '#666' }}>
+                                                            <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                        <span style={{ color: '#333' }}>{resumeFile.name}</span>
+                                                    </div>
+                                                )}
+                                                
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ color: '#666', fontSize: '14px' }}>
+                                                        {formatFileSize(resumeFile.size)}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeFile}
+                                                        style={{
+                                                            background: '#ff4757',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            padding: '4px 8px',
+                                                            fontSize: '12px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className={styles.navButtons}>
+                                        <button
+                                            className={styles.submitButton}
+                                            onClick={handleBack}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            className={styles.submitButton}
+                                            onClick={() => alert('Analysis feature coming soon!')}
+                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                        >
+                                            Analysis
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : null}
