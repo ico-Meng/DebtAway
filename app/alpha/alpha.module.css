@@ -1,0 +1,350 @@
+/* Container and Main Layout */
+.container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background-color: #F5F5F5;
+}
+
+.main {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: transparent;
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.chartContainer {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+}
+
+/* Form Title and Headers */
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    padding: 1.5rem;
+    padding-bottom: 0;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    background-color: #ffffff;
+}
+
+.sectionTitle {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 0.5rem 0;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #eee;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.chartWrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.radarChart {
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
+    min-height: 500px;
+    min-width: 500px;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legendColor {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+/* Form Layout */
+.form {
+    width: 100%;
+    max-width: 1200px;
+    padding: 2.5rem;
+}
+
+.formSection {
+    width: 100%;
+    max-width: 1200px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1 1 0%;
+    position: relative;
+    background: #faf8f4;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(227,197,124,0.07);
+    padding: 2.5rem 2rem 2rem 2rem;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+    flex: 1 1 auto;
+}
+
+.formSection .navButtons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 2rem;
+}
+
+.navButtonsRight {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 2rem;
+}
+
+.formRowContainer {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 2.2rem;
+}
+
+.halfWidth {
+    flex: 1;
+}
+
+/* Form Input Styles */
+.inputGroup {
+    margin-bottom: 1.5rem;
+    flex: 1 1 auto;
+}
+
+.label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.required {
+    color: #e53e3e;
+    margin-left: 0.25rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #edece3;
+    color: #333;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #9B6A10;
+    box-shadow: 0 0 0 3px rgba(155, 106, 16, 0.1);
+}
+
+.input::placeholder {
+    color: #a0aec0;
+}
+
+/* Progress Bar Styles */
+.progressBarContainer {
+    width: 100%;
+    padding: 1rem 2.5rem;
+    background-color: white;
+}
+
+.progressBarTrack {
+    width: 100%;
+    height: 8px;
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progressBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #9B6A10 0%, #e3c57c 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progressBarLabel {
+    font-size: 0.875rem;
+    color: #666;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Button Styles */
+.submitButton {
+    padding: 0.75rem 1.5rem;
+    background-color: #9B6A10;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.submitButton:hover:not(:disabled) {
+    background-color: #9B6A10;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1);
+}
+
+.submitButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* SVG Styles */
+.gridLine {
+    stroke: #f0f0f0;
+    stroke-width: 1;
+    fill: none;
+}
+
+.axisLine {
+    stroke: #e0e0e0;
+    stroke-width: 1;
+}
+
+.radarLabel {
+    font-size: 12px;
+    font-weight: bold;
+    fill: #333;
+}
+
+.valueLabel {
+    font-size: 10px;
+    fill: #999;
+}
+
+/* Animation Classes */
+.greyArea {
+    animation: spreadFromCenter 1s ease-out;
+}
+
+@keyframes spreadFromCenter {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .formContainer {
+        margin: 0 0.5rem;
+    }
+    
+    .form {
+        padding: 1.5rem;
+    }
+    
+    .formSection {
+        padding: 1.5rem 1rem;
+    }
+    
+    .title {
+        font-size: 1.5rem;
+        padding: 1rem;
+    }
+    
+    .formRowContainer {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .radarChart {
+        width: 100%;
+        height: auto;
+        max-width: 400px;
+    }
+    
+    .progressBarContainer {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.25rem;
+    }
+    
+    .subtitle {
+        font-size: 14px;
+    }
+    
+    .form {
+        padding: 1rem;
+    }
+    
+    .formSection {
+        padding: 1rem 0.75rem;
+    }
+    
+    .chartContainer {
+        padding: 0.5rem;
+    }
+}
