@@ -1268,7 +1268,7 @@ export default function AlphaPage() {
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="frameworks" className={styles.label}>
-                                            Frameworks & Libraries
+                                            Technologies
                                         </label>
                                         <input
                                             type="text"
@@ -1285,7 +1285,7 @@ export default function AlphaPage() {
                                 <div className={styles.formRowContainer}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="databases" className={styles.label}>
-                                            Databases
+                                            Frameworks & Tools
                                         </label>
                                         <input
                                             type="text"
@@ -1294,13 +1294,13 @@ export default function AlphaPage() {
                                             onChange={(e) => handleInputChange('databases', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                            placeholder="e.g., MySQL, MongoDB, PostgreSQL"
+                                            placeholder="e.g., React, Angular, Vue.js"
                                         />
                                     </div>
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="tools" className={styles.label}>
-                                            Tools & Technologies
+                                            Others
                                         </label>
                                         <input
                                             type="text"
@@ -1309,7 +1309,7 @@ export default function AlphaPage() {
                                             onChange={(e) => handleInputChange('tools', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                            placeholder="e.g., Git, Docker, AWS"
+                                            placeholder="e.g., Soft skills, Certifications"
                                         />
                                     </div>
                                 </div>
