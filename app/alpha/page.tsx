@@ -78,9 +78,7 @@ export default function AlphaPage() {
         // Work Experience page fields
         companyName: '',
         jobTitle: '',
-        startDate: '',
-        endDate: '',
-        description: ''
+        employedYears: ''
     });
     const [isAnimating, setIsAnimating] = useState(false);
     const svgRef = useRef<SVGSVGElement>(null);
@@ -605,17 +603,36 @@ export default function AlphaPage() {
         const filledSkillsFields = skillsFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
         const hasSkillsData = filledSkillsFields.length > 0;
         
+        // Check if any work experience fields are filled
+        const workExperienceFields = ['companyName', 'jobTitle', 'employedYears'];
+        const filledWorkExperienceFields = workExperienceFields.filter(field => formData[field as keyof typeof formData].trim() !== '');
+        const hasWorkExperienceData = filledWorkExperienceFields.length > 0;
+        
         console.log('Updating chart with filled fields:', filledFields, formData);
         console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
         console.log('Filled education fields:', filledEducationFields);
         console.log('Skills fields filled:', filledSkillsFields.length, hasSkillsData);
         console.log('Filled skills fields:', filledSkillsFields);
+        console.log('Work Experience fields filled:', filledWorkExperienceFields.length, hasWorkExperienceData);
+        console.log('Filled work experience fields:', filledWorkExperienceFields);
 
         // Only proceed if there are filled fields
         if (filledFields === 0) {
-            // Remove any existing progress dots and triangle
-            g.selectAll('.progress-dot, .progress-triangle, .education-dot, .professional-dot, .tech-skills-dot').remove();
-            console.log('No filled fields, removing animations');
+            // Remove any existing progress dots
+            g.selectAll('.progress-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot').remove();
+            
+            // Fade out triangle instead of removing it
+            const existingTriangle = g.select('.progress-triangle');
+            if (!existingTriangle.empty()) {
+                existingTriangle
+                    .transition()
+                    .duration(600)
+                    .ease(d3.easeQuadInOut)
+                    .attr('opacity', 0)
+                    .style('transform', 'scale(0.1)');
+            }
+            
+            console.log('No filled fields, fading out animations');
             return;
         }
 
@@ -629,10 +646,14 @@ export default function AlphaPage() {
         const backgroundValue = baseLevel + (filledFields * progressPerField);
         let jobMatchValue = baseLevel + (filledFields * progressPerField * 0.8); // Job Match grows slightly slower
         
-        // Job Match gets additional boost from skills data
+        // Job Match gets additional boost from skills and work experience data
         if (hasSkillsData) {
             const skillsBoost = filledSkillsFields.length * 0.2; // Additional boost per skill field
             jobMatchValue += skillsBoost;
+        }
+        if (hasWorkExperienceData) {
+            const workExperienceBoost = filledWorkExperienceFields.length * 0.25; // Additional boost per work experience field
+            jobMatchValue += workExperienceBoost;
         }
 
         // Calculate positions for Background (index 0) and Job Match (index 5)
@@ -773,10 +794,14 @@ export default function AlphaPage() {
             const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
             let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9); // Professional grows slightly slower
             
-            // Professional gets additional boost from skills data
+            // Professional gets additional boost from skills and work experience data
             if (hasSkillsData) {
                 const skillsBoost = filledSkillsFields.length * 0.15; // Additional boost per skill field
                 professionalLevel += skillsBoost;
+            }
+            if (hasWorkExperienceData) {
+                const workExperienceBoost = filledWorkExperienceFields.length * 0.2; // Additional boost per work experience field
+                professionalLevel += workExperienceBoost;
             }
             
             console.log('Education progression:', {
@@ -1053,16 +1078,125 @@ export default function AlphaPage() {
             g.selectAll('.tech-skills-dot').remove();
         }
 
-        // Create area that always covers all visible dots
-        let trianglePoints: [number, number][] = [
-            [0, 0], // Center
-            backgroundPoint,
-            jobMatchPoint
-        ];
+        // Update or create Teamwork dot if work experience fields are filled
+        if (hasWorkExperienceData) {
+            // Calculate progressive levels based on number of filled work experience fields
+            const baseTeamworkLevel = 1.0; // Starting level
+            const maxTeamworkLevel = 2.6; // Maximum level they can reach
+            const teamworkProgressPerField = (maxTeamworkLevel - baseTeamworkLevel) / workExperienceFields.length;
+            
+            const teamworkLevel = baseTeamworkLevel + (filledWorkExperienceFields.length * teamworkProgressPerField);
+            
+            console.log('Teamwork progression:', {
+                filledCount: filledWorkExperienceFields.length,
+                totalFields: workExperienceFields.length,
+                teamworkLevel,
+                progressPerField: teamworkProgressPerField
+            });
+            
+            const teamworkAngle = angleSlice * 4 - Math.PI / 2; // Teamwork is at index 4
+            const teamworkRadius = (teamworkLevel / maxValue) * radius;
 
-        // If education data exists, include education and professional dots in the shape
+            const teamworkPoint: [number, number] = [
+                Math.cos(teamworkAngle) * teamworkRadius,
+                Math.sin(teamworkAngle) * teamworkRadius
+            ];
+
+            // Update or create Teamwork dot (don't remove existing)
+            let teamworkDot = g.select('.teamwork-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+            if (teamworkDot.empty()) {
+                teamworkDot = g.append('circle')
+                    .attr('class', 'teamwork-dot')
+                    .attr('r', 0)
+                    .attr('fill', '#8e44ad')
+                    .attr('stroke', '#9b59b6')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+
+                teamworkDot
+                    .transition()
+                    .duration(600)
+                    .delay(1000)
+                    .ease(d3.easeBackOut)
+                    .attr('r', 6)
+                    .attr('opacity', 1);
+            } else {
+                // Move existing dot to new position with ultra-smooth animation
+                teamworkDot
+                    .transition()
+                    .duration(1800)
+                    .ease(d3.easeElasticOut.amplitude(1.2).period(0.6))
+                    .attr('cx', teamworkPoint[0])
+                    .attr('cy', teamworkPoint[1])
+                    .on('start', function() {
+                        // Add enhanced glow and scale effect during movement
+                        const dot = d3.select(this);
+                        dot.transition()
+                            .duration(300)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(300)
+                            .attr('r', 6)
+                            .attr('opacity', 1);
+                    })
+                    .on('end', function() {
+                        // Add a subtle "settle" effect when movement completes
+                        const dot = d3.select(this);
+                        dot.transition()
+                            .duration(400)
+                            .ease(d3.easeBounceOut)
+                            .attr('r', 7)
+                            .transition()
+                            .duration(400)
+                            .ease(d3.easeBounceOut)
+                            .attr('r', 6);
+                    });
+            }
+            
+            // Set final position for new dots
+            teamworkDot.attr('cx', teamworkPoint[0]).attr('cy', teamworkPoint[1]);
+
+            // Add pulsing effect to teamwork dot
+            const addTeamworkPulse = (dot: any) => {
+                const pulse = () => {
+                    dot.transition()
+                        .duration(1000)
+                        .ease(d3.easeSinInOut)
+                        .attr('r', 8)
+                        .transition()
+                        .duration(1000)
+                        .ease(d3.easeSinInOut)
+                        .attr('r', 6)
+                        .on('end', () => {
+                            if (g.select('.teamwork-dot').node()) {
+                                pulse(); // Continue pulsing if element still exists
+                            }
+                        });
+                };
+
+                // Start pulsing after initial animation
+                setTimeout(pulse, 1400);
+            };
+
+            // Add pulsing to teamwork dot
+            addTeamworkPulse(teamworkDot);
+        } else {
+            // Remove teamwork dot if no work experience data
+            g.selectAll('.teamwork-dot').remove();
+        }
+
+        // Create comprehensive shape that covers all visible dots and center
+        // Collect all visible dot positions
+        let allDotPoints: [number, number][] = [];
+        
+        // Always include Background and Job Match
+        allDotPoints.push(backgroundPoint);
+        allDotPoints.push(jobMatchPoint);
+        
+        // Add Education and Professional dots if education data exists
         if (hasEducationData) {
-            // Use the same progressive calculation as above
+            // Calculate education and professional positions
             const baseEducationLevel = 1.0;
             const maxEducationLevel = 2.5;
             const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
@@ -1070,15 +1204,18 @@ export default function AlphaPage() {
             const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
             let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9);
             
-            // Professional gets additional boost from skills data
+            // Professional gets additional boost from skills and work experience data
             if (hasSkillsData) {
-                const skillsBoost = filledSkillsFields.length * 0.15; // Additional boost per skill field
+                const skillsBoost = filledSkillsFields.length * 0.15;
                 professionalLevel += skillsBoost;
+            }
+            if (hasWorkExperienceData) {
+                const workExperienceBoost = filledWorkExperienceFields.length * 0.2;
+                professionalLevel += workExperienceBoost;
             }
             
             const educationAngle = angleSlice * 1 - Math.PI / 2;
             const professionalAngle = angleSlice * 2 - Math.PI / 2;
-
             const educationRadius = (educationLevel / maxValue) * radius;
             const professionalRadius = (professionalLevel / maxValue) * radius;
 
@@ -1086,51 +1223,17 @@ export default function AlphaPage() {
                 Math.cos(educationAngle) * educationRadius,
                 Math.sin(educationAngle) * educationRadius
             ];
-
             const professionalPoint: [number, number] = [
                 Math.cos(professionalAngle) * professionalRadius,
                 Math.sin(professionalAngle) * professionalRadius
             ];
-
-            // Create a shape that connects all visible dots in proper order
-            // Order points to create a proper polygon that encloses all dots
-            trianglePoints = [
-                [0, 0], // Center
-                backgroundPoint,
-                educationPoint,
-                professionalPoint,
-                jobMatchPoint
-            ];
             
-            // Add Tech Skills dot to the shape if skills data exists
-            if (hasSkillsData) {
-                const baseTechSkillsLevel = 1.0;
-                const maxTechSkillsLevel = 2.8;
-                const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
-                const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
-                
-                const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
-                const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
-                
-                const techSkillsPoint: [number, number] = [
-                    Math.cos(techSkillsAngle) * techSkillsRadius,
-                    Math.sin(techSkillsAngle) * techSkillsRadius
-                ];
-                
-                // Insert Tech Skills point in the correct position (between Professional and Job Match)
-                trianglePoints = [
-                    [0, 0], // Center
-                    backgroundPoint,
-                    educationPoint,
-                    professionalPoint,
-                    techSkillsPoint,
-                    jobMatchPoint
-                ];
-            }
+            allDotPoints.push(educationPoint);
+            allDotPoints.push(professionalPoint);
         }
-
-        // If no education data but skills data exists, create shape with Tech Skills dot
-        if (!hasEducationData && hasSkillsData) {
+        
+        // Add Tech Skills dot if skills data exists
+        if (hasSkillsData) {
             const baseTechSkillsLevel = 1.0;
             const maxTechSkillsLevel = 2.8;
             const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
@@ -1144,27 +1247,51 @@ export default function AlphaPage() {
                 Math.sin(techSkillsAngle) * techSkillsRadius
             ];
             
-            trianglePoints = [
-                [0, 0], // Center
-                backgroundPoint,
-                techSkillsPoint,
-                jobMatchPoint
+            allDotPoints.push(techSkillsPoint);
+        }
+        
+        // Add Teamwork dot if work experience data exists
+        if (hasWorkExperienceData) {
+            const baseTeamworkLevel = 1.0;
+            const maxTeamworkLevel = 2.6;
+            const teamworkProgressPerField = (maxTeamworkLevel - baseTeamworkLevel) / workExperienceFields.length;
+            const teamworkLevel = baseTeamworkLevel + (filledWorkExperienceFields.length * teamworkProgressPerField);
+            
+            const teamworkAngle = angleSlice * 4 - Math.PI / 2;
+            const teamworkRadius = (teamworkLevel / maxValue) * radius;
+            
+            const teamworkPoint: [number, number] = [
+                Math.cos(teamworkAngle) * teamworkRadius,
+                Math.sin(teamworkAngle) * teamworkRadius
             ];
+            
+            allDotPoints.push(teamworkPoint);
+        }
+        
+        // Sort points by angle to create proper polygon
+        const sortedDotPoints = allDotPoints.sort((a, b) => {
+            const angleA = Math.atan2(a[1], a[0]);
+            const angleB = Math.atan2(b[1], b[0]);
+            return angleA - angleB;
+        });
+        
+        // Create shape based on number of dots
+        let trianglePoints: [number, number][];
+        
+        if (allDotPoints.length === 2) {
+            // With only 2 dots, create a triangle using the 2 dots + center point
+            trianglePoints = [
+                [0, 0], // Center point
+                sortedDotPoints[0],
+                sortedDotPoints[1]
+            ];
+        } else {
+            // With 3+ dots, connect only the dots themselves (no center vertex)
+            // This creates a proper polygon that naturally encloses the center area
+            trianglePoints = sortedDotPoints;
         }
 
-        // Ensure the shape always encloses all visible dots by creating a convex hull
-        // Sort points by angle from center to ensure proper polygon formation
-        const centerPoint = [0, 0];
-        const sortedPoints = trianglePoints
-            .filter(point => point[0] !== 0 || point[1] !== 0) // Remove center point
-            .sort((a, b) => {
-                const angleA = Math.atan2(a[1] - centerPoint[1], a[0] - centerPoint[0]);
-                const angleB = Math.atan2(b[1] - centerPoint[1], b[0] - centerPoint[0]);
-                return angleA - angleB;
-            });
-
-        // Reconstruct trianglePoints with center first, then sorted points
-        trianglePoints = [centerPoint as [number, number], ...sortedPoints];
+        // Points are already properly sorted and arranged
 
         // Create line generator for triangle
         const line = d3.line<[number, number]>()
@@ -1172,29 +1299,40 @@ export default function AlphaPage() {
             .y(d => d[1])
             .curve(d3.curveLinearClosed);
 
-        // Remove existing triangle and create new one
-        g.selectAll('.progress-triangle').remove();
+        // Update existing triangle or create new one if it doesn't exist
+        let triangle = g.select<SVGPathElement>('.progress-triangle');
+        
+        if (triangle.empty()) {
+            // Create triangle for the first time
+            triangle = g.append('path')
+                .attr('class', 'progress-triangle')
+                .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
+                .attr('stroke', '#CFAEE8')
+                .attr('stroke-width', 1.5)
+                .attr('opacity', 0)
+                .style('transform', 'scale(0)')
+                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
-        // Create triangle with growing animation
-        const triangle = g.append('path')
-            .datum(trianglePoints)
-            .attr('class', 'progress-triangle')
-            .attr('d', line)
-            .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
-            .attr('stroke', '#CFAEE8')
-            .attr('stroke-width', 1.5)
-            .attr('opacity', 0)
-            .style('transform', 'scale(0)')
-            .style('transform-origin', '0px 0px'); // Center at origin since g is translated
-
-        // Animate triangle appearance with ultra-smooth timing
-        triangle
-            .transition()
-            .duration(2000)
-            .delay(400)
-            .ease(d3.easeElasticOut.amplitude(0.8).period(0.4))
-            .attr('opacity', 0.7)
-            .style('transform', 'scale(1)');
+            // Initial appearance animation
+            triangle
+                .datum(trianglePoints)
+                .attr('d', line)
+                .transition()
+                .duration(2000)
+                .delay(400)
+                .ease(d3.easeElasticOut.amplitude(0.8).period(0.4))
+                .attr('opacity', 0.7)
+                .style('transform', 'scale(1)');
+        } else {
+            // Smoothly transition existing triangle to new shape
+            triangle
+                .datum(trianglePoints)
+                .transition()
+                .duration(800)
+                .ease(d3.easeQuadInOut)
+                .attr('d', line)
+                .attr('opacity', 0.7);
+        }
 
         // Add elegant pulsing effect to dots
         const addPulse = (dot: any) => {
@@ -1227,6 +1365,14 @@ export default function AlphaPage() {
             const techSkillsDot = g.select('.tech-skills-dot');
             if (!techSkillsDot.empty()) {
                 addPulse(techSkillsDot);
+            }
+        }
+        
+        // Add pulsing to teamwork dot if it exists
+        if (hasWorkExperienceData) {
+            const teamworkDot = g.select('.teamwork-dot');
+            if (!teamworkDot.empty()) {
+                addPulse(teamworkDot);
             }
         }
     };
@@ -1660,7 +1806,7 @@ export default function AlphaPage() {
                                 <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Work Experience</h2>
 
                                 <div className={styles.formRowContainer}>
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                    <div className={styles.formGroup} style={{ width: '40%' }}>
                                         <label htmlFor="companyName" className={styles.label}>
                                             Company Name
                                         </label>
@@ -1675,7 +1821,7 @@ export default function AlphaPage() {
                                         />
                                     </div>
 
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
+                                    <div className={styles.formGroup} style={{ width: '35%', marginLeft: '2.5%' }}>
                                         <label htmlFor="jobTitle" className={styles.label}>
                                             Job Title
                                         </label>
@@ -1689,54 +1835,25 @@ export default function AlphaPage() {
                                             placeholder="Enter job title"
                                         />
                                     </div>
-                                </div>
 
-                                <div className={styles.formRowContainer}>
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="startDate" className={styles.label}>
-                                            Start Date
+                                    <div className={styles.formGroup} style={{ width: '20%', marginLeft: '2.5%' }}>
+                                        <label htmlFor="employedYears" className={styles.label}>
+                                            Years
                                         </label>
-                                        <input
-                                            type="month"
-                                            id="startDate"
-                                            value={formData.startDate}
-                                            onChange={(e) => handleInputChange('startDate', e.target.value)}
+                                        <select
+                                            id="employedYears"
+                                            value={formData.employedYears}
+                                            onChange={(e) => handleInputChange('employedYears', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                        />
-                                    </div>
-
-                                    <div className={`${styles.formGroup} ${styles.halfWidth}`}>
-                                        <label htmlFor="endDate" className={styles.label}>
-                                            End Date
-                                        </label>
-                                        <input
-                                            type="month"
-                                            id="endDate"
-                                            value={formData.endDate}
-                                            onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                            onBlur={handleInputBlur}
-                                            className={styles.input}
-                                            placeholder="Leave blank if current"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className={styles.formRowContainer}>
-                                    <div className={styles.formGroup}>
-                                        <label htmlFor="description" className={styles.label}>
-                                            Job Description
-                                        </label>
-                                        <textarea
-                                            id="description"
-                                            value={formData.description}
-                                            onChange={(e) => handleInputChange('description', e.target.value)}
-                                            onBlur={handleInputBlur}
-                                            className={styles.input}
-                                            placeholder="Describe your key responsibilities and achievements"
-                                            rows={4}
-                                            style={{ resize: 'vertical', minHeight: '100px' }}
-                                        />
+                                        >
+                                            <option value="">Select</option>
+                                            <option value="None">None</option>
+                                            <option value="Less than 1 year">&lt; 1 year</option>
+                                            <option value="1 to 3 years">1-3 years</option>
+                                            <option value="3 to 8 years">3-8 years</option>
+                                            <option value="8 years or more">8+ years</option>
+                                        </select>
                                     </div>
                                 </div>
 
