@@ -99,6 +99,22 @@ export default function AlphaPage() {
     const levels = 5;
     const angleSlice = (Math.PI * 2) / labels.length;
 
+    // Helper function to safely remove D3 elements
+    const safeRemove = (selection: any) => {
+        try {
+            if (selection && !selection.empty()) {
+                selection.each(function(this: any) {
+                    const element = this;
+                    if (element && element.parentNode) {
+                        selection.remove();
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('Safe remove caught error:', error);
+        }
+    };
+
     // Ultra Enhanced ProgressBar component with smooth growing animations
     function ProgressBar({ step, totalSteps }: { step: number, totalSteps: number }) {
         const targetPercent = Math.round(((step - 1) / (totalSteps - 1)) * 100);
@@ -234,29 +250,44 @@ export default function AlphaPage() {
 
     // Initialize radar chart
     useEffect(() => {
+        let isMounted = true;
+        let retryTimer: NodeJS.Timeout;
+
         const initChart = () => {
+            if (!isMounted) return;
+
             if (svgRef.current) {
                 console.log('SVG ref found, initializing D3 chart...');
                 initializeChart();
             } else {
                 console.log('SVG ref not ready yet, retrying...');
-                setTimeout(initChart, 100);
+                retryTimer = setTimeout(initChart, 100);
             }
         };
 
         // Start initialization with small delay for DOM readiness
         const timer = setTimeout(initChart, 100);
-        return () => clearTimeout(timer);
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+            if (retryTimer) clearTimeout(retryTimer);
+        };
     }, []);
 
     // Add useEffect to set body class
     useEffect(() => {
         // Add class to body for specific styling
         document.body.classList.add('alpha-page');
-        
+
         // Clean up function
         return () => {
             document.body.classList.remove('alpha-page');
+            // Also cleanup any pending D3 transitions
+            if (svgRef.current) {
+                const svg = d3.select(svgRef.current);
+                svg.selectAll('*').interrupt();
+            }
         };
     }, []);
 
@@ -269,16 +300,28 @@ export default function AlphaPage() {
 
     // Handle target job clearing
     useEffect(() => {
-        if (!targetJob && svgRef.current) {
+        let isMounted = true;
+
+        if (isMounted && !targetJob && svgRef.current) {
             removeGreyArea();
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [targetJob]);
 
     // Update chart when form data changes (works on both steps)
     useEffect(() => {
-        if (svgRef.current) {
+        let isMounted = true;
+
+        if (isMounted && svgRef.current) {
             updateChartWithFormData();
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [formData]);
 
     const initializeChart = () => {
@@ -299,13 +342,24 @@ export default function AlphaPage() {
             // Clear existing content and setup SVG with D3
             const svg = d3.select(svgElement);
 
+            // Check if chart is already initialized to avoid conflicts
+            const existingChart = svg.select('.chart-group');
+            if (!existingChart.empty()) {
+                console.log('Chart already initialized, skipping initialization');
+                return;
+            }
+
             // Set SVG attributes
             svg.attr('width', width)
                .attr('height', height)
                .attr('viewBox', `0 0 ${width} ${height}`);
 
-            // Clear any existing content
-            svg.selectAll('*').remove();
+            // Interrupt any ongoing transitions before clearing
+            svg.selectAll('*').interrupt();
+
+            // Safely clear any existing content
+            const existingContent = svg.selectAll('*');
+            safeRemove(existingContent);
 
             // Create gradients
             const defs = svg.append('defs');
@@ -585,7 +639,7 @@ export default function AlphaPage() {
                 .attr('opacity', 0)
                 .style('transform', 'scale(0)')
                 .on('end', function() {
-                    greyArea.remove();
+                    safeRemove(greyArea);
                     console.log('Grey area removed');
                 });
         }
@@ -647,9 +701,10 @@ export default function AlphaPage() {
 
         // Only proceed if there are filled fields
         if (filledFields === 0) {
-            // Remove any existing progress dots
-            g.selectAll('.progress-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot').remove();
-            
+            // Safely remove any existing progress dots
+            const dotsToRemove = g.selectAll('.progress-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot');
+            safeRemove(dotsToRemove);
+
             // Fade out triangle instead of removing it
             const existingTriangle = g.select('.progress-triangle');
             if (!existingTriangle.empty()) {
@@ -660,7 +715,7 @@ export default function AlphaPage() {
                     .attr('opacity', 0)
                     .style('transform', 'scale(0.1)');
             }
-            
+
             console.log('No filled fields, fading out animations');
             return;
         }
@@ -995,8 +1050,9 @@ export default function AlphaPage() {
             addPulse(educationDot);
             addPulse(professionalDot);
         } else {
-            // Remove education and professional dots if no education data
-            g.selectAll('.education-dot, .professional-dot').remove();
+            // Safely remove education and professional dots if no education data
+            const educationDotsToRemove = g.selectAll('.education-dot, .professional-dot');
+            safeRemove(educationDotsToRemove);
         }
 
         // Update or create Tech Skills dot if skills fields are filled
@@ -1103,8 +1159,9 @@ export default function AlphaPage() {
             // Add pulsing to tech skills dot
             addTechSkillsPulse(techSkillsDot);
         } else {
-            // Remove tech skills dot if no skills data
-            g.selectAll('.tech-skills-dot').remove();
+            // Safely remove tech skills dot if no skills data
+            const techSkillsDotsToRemove = g.selectAll('.tech-skills-dot');
+            safeRemove(techSkillsDotsToRemove);
         }
 
         // Update or create Teamwork dot if work experience fields are filled
@@ -1211,8 +1268,9 @@ export default function AlphaPage() {
             // Add pulsing to teamwork dot
             addTeamworkPulse(teamworkDot);
         } else {
-            // Remove teamwork dot if no work experience data
-            g.selectAll('.teamwork-dot').remove();
+            // Safely remove teamwork dot if no work experience data
+            const teamworkDotsToRemove = g.selectAll('.teamwork-dot');
+            safeRemove(teamworkDotsToRemove);
         }
 
         // Create comprehensive shape that covers all visible dots and center
@@ -1418,9 +1476,14 @@ export default function AlphaPage() {
         // Trigger chart update when user leaves any field
         if (svgRef.current) {
             // Small delay to ensure state is updated
-            setTimeout(() => {
-                updateChartWithFormData();
+            const updateTimer = setTimeout(() => {
+                if (svgRef.current) {
+                    updateChartWithFormData();
+                }
             }, 50);
+
+            // Store the timer reference for potential cleanup
+            return () => clearTimeout(updateTimer);
         }
     };
 
@@ -1469,12 +1532,24 @@ export default function AlphaPage() {
 
     const handleNext = () => {
         if (currentStep < 5) {
+            // Interrupt any ongoing D3 transitions before step change
+            if (svgRef.current) {
+                const svg = d3.select(svgRef.current);
+                svg.selectAll('*').interrupt();
+            }
+
             setCurrentStep(currentStep + 1);
         }
     };
 
     const handleBack = () => {
         if (currentStep > 1) {
+            // Interrupt any ongoing D3 transitions before step change
+            if (svgRef.current) {
+                const svg = d3.select(svgRef.current);
+                svg.selectAll('*').interrupt();
+            }
+
             setCurrentStep(currentStep - 1);
         }
     };
@@ -2095,16 +2170,29 @@ export default function AlphaPage() {
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="400"
-                                            height="400"
-                                            viewBox="0 0 400 400"
+                                            width="500"
+                                            height="500"
                                             className={styles.radarChart}
+                                            style={{
+                                                display: 'block'
+                                            }}
                                         >
+                                            {/* Fallback content */}
+                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
+                                                Loading chart...
+                                            </text>
                                         </svg>
+                                    </div>
+
+                                    <div className={styles.legend}>
+                                        <div className={styles.legendItem}>
+                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <span>Self Potential</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className={styles.formContainer}>
+                                <div className={styles.resumeAnalysisContainer}>
                                     <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>Resume Analysis</h2>
                                     
                                     <div className={styles.formGroup}>

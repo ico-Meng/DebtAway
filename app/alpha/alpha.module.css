@@ -493,6 +493,18 @@
     }
 }
 
+/* Resume Analysis Section Background */
+.resumeAnalysisContainer {
+    width: 100%;
+    max-width: 1200px;
+    background-color: #edece3;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    padding: 2.5rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
