@@ -40,8 +40,24 @@ const globalStyles = `
   .submitButton:hover,
   button.submitButton:hover,
   button[class*="submitButton"]:hover {
-    background-color: #9B6A10 !important;
     box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+  }
+  
+  .submitButton:focus,
+  button.submitButton:focus,
+  button[class*="submitButton"]:focus,
+  .submitButton:focus-visible,
+  button.submitButton:focus-visible,
+  button[class*="submitButton"]:focus-visible,
+  .submitButton:active,
+  button.submitButton:active,
+  button[class*="submitButton"]:active {
+    outline: none !important;
+    border: none !important;
+    border-color: transparent !important;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-appearance: none !important;
   }
   
   .submitButton:disabled,
@@ -49,6 +65,17 @@ const globalStyles = `
   button[class*="submitButton"]:disabled {
     background-color: #ccc !important;
     color: white !important;
+  }
+  
+  /* Additional universal button focus removal */
+  button:focus,
+  button:focus-visible,
+  button:active,
+  input[type="button"]:focus,
+  input[type="submit"]:focus {
+    outline: none !important;
+    border-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
   }
   
   body.alpha-page {
@@ -91,6 +118,10 @@ export default function AlphaPage() {
     const [resumeFile, setResumeFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Years dropdown states for each work experience
+    const [yearsDropdownStates, setYearsDropdownStates] = useState<{[key: number]: boolean}>({});
+    const yearsDropdownRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
 
     // Radar chart data
     const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
@@ -323,6 +354,44 @@ export default function AlphaPage() {
             isMounted = false;
         };
     }, [formData]);
+
+    // Close years dropdowns when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            Object.keys(yearsDropdownRefs.current).forEach(key => {
+                const index = parseInt(key);
+                const ref = yearsDropdownRefs.current[index];
+                if (ref && !ref.contains(event.target as Node)) {
+                    setYearsDropdownStates(prev => ({
+                        ...prev,
+                        [index]: false
+                    }));
+                }
+            });
+        }
+        
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Toggle years dropdown for specific index
+    const toggleYearsDropdown = (index: number) => {
+        setYearsDropdownStates(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
+    // Handle years option selection
+    const handleYearsSelect = (index: number, value: string) => {
+        handleWorkExperienceChange(index, 'employedYears', value);
+        setYearsDropdownStates(prev => ({
+            ...prev,
+            [index]: false
+        }));
+    };
 
     const initializeChart = () => {
         const svgElement = svgRef.current;
@@ -1237,8 +1306,8 @@ export default function AlphaPage() {
         let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
         if (progressShape.empty()) {
-            // Create shape for the first time
-            progressShape = g.append('path')
+            // Create shape for the first time - insert at beginning to appear behind dots
+            progressShape = g.insert('path', ':first-child')
                 .attr('class', 'progress-triangle')
                 .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
                 .attr('stroke', '#CFAEE8')
@@ -1695,7 +1764,7 @@ export default function AlphaPage() {
                                             onChange={(e) => handleInputChange('graduationYear', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                            placeholder="e.g., 2020"
+                                            placeholder="e.g., 2025"
                                             min="1950"
                                             max="2030"
                                             step="1"
@@ -1782,7 +1851,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formRowContainer} style={{ marginTop: '-0.8rem' }}>
+                                <div className={styles.formRowContainer} style={{ marginTop: '-1.6rem' }}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="databases" className={styles.label}>
                                             Frameworks & Tools
@@ -1800,7 +1869,7 @@ export default function AlphaPage() {
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="tools" className={styles.label}>
-                                            Others
+                                            Achievements
                                         </label>
                                         <input
                                             type="text"
@@ -1809,7 +1878,7 @@ export default function AlphaPage() {
                                             onChange={(e) => handleInputChange('tools', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                            placeholder="e.g., Soft skills, Certifications"
+                                            placeholder="e.g., Awards, Certifications, Projects"
                                         />
                                     </div>
                                 </div>
@@ -1898,20 +1967,65 @@ export default function AlphaPage() {
                                                 <label htmlFor={`employedYears_${index}`} className={styles.label}>
                                                     Years
                                                 </label>
-                                                <select
-                                                    id={`employedYears_${index}`}
-                                                    value={experience.employedYears}
-                                                    onChange={(e) => handleWorkExperienceChange(index, 'employedYears', e.target.value)}
-                                                    onBlur={handleInputBlur}
-                                                    className={styles.input}
+                                                <div 
+                                                    className={styles.customDropdown}
+                                                    ref={(ref) => { yearsDropdownRefs.current[index] = ref; }}
                                                 >
-                                                    <option value="">Select</option>
-                                                    <option value="None">None</option>
-                                                    <option value="Less than 1 year">&lt; 1 year</option>
-                                                    <option value="1 to 3 years">1-3 years</option>
-                                                    <option value="3 to 8 years">3-8 years</option>
-                                                    <option value="8 years or more">8+ years</option>
-                                                </select>
+                                                    <div 
+                                                        className={styles.dropdownSelected} 
+                                                        onClick={() => toggleYearsDropdown(index)}
+                                                        aria-haspopup="listbox"
+                                                        aria-expanded={yearsDropdownStates[index] || false}
+                                                        role="combobox"
+                                                        tabIndex={0}
+                                                    >
+                                                        <span className={experience.employedYears ? '' : styles.placeholderText}>
+                                                            {experience.employedYears || 'Select'}
+                                                        </span>
+                                                        <svg 
+                                                            className={`${styles.dropdownArrow} ${yearsDropdownStates[index] ? styles.dropdownArrowUp : ''}`}
+                                                            width="16" 
+                                                            height="16" 
+                                                            viewBox="0 0 24 24" 
+                                                            fill="none" 
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </div>
+                                                    
+                                                    {yearsDropdownStates[index] && (
+                                                        <ul className={styles.dropdownOptions} role="listbox">
+                                                            {["<1 year", "1 to 3 years", "3 to 8 years", ">8 years"].map((option) => (
+                                                                <li 
+                                                                    key={option} 
+                                                                    className={`${styles.dropdownOption} ${experience.employedYears === option ? styles.dropdownOptionSelected : ''}`}
+                                                                    onClick={() => handleYearsSelect(index, option)}
+                                                                    role="option"
+                                                                    aria-selected={experience.employedYears === option}
+                                                                >
+                                                                    {option}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    
+                                                    {/* Hidden real select for form submission */}
+                                                    <select
+                                                        id={`employedYears_${index}`}
+                                                        value={experience.employedYears}
+                                                        onChange={(e) => handleWorkExperienceChange(index, 'employedYears', e.target.value)}
+                                                        className={styles.hiddenSelect}
+                                                        aria-hidden="true"
+                                                        tabIndex={-1}
+                                                    >
+                                                        <option value="">Select</option>
+                                                        <option value="<1 year">&lt;1 year</option>
+                                                        <option value="1 to 3 years">1-3 years</option>
+                                                        <option value="3 to 8 years">3-8 years</option>
+                                                        <option value=">8 years">&gt;8 years</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
                                             {/* Remove button for additional entries */}

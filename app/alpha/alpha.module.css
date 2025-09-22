@@ -193,6 +193,171 @@
     color: #a0aec0;
 }
 
+/* Custom styling for the select dropdown */
+.select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.8em;
+    padding-right: 2.5rem;
+    cursor: pointer;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    background-color: #ffffff;
+    color: #333;
+}
+
+.select:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.select:hover:not(:focus) {
+    border-color: #0066cc88;
+}
+
+/* Style dropdown options */
+.select optgroup {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    padding: 8px;
+}
+
+.select option {
+    padding: 10px 15px;
+    background-color: #ffffff;
+    color: #333;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.select option:hover,
+.select option:focus {
+    background-color: #f0f7ff !important;
+}
+
+.select option:checked {
+    background-color: #e6f2ff;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.select:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.select option[value=""] {
+    color: #6c757d;
+}
+
+/* Custom Dropdown Styles (from flash-chat) */
+.customDropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdownSelected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #edece3;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdownSelected:hover {
+    border-color: #3B82F6;
+}
+
+.dropdownSelected:focus {
+    outline: none;
+    border-color: #9B6A10;
+    box-shadow: 0 0 0 3px rgba(155, 106, 16, 0.1);
+}
+
+.dropdownArrow {
+    transition: transform 0.2s ease;
+    min-width: 16px;
+    margin-left: 8px;
+    color: #666;
+}
+
+.dropdownArrowUp {
+    transform: rotate(180deg);
+}
+
+.dropdownOptions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #edece3;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    z-index: 10;
+    margin: 0.25rem 0 0 0;
+    padding: 0.5rem;
+    list-style: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dropdownOption {
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-radius: 4px;
+    margin: 0.125rem 0;
+    background-color: #edece3;
+    color: #333;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.dropdownOption:hover {
+    background-color: #e6e4d9;
+}
+
+.dropdownOptionSelected {
+    background-color: #d9d6c7;
+    font-weight: 500;
+}
+
+.dropdownOptionSelected:hover {
+    background-color: #cfc8b7;
+}
+
+.hiddenSelect {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.dropdownError .dropdownSelected {
+    border-color: #EF4444;
+}
+
+.placeholderText {
+    color: #999;
+}
+
 /* Progress Bar Styles */
 .progressBarContainer {
     width: 100%;
@@ -443,8 +608,15 @@
 }
 
 .submitButton:hover:not(:disabled) {
-    background-color: #9B6A10;
     box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1);
+}
+
+.submitButton:focus,
+.submitButton:focus-visible,
+.submitButton:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
 }
 
 .submitButton:disabled {
