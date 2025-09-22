@@ -130,7 +130,7 @@ export default function AlphaPage() {
                 setLastStep(step);
             }
         }, [step, lastStep]);
-        const stepNames = ['Background', 'Education', 'Skills', 'Work Exp', 'Resume'];
+        const stepNames = ['Background', 'Education', 'Skills', 'Work Exp', 'Resume', 'Analysis'];
 
         return (
             <div className={styles.progressBarContainer}>
@@ -1323,7 +1323,7 @@ export default function AlphaPage() {
 
 
     const handleNext = () => {
-        if (currentStep < 5) {
+        if (currentStep < 6) {
             // Interrupt any ongoing D3 transitions before step change
             if (svgRef.current) {
                 const svg = d3.select(svgRef.current);
@@ -2143,12 +2143,59 @@ export default function AlphaPage() {
                                         </button>
                                         <button
                                             className={styles.submitButton}
-                                            onClick={() => alert('Analysis feature coming soon!')}
+                                            onClick={() => setCurrentStep(6)}
                                             style={{ minWidth: 120, maxWidth: 140 }}
                                         >
                                             Analysis
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        ) : currentStep === 6 ? (
+                            <div className={styles.formSection}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                    <div className={styles.chartWrapper}>
+                                        <svg ref={svgRef} className={styles.radarChart} style={{ width: '100%', height: '500px' }}></svg>
+                                    </div>
+                                </div>
+                                
+                                <div className={styles.analysisContainer}>
+                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Analysis Results</h2>
+                                    <p style={{ textAlign: 'center', color: '#666', fontSize: '1.1rem', marginBottom: '2rem' }}>
+                                        Your comprehensive resume analysis and recommendations will appear here.
+                                    </p>
+                                    
+                                    <div style={{ 
+                                        background: '#f8f9fa', 
+                                        border: '1px solid #e9ecef', 
+                                        borderRadius: '8px', 
+                                        padding: '2rem', 
+                                        textAlign: 'center',
+                                        margin: '2rem 0'
+                                    }}>
+                                        <h3 style={{ color: '#333', marginBottom: '1rem' }}>Analysis Coming Soon</h3>
+                                        <p style={{ color: '#666', lineHeight: '1.6' }}>
+                                            We're preparing your personalized analysis based on your profile information. 
+                                            This will include skill assessments, career recommendations, and improvement suggestions.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className={styles.navButtons}>
+                                    <button
+                                        className={styles.submitButton}
+                                        onClick={handleBack}
+                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        className={styles.submitButton}
+                                        onClick={() => alert('Analysis complete!')}
+                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                    >
+                                        Complete
+                                    </button>
                                 </div>
                             </div>
                         ) : null}
