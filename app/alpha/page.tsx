@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import Head from 'next/head';
 import * as d3 from 'd3';
 import styles from './alpha.module.css';
@@ -40,24 +40,8 @@ const globalStyles = `
   .submitButton:hover,
   button.submitButton:hover,
   button[class*="submitButton"]:hover {
+    background-color: #9B6A10 !important;
     box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
-  }
-  
-  .submitButton:focus,
-  button.submitButton:focus,
-  button[class*="submitButton"]:focus,
-  .submitButton:focus-visible,
-  button.submitButton:focus-visible,
-  button[class*="submitButton"]:focus-visible,
-  .submitButton:active,
-  button.submitButton:active,
-  button[class*="submitButton"]:active {
-    outline: none !important;
-    border: none !important;
-    border-color: transparent !important;
-    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
-    -webkit-focus-ring-color: transparent !important;
-    -webkit-appearance: none !important;
   }
   
   .submitButton:disabled,
@@ -65,17 +49,6 @@ const globalStyles = `
   button[class*="submitButton"]:disabled {
     background-color: #ccc !important;
     color: white !important;
-  }
-  
-  /* Additional universal button focus removal */
-  button:focus,
-  button:focus-visible,
-  button:active,
-  input[type="button"]:focus,
-  input[type="submit"]:focus {
-    outline: none !important;
-    border-color: transparent !important;
-    -webkit-focus-ring-color: transparent !important;
   }
   
   body.alpha-page {
@@ -146,138 +119,57 @@ export default function AlphaPage() {
         }
     };
 
-    // Ultra Enhanced ProgressBar component with smooth growing animations
-    function ProgressBar({ step, totalSteps }: { step: number, totalSteps: number }) {
-        const targetPercent = Math.round(((step - 1) / (totalSteps - 1)) * 100);
-        const [displayPercent, setDisplayPercent] = useState(targetPercent);
-        const [barWidth, setBarWidth] = useState(targetPercent);
-        const [isAnimating, setIsAnimating] = useState(false);
-        const [showSparkles, setShowSparkles] = useState(false);
-        const [showFireworks, setShowFireworks] = useState(false);
-        const [showWave, setShowWave] = useState(false);
-        const [bounceEffect, setBounceEffect] = useState(false);
-        
-        // Handle smooth bar width animation
+    // Multi-Step ProgressBar component with step indicators - memoized to prevent unnecessary re-renders
+    const ProgressBar = memo(function ProgressBar({ step }: { step: number }) {
+        const [lastStep, setLastStep] = useState(step);
+        const [flashStep, setFlashStep] = useState(step);
+
         useEffect(() => {
-            if (barWidth === targetPercent) return;
-            
-            setIsAnimating(true);
-            
-            // Immediately start smooth bar transition
-            setBarWidth(targetPercent);
-            
-            // Enhanced sparkles for any change
-            if (Math.abs(barWidth - targetPercent) > 0) {
-                setShowSparkles(true);
-                setTimeout(() => setShowSparkles(false), 600);
+            if (step !== lastStep) {
+                setFlashStep(step);
+                setLastStep(step);
             }
-            
-            // Wave effect for significant progress
-            if (Math.abs(barWidth - targetPercent) > 10) {
-                setShowWave(true);
-                setTimeout(() => setShowWave(false), 800);
-            }
-            
-            // Fireworks for major milestones
-            if (targetPercent >= 50 && barWidth < 50) {
-                setTimeout(() => {
-                    setShowFireworks(true);
-                    setTimeout(() => setShowFireworks(false), 1000);
-                }, 400); // Delay to sync with bar animation
-            }
-            if (targetPercent >= 100 && barWidth < 100) {
-                setTimeout(() => {
-                    setShowFireworks(true);
-                    setTimeout(() => setShowFireworks(false), 1500);
-                }, 600); // Delay to sync with bar animation
-            }
-            
-            // Animation cleanup
-            setTimeout(() => {
-                setIsAnimating(false);
-            }, 1200); // Match the CSS transition duration
-            
-        }, [targetPercent]);
-        
-        // Handle smooth number counting animation
-        useEffect(() => {
-            if (displayPercent === targetPercent) return;
-            
-            const increment = displayPercent < targetPercent ? 1 : -1;
-            const timer = setTimeout(() => {
-                setDisplayPercent(displayPercent + increment);
-            }, 25); // Smooth number counting
-            
-            // Bounce effect when reaching target
-            if (Math.abs(displayPercent - targetPercent) <= 1) {
-                setBounceEffect(true);
-                setTimeout(() => setBounceEffect(false), 500);
-            }
-            
-            return () => clearTimeout(timer);
-        }, [displayPercent, targetPercent]);
-        
+        }, [step, lastStep]);
+        const stepNames = ['Background', 'Education', 'Skills', 'Work Exp', 'Resume'];
+
         return (
-            <div className={`${styles.progressBarContainer} ${bounceEffect ? styles.progressBounce : ''}`}>
-                <div className={`${styles.progressBarTrack} ${showWave ? styles.progressWave : ''}`}>
-                    <div
-                        className={`${styles.progressBarFill} ${isAnimating ? styles.progressBarAnimating : ''} ${bounceEffect ? styles.progressFillBounce : ''}`}
-                        style={{ 
-                            width: `${barWidth}%`,
-                            transition: 'width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                            boxShadow: isAnimating ? '0 0 30px rgba(155, 106, 16, 0.8), 0 0 60px rgba(155, 106, 16, 0.4)' : 'none',
-                            background: isAnimating ? 
-                                'linear-gradient(90deg, #9B6A10 0%, #FFD700 50%, #e3c57c 100%)' : 
-                                'linear-gradient(90deg, #9B6A10 0%, #e3c57c 100%)'
-                        }}
-                    />
-                    
-                    {/* Enhanced Sparkles */}
-                    {showSparkles && (
-                        <div className={styles.progressSparkles}>
-                            <span className={styles.sparkle} style={{ left: '15%', animationDelay: '0s' }}>✨</span>
-                            <span className={styles.sparkle} style={{ left: '35%', animationDelay: '0.1s' }}>⭐</span>
-                            <span className={styles.sparkle} style={{ left: '55%', animationDelay: '0.2s' }}>💫</span>
-                            <span className={styles.sparkle} style={{ left: '75%', animationDelay: '0.3s' }}>✨</span>
-                            <span className={styles.sparkle} style={{ left: '90%', animationDelay: '0.4s' }}>🌟</span>
-                        </div>
-                    )}
-                    
-                    {/* Fireworks for milestones */}
-                    {showFireworks && (
-                        <div className={styles.progressFireworks}>
-                            <span className={styles.firework} style={{ left: '25%', animationDelay: '0s' }}>🎆</span>
-                            <span className={styles.firework} style={{ left: '50%', animationDelay: '0.2s' }}>🎇</span>
-                            <span className={styles.firework} style={{ left: '75%', animationDelay: '0.4s' }}>🎆</span>
-                        </div>
-                    )}
-                    
-                    {/* Progress indicator dot */}
-                    {isAnimating && (
-                        <div 
-                            className={styles.progressDot}
-                            style={{ 
-                                left: `${barWidth}%`,
-                                transition: 'left 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                            }}
-                        />
-                    )}
-                </div>
-                
-                <div className={`${styles.progressBarLabel} ${isAnimating ? styles.progressLabelAnimating : ''} ${bounceEffect ? styles.progressLabelBounce : ''}`}>
-                    <span className={styles.progressText}>
-                        {displayPercent}% completed
-                    </span>
-                    {isAnimating && (
-                        <span className={styles.progressPulse}>
-                            {displayPercent < 50 ? '🚀' : displayPercent < 100 ? '⚡' : '🎉'}
-                        </span>
-                    )}
-                    {showFireworks && <span className={styles.celebrationText}>Amazing Progress!</span>}
+            <div className={styles.progressBarContainer}>
+                {/* Step indicators */}
+                <div className={styles.stepIndicators}>
+                    {stepNames.map((stepName, index) => {
+                        const stepNumber = index + 1;
+                        const isCompleted = stepNumber < step;
+                        const isCurrent = stepNumber === step;
+
+                        return (
+                            <div
+                                key={stepNumber}
+                                className={`${styles.stepIndicator} ${
+                                    isCompleted ? styles.stepCompleted :
+                                    isCurrent ? styles.stepCurrent :
+                                    styles.stepUpcoming
+                                }`}
+                            >
+                                <div className={`${styles.stepCircle} ${flashStep === stepNumber ? styles.stepCircleFlash : ''}`}>
+                                    {isCompleted ? (
+                                        <span className={styles.stepCheckmark}>✓</span>
+                                    ) : (
+                                        <span className={styles.stepNumber}>{stepNumber}</span>
+                                    )}
+                                </div>
+                                <div className={styles.stepName}>{stepName}</div>
+                                {index < stepNames.length - 1 && (
+                                    <div className={`${styles.stepConnector} ${
+                                        isCompleted ? styles.connectorCompleted : styles.connectorIncomplete
+                                    }`} />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
-    }
+    });
 
     // Initialize radar chart
     useEffect(() => {
@@ -1306,8 +1198,8 @@ export default function AlphaPage() {
         let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
         if (progressShape.empty()) {
-            // Create shape for the first time - insert at beginning to appear behind dots
-            progressShape = g.insert('path', ':first-child')
+            // Create shape for the first time
+            progressShape = g.append('path')
                 .attr('class', 'progress-triangle')
                 .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
                 .attr('stroke', '#CFAEE8')
@@ -1533,6 +1425,8 @@ export default function AlphaPage() {
         return mimeType.startsWith('image/');
     };
 
+    const progressBarElement = useMemo(() => <ProgressBar step={currentStep} />, [currentStep]);
+
     return (
         <div className={styles.container} style={{ backgroundColor: '#edece3' }}>
             <Head>
@@ -1551,8 +1445,8 @@ export default function AlphaPage() {
 
             <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>Resume Evaluation Assessment</h1>
-                    <ProgressBar step={currentStep} totalSteps={4} />
+                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>Ambit Alpha</h1>
+                    {progressBarElement}
 
                     <div className={styles.form}>
                         {currentStep === 1 ? (
@@ -1764,7 +1658,7 @@ export default function AlphaPage() {
                                             onChange={(e) => handleInputChange('graduationYear', e.target.value)}
                                             onBlur={handleInputBlur}
                                             className={styles.input}
-                                            placeholder="e.g., 2025"
+                                            placeholder="e.g., 2020"
                                             min="1950"
                                             max="2030"
                                             step="1"
@@ -1851,7 +1745,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formRowContainer} style={{ marginTop: '-1.6rem' }}>
+                                <div className={styles.formRowContainer} style={{ marginTop: '-0.8rem' }}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="databases" className={styles.label}>
                                             Frameworks & Tools
@@ -2020,7 +1914,7 @@ export default function AlphaPage() {
                                                         tabIndex={-1}
                                                     >
                                                         <option value="">Select</option>
-                                                        <option value="<1 year">&lt;1 year</option>
+                                                        <option value="<1 year">&lt; 1 year</option>
                                                         <option value="1 to 3 years">1-3 years</option>
                                                         <option value="3 to 8 years">3-8 years</option>
                                                         <option value=">8 years">&gt;8 years</option>
