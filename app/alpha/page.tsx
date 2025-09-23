@@ -87,8 +87,9 @@ export default function AlphaPage() {
     
     // Track basic info fields (firstName, lastName, email, phoneNumber) for background dot behavior
     const [basicInfoFocusCount, setBasicInfoFocusCount] = useState(0);
+    const [isTypingBasicInfo, setIsTypingBasicInfo] = useState(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     
-    const [isAnimating, setIsAnimating] = useState(false);
     const svgRef = useRef<SVGSVGElement>(null);
     
     // Resume upload states
@@ -248,8 +249,11 @@ export default function AlphaPage() {
 
         return () => {
             isMounted = false;
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
         };
-    }, [formData, basicInfoFocusCount]);
+    }, [formData, basicInfoFocusCount, isTypingBasicInfo]);
 
     // Close years dropdowns when clicking outside
     useEffect(() => {
@@ -574,10 +578,6 @@ export default function AlphaPage() {
         // Start pulsing after initial animation
         setTimeout(pulse, 900);
 
-        setIsAnimating(true);
-        setTimeout(() => {
-            setIsAnimating(false);
-        }, 1000);
     };
 
     const removeGreyArea = () => {
@@ -779,11 +779,10 @@ export default function AlphaPage() {
                     .attr('cy', backgroundPoint[1]);
             }
 
-            // Add radar animation when user is typing
-            const isTypingBasic = basicInfoFocusCount > 0;
-            if (isTypingBasic) {
-                const addRadarAnimation = () => {
-                    if (basicInfoFocusCount > 0) { // Still typing
+            // Enhanced typing animation with radar pulse effect (original timing)
+            if (isTypingBasicInfo && basicInfoFocusCount > 0) {
+                const addTypingReactionAnimation = () => {
+                    if (isTypingBasicInfo && basicInfoFocusCount > 0) { // Still typing
                         // Get current actual position of the background dot
                         const currentX = parseFloat(backgroundDot.attr('cx'));
                         const currentY = parseFloat(backgroundDot.attr('cy'));
@@ -808,13 +807,26 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Continue animation if still typing
-                        if (basicInfoFocusCount > 0) {
-                            setTimeout(addRadarAnimation, 300);
-                        }
+                        // Dot reaction animation
+                        backgroundDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (isTypingBasicInfo && basicInfoFocusCount > 0) {
+                                    setTimeout(addTypingReactionAnimation, 300);
+                                }
+                            });
                     }
                 };
-                addRadarAnimation();
+                addTypingReactionAnimation();
             }
         } else {
             // Remove background dot if it exists and shouldn't be shown
@@ -1276,6 +1288,22 @@ export default function AlphaPage() {
             ...prev,
             [field]: value
         }));
+
+        // Track typing in basic info fields
+        const basicInfoFields = ['firstName', 'lastName', 'email', 'phoneNumber'];
+        if (basicInfoFields.includes(field)) {
+            setIsTypingBasicInfo(true);
+
+            // Clear existing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            typingTimeoutRef.current = setTimeout(() => {
+                setIsTypingBasicInfo(false);
+            }, 1000);
+        }
     };
 
 
@@ -1828,6 +1856,7 @@ export default function AlphaPage() {
                                 </div>
 
                                 <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Work Experience</h2>
+
 
                                 {formData.workExperiences.map((experience, index) => (
                                     <div key={index} style={{ marginBottom: '16px' }}>
