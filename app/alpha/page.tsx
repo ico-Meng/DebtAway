@@ -84,6 +84,16 @@ export default function AlphaPage() {
             }
         ]
     });
+    
+    // Track basic info fields (firstName, lastName, email, phoneNumber) for background dot behavior
+    const [basicInfoCompleted, setBasicInfoCompleted] = useState<{ firstName: boolean; lastName: boolean; email: boolean; phoneNumber: boolean }>({
+        firstName: false,
+        lastName: false,
+        email: false,
+        phoneNumber: false
+    });
+    const [basicInfoFocusCount, setBasicInfoFocusCount] = useState(0);
+    
     const [isAnimating, setIsAnimating] = useState(false);
     const svgRef = useRef<SVGSVGElement>(null);
     
@@ -245,7 +255,7 @@ export default function AlphaPage() {
         return () => {
             isMounted = false;
         };
-    }, [formData]);
+    }, [formData, basicInfoCompleted, basicInfoFocusCount]);
 
     // Close years dropdowns when clicking outside
     useEffect(() => {
@@ -645,23 +655,69 @@ export default function AlphaPage() {
         
         const hasWorkExperienceData = filledWorkExperienceFields.length > 0;
         
-        // Count total filled fields (excluding target job and workExperiences array since they're handled separately)
-        const basicFields = Object.entries(formData).filter(([key, value]) => 
-            key !== 'workExperiences' && typeof value === 'string' && value.trim() !== ''
-        );
-        const workExperienceFieldCount = filledWorkExperienceFields.length;
-        const filledFields = basicFields.length + workExperienceFieldCount;
-        
-        console.log('Updating chart with filled fields:', filledFields, formData);
-        console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
-        console.log('Filled education fields:', filledEducationFields);
-        console.log('Skills fields filled:', filledSkillsFields.length, hasSkillsData);
-        console.log('Filled skills fields:', filledSkillsFields);
-        console.log('Work Experience fields filled:', filledWorkExperienceFields.length, hasWorkExperienceData);
-        console.log('Filled work experience fields:', filledWorkExperienceFields);
+        // Calculate background dot value based only on basic info fields (firstName, lastName, email, phoneNumber)
+        const basicInfoKeys = ['firstName', 'lastName', 'email', 'phoneNumber'] as const;
+        const completedBasicCount = Object.values(basicInfoCompleted).filter(Boolean).length;
+        const isTypingBasic = basicInfoFocusCount > 0;
+        const hasAnyBasicInput = basicInfoKeys.some(key => (formData[key] as string).trim() !== '');
 
-        // Only proceed if there are filled fields
-        if (filledFields === 0) {
+        // Background dot value calculation:
+        // - When typing: show dot at center (value 0)
+        // - When completed: +2 per field (value 2, 4, 6, 8 for 1-4 completed fields)
+        // - Max value 8 for all 4 fields completed (within radar max of 10)
+        let backgroundValue = 0;
+        if (isTypingBasic) {
+            // Show dot at center (0) when typing
+            backgroundValue = 0;
+        } else if (hasAnyBasicInput || completedBasicCount > 0) {
+            // +2 per completed field when not typing
+            backgroundValue = completedBasicCount * 2;
+        }
+        
+        // Count non-basic fields for other dots and job match calculation
+        const workExperienceFieldCount = filledWorkExperienceFields.length;
+        const nonBasicFilledCount = filledEducationFields.length + filledSkillsFields.length + workExperienceFieldCount;
+        const totalNonBasicFields = nonBasicFilledCount; // Only non-basic fields affect other dots
+        
+        // Job Match calculation (no longer affected by basic info directly)
+        const baseLevel = 2;
+        const maxLevel = 3.5;
+        const progressPerField = (maxLevel - baseLevel) / 8; // Spread across more fields
+        
+        let jobMatchValue = 0;
+        if (totalNonBasicFields > 0) {
+            jobMatchValue = baseLevel + (totalNonBasicFields * progressPerField * 0.8);
+            
+            // Job Match gets additional boost from skills and work experience data
+            if (hasSkillsData) {
+                const skillsBoost = filledSkillsFields.length * 0.2;
+                jobMatchValue += skillsBoost;
+            }
+            if (hasWorkExperienceData) {
+                const workExperienceBoost = filledWorkExperienceFields.length * 0.25;
+                jobMatchValue += workExperienceBoost;
+            }
+        }
+        
+        // Check if we should show any dots at all
+        const shouldShowBackground = isTypingBasic || backgroundValue > 0;
+        const shouldShowJobMatch = jobMatchValue > 0;
+        
+        console.log('Background dot calculation:', {
+            completedBasicCount,
+            isTypingBasic,
+            hasAnyBasicInput,
+            backgroundValue,
+            basicInfoCompleted,
+            shouldShowBackground
+        });
+        console.log('Job Match calculation:', { totalNonBasicFields, jobMatchValue });
+        console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
+        console.log('Skills fields filled:', filledSkillsFields.length, hasSkillsData);
+        console.log('Work Experience fields filled:', filledWorkExperienceFields.length, hasWorkExperienceData);
+        const hasAnyActivity = shouldShowBackground || shouldShowJobMatch || hasEducationData || hasSkillsData || hasWorkExperienceData;
+        
+        if (!hasAnyActivity) {
             // Safely remove any existing progress dots
             const dotsToRemove = g.selectAll('.progress-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot');
             safeRemove(dotsToRemove);
@@ -677,29 +733,11 @@ export default function AlphaPage() {
                     .style('transform', 'scale(0.1)');
             }
 
-            console.log('No filled fields, fading out animations');
+            console.log('No activity, fading out animations');
             return;
         }
 
-        console.log('Proceeding with animation for', filledFields, 'filled fields');
-
-        // Calculate values for Background and Job Match starting at level 2
-        const baseLevel = 2;
-        const maxLevel = 3.5; // Maximum level they can reach
-        const progressPerField = (maxLevel - baseLevel) / 4; // 4 total fields to fill
-
-        const backgroundValue = baseLevel + (filledFields * progressPerField);
-        let jobMatchValue = baseLevel + (filledFields * progressPerField * 0.8); // Job Match grows slightly slower
-        
-        // Job Match gets additional boost from skills and work experience data
-        if (hasSkillsData) {
-            const skillsBoost = filledSkillsFields.length * 0.2; // Additional boost per skill field
-            jobMatchValue += skillsBoost;
-        }
-        if (hasWorkExperienceData) {
-            const workExperienceBoost = filledWorkExperienceFields.length * 0.25; // Additional boost per work experience field
-            jobMatchValue += workExperienceBoost;
-        }
+        console.log('Proceeding with animation. Background:', shouldShowBackground, 'Job Match:', shouldShowJobMatch);
 
         // Calculate positions for Background (index 0) and Job Match (index 5)
         const backgroundAngle = angleSlice * 0 - Math.PI / 2;
@@ -718,64 +756,159 @@ export default function AlphaPage() {
             Math.sin(jobMatchAngle) * jobMatchRadius
         ];
 
-        // Update or create Background dot (don't remove existing)
+        // Handle Background dot based on basic info fields
         let backgroundDot = g.select('.background-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
-        if (backgroundDot.empty()) {
-            backgroundDot = g.append('circle')
-                .attr('class', 'progress-dot background-dot')
-                .attr('cx', backgroundPoint[0])
-                .attr('cy', backgroundPoint[1])
-                .attr('r', 0)
-                .attr('fill', '#ff6b6b')
-                .attr('stroke', '#ff4757')
-                .attr('stroke-width', 2)
-                .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+        
+        if (shouldShowBackground) {
+            if (backgroundDot.empty()) {
+                // Create background dot with fancy drop-in animation
+                backgroundDot = g.append('circle')
+                    .attr('class', 'progress-dot background-dot')
+                    .attr('cx', backgroundPoint[0])
+                    .attr('cy', backgroundPoint[1] - 50) // Start above
+                    .attr('r', 0)
+                    .attr('fill', '#ff6b6b')
+                    .attr('stroke', '#ff4757')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-            backgroundDot
-                .transition()
-                .duration(600)
-                .ease(d3.easeBackOut)
-                .attr('r', 6)
-                .attr('opacity', 1);
+                // Fancy drop-in animation with bounce
+                backgroundDot
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeQuadOut)
+                    .attr('cy', backgroundPoint[1] + 10) // Drop down past target
+                    .attr('opacity', 1)
+                    .attr('r', 8) // Start larger
+                    .transition()
+                    .duration(400)
+                    .ease(d3.easeBounceOut)
+                    .attr('cy', backgroundPoint[1]) // Bounce to final position
+                    .attr('r', 6) // Normal size
+                    .on('end', () => {
+                        // No automatic radar signal - dot should remain static when not typing
+                    });
+            } else {
+                // Move existing dot to new position with smooth animation
+                backgroundDot
+                    .transition()
+                    .duration(500)
+                    .ease(d3.easeQuadInOut)
+                    .attr('cx', backgroundPoint[0])
+                    .attr('cy', backgroundPoint[1]);
+            }
+
+            // Enhanced typing animation with radar pulse effect
+            if (isTypingBasic) {
+                const addTypingReactionAnimation = () => {
+                    if (basicInfoFocusCount > 0) { // Still typing
+                        // Get current actual position of the background dot
+                        const currentX = parseFloat(backgroundDot.attr('cx'));
+                        const currentY = parseFloat(backgroundDot.attr('cy'));
+
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#ff6b6b')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
+
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                safeRemove(ring);
+                            });
+
+                        // Dot reaction animation
+                        backgroundDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 8)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 6)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (basicInfoFocusCount > 0) {
+                                    setTimeout(addTypingReactionAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addTypingReactionAnimation();
+            }
         } else {
-            // Move existing dot to new position with smooth animation
-            backgroundDot
-                .transition()
-                .duration(800)
-                .ease(d3.easeQuadInOut)
-                .attr('cx', backgroundPoint[0])
-                .attr('cy', backgroundPoint[1]);
+            // Remove background dot if it exists and shouldn't be shown
+            if (!backgroundDot.empty()) {
+                backgroundDot
+                    .transition()
+                    .duration(300)
+                    .ease(d3.easeQuadIn)
+                    .attr('opacity', 0)
+                    .attr('r', 0)
+                    .on('end', function() {
+                        safeRemove(backgroundDot);
+                    });
+            }
         }
 
+        // No continuous radar signal animation - dot remains static when not typing
 
-        // Update or create Job Match dot (don't remove existing)
+
+        // Handle Job Match dot (only show when there's non-basic field activity)
         let jobMatchDot = g.select('.jobmatch-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
-        if (jobMatchDot.empty()) {
-            jobMatchDot = g.append('circle')
-                .attr('class', 'progress-dot jobmatch-dot')
-                .attr('cx', jobMatchPoint[0])
-                .attr('cy', jobMatchPoint[1])
-                .attr('r', 0)
-                .attr('fill', '#3742fa')
-                .attr('stroke', '#2f3542')
-                .attr('stroke-width', 2)
-                .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+        
+        if (shouldShowJobMatch) {
+            if (jobMatchDot.empty()) {
+                jobMatchDot = g.append('circle')
+                    .attr('class', 'progress-dot jobmatch-dot')
+                    .attr('cx', jobMatchPoint[0])
+                    .attr('cy', jobMatchPoint[1])
+                    .attr('r', 0)
+                    .attr('fill', '#3742fa')
+                    .attr('stroke', '#2f3542')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-            jobMatchDot
-                .transition()
-                .duration(600)
-                .delay(200)
-                .ease(d3.easeBackOut)
-                .attr('r', 6)
-                .attr('opacity', 1);
+                jobMatchDot
+                    .transition()
+                    .duration(600)
+                    .delay(200)
+                    .ease(d3.easeBackOut)
+                    .attr('r', 6)
+                    .attr('opacity', 1);
+            } else {
+                // Move existing dot to new position with smooth animation
+                jobMatchDot
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
+                    .attr('cx', jobMatchPoint[0])
+                    .attr('cy', jobMatchPoint[1]);
+            }
         } else {
-            // Move existing dot to new position with smooth animation
-            jobMatchDot
-                .transition()
-                .duration(800)
-                .ease(d3.easeQuadInOut)
-                .attr('cx', jobMatchPoint[0])
-                .attr('cy', jobMatchPoint[1]);
+            // Remove job match dot if it exists and shouldn't be shown
+            if (!jobMatchDot.empty()) {
+                jobMatchDot
+                    .transition()
+                    .duration(300)
+                    .ease(d3.easeQuadIn)
+                    .attr('opacity', 0)
+                    .attr('r', 0)
+                    .on('end', function() {
+                        safeRemove(jobMatchDot);
+                    });
+            }
         }
 
 
@@ -1088,9 +1221,15 @@ export default function AlphaPage() {
         // Collect all visible dot positions with their proper hexagon indices
         const dotPositions: { point: [number, number], index: number }[] = [];
 
-        // Always include Background (index 0) and Job Match (index 5)
-        dotPositions.push({ point: backgroundPoint, index: 0 });
-        dotPositions.push({ point: jobMatchPoint, index: 5 });
+        // Include Background (index 0) only if it should be shown
+        if (shouldShowBackground) {
+            dotPositions.push({ point: backgroundPoint, index: 0 });
+        }
+        
+        // Include Job Match (index 5) only if it should be shown
+        if (shouldShowJobMatch) {
+            dotPositions.push({ point: jobMatchPoint, index: 5 });
+        }
 
         // Add Education and Professional dots if education data exists
         if (hasEducationData) {
@@ -1277,6 +1416,37 @@ export default function AlphaPage() {
             // Store the timer reference for potential cleanup
             return () => clearTimeout(updateTimer);
         }
+    };
+
+    // Specialized handlers for basic info fields (firstName, lastName, email, phoneNumber)
+    const handleBasicInfoFocus = () => {
+        setBasicInfoFocusCount(count => count + 1);
+        // Trigger immediate chart update to show typing state
+        if (svgRef.current) {
+            requestAnimationFrame(() => updateChartWithFormData());
+        }
+    };
+
+    const handleBasicInfoBlur = (field: 'firstName' | 'lastName' | 'email' | 'phoneNumber', value: string) => {
+        setBasicInfoFocusCount(count => Math.max(0, count - 1));
+        
+        // Update completion state for the specific field
+        setBasicInfoCompleted(prev => {
+            const nowCompleted = value.trim() !== '';
+            if (prev[field] === nowCompleted) return prev; // No change needed
+            
+            const updated = { ...prev, [field]: nowCompleted };
+            
+            // Trigger chart update after state change
+            if (svgRef.current) {
+                setTimeout(() => updateChartWithFormData(), 0);
+            }
+            
+            return updated;
+        });
+        
+        // Also call the general blur handler for other chart updates
+        handleInputBlur();
     };
 
     // Handle work experience input changes
@@ -1504,7 +1674,8 @@ export default function AlphaPage() {
                                             id="firstName"
                                             value={formData.firstName}
                                             onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                            onBlur={handleInputBlur}
+                                            onFocus={handleBasicInfoFocus}
+                                            onBlur={(e) => handleBasicInfoBlur('firstName', e.target.value)}
                                             className={styles.input}
                                             placeholder="Enter your first name"
                                         />
@@ -1519,7 +1690,8 @@ export default function AlphaPage() {
                                             id="lastName"
                                             value={formData.lastName}
                                             onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                            onBlur={handleInputBlur}
+                                            onFocus={handleBasicInfoFocus}
+                                            onBlur={(e) => handleBasicInfoBlur('lastName', e.target.value)}
                                             className={styles.input}
                                             placeholder="Enter your last name"
                                         />
@@ -1536,7 +1708,8 @@ export default function AlphaPage() {
                                             id="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange('email', e.target.value)}
-                                            onBlur={handleInputBlur}
+                                            onFocus={handleBasicInfoFocus}
+                                            onBlur={(e) => handleBasicInfoBlur('email', e.target.value)}
                                             className={styles.input}
                                             placeholder="Enter your email address"
                                         />
@@ -1551,7 +1724,8 @@ export default function AlphaPage() {
                                             id="phoneNumber"
                                             value={formData.phoneNumber}
                                             onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                            onBlur={handleInputBlur}
+                                            onFocus={handleBasicInfoFocus}
+                                            onBlur={(e) => handleBasicInfoBlur('phoneNumber', e.target.value)}
                                             className={styles.input}
                                             placeholder="Enter your phone number"
                                         />
