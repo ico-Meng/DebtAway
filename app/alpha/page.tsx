@@ -86,12 +86,6 @@ export default function AlphaPage() {
     });
     
     // Track basic info fields (firstName, lastName, email, phoneNumber) for background dot behavior
-    const [basicInfoCompleted, setBasicInfoCompleted] = useState<{ firstName: boolean; lastName: boolean; email: boolean; phoneNumber: boolean }>({
-        firstName: false,
-        lastName: false,
-        email: false,
-        phoneNumber: false
-    });
     const [basicInfoFocusCount, setBasicInfoFocusCount] = useState(0);
     
     const [isAnimating, setIsAnimating] = useState(false);
@@ -255,7 +249,7 @@ export default function AlphaPage() {
         return () => {
             isMounted = false;
         };
-    }, [formData, basicInfoCompleted, basicInfoFocusCount]);
+    }, [formData, basicInfoFocusCount]);
 
     // Close years dropdowns when clicking outside
     useEffect(() => {
@@ -657,22 +651,11 @@ export default function AlphaPage() {
         
         // Calculate background dot value based only on basic info fields (firstName, lastName, email, phoneNumber)
         const basicInfoKeys = ['firstName', 'lastName', 'email', 'phoneNumber'] as const;
-        const completedBasicCount = Object.values(basicInfoCompleted).filter(Boolean).length;
-        const isTypingBasic = basicInfoFocusCount > 0;
+        const completedBasicCount = basicInfoKeys.filter(key => (formData[key] as string).trim() !== '').length;
         const hasAnyBasicInput = basicInfoKeys.some(key => (formData[key] as string).trim() !== '');
 
-        // Background dot value calculation:
-        // - When typing: show dot at center (value 0)
-        // - When completed: +2 per field (value 2, 4, 6, 8 for 1-4 completed fields)
-        // - Max value 8 for all 4 fields completed (within radar max of 10)
-        let backgroundValue = 0;
-        if (isTypingBasic) {
-            // Show dot at center (0) when typing
-            backgroundValue = 0;
-        } else if (hasAnyBasicInput || completedBasicCount > 0) {
-            // +2 per completed field when not typing
-            backgroundValue = completedBasicCount * 2;
-        }
+        // Background dot value calculation: +2 per completed field, max 8
+        let backgroundValue = completedBasicCount * 2;
         
         // Count non-basic fields for other dots and job match calculation
         const workExperienceFieldCount = filledWorkExperienceFields.length;
@@ -700,15 +683,13 @@ export default function AlphaPage() {
         }
         
         // Check if we should show any dots at all
-        const shouldShowBackground = isTypingBasic || backgroundValue > 0;
+        const shouldShowBackground = true; // Always show background dot
         const shouldShowJobMatch = jobMatchValue > 0;
         
         console.log('Background dot calculation:', {
             completedBasicCount,
-            isTypingBasic,
             hasAnyBasicInput,
             backgroundValue,
-            basicInfoCompleted,
             shouldShowBackground
         });
         console.log('Job Match calculation:', { totalNonBasicFields, jobMatchValue });
@@ -769,7 +750,7 @@ export default function AlphaPage() {
                     .attr('r', 0)
                     .attr('fill', '#ff6b6b')
                     .attr('stroke', '#ff4757')
-                    .attr('stroke-width', 2)
+                    .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
                 // Fancy drop-in animation with bounce
@@ -779,12 +760,12 @@ export default function AlphaPage() {
                     .ease(d3.easeQuadOut)
                     .attr('cy', backgroundPoint[1] + 10) // Drop down past target
                     .attr('opacity', 1)
-                    .attr('r', 8) // Start larger
+                    .attr('r', 10) // Start larger
                     .transition()
                     .duration(400)
                     .ease(d3.easeBounceOut)
                     .attr('cy', backgroundPoint[1]) // Bounce to final position
-                    .attr('r', 6) // Normal size
+                    .attr('r', 8) // Larger final size for better visibility
                     .on('end', () => {
                         // No automatic radar signal - dot should remain static when not typing
                     });
@@ -798,9 +779,10 @@ export default function AlphaPage() {
                     .attr('cy', backgroundPoint[1]);
             }
 
-            // Enhanced typing animation with radar pulse effect
+            // Add radar animation when user is typing
+            const isTypingBasic = basicInfoFocusCount > 0;
             if (isTypingBasic) {
-                const addTypingReactionAnimation = () => {
+                const addRadarAnimation = () => {
                     if (basicInfoFocusCount > 0) { // Still typing
                         // Get current actual position of the background dot
                         const currentX = parseFloat(backgroundDot.attr('cx'));
@@ -823,29 +805,16 @@ export default function AlphaPage() {
                             .attr('r', 25)
                             .attr('opacity', 0)
                             .on('end', function() {
-                                safeRemove(ring);
+                                ring.remove();
                             });
 
-                        // Dot reaction animation
-                        backgroundDot
-                            .transition()
-                            .duration(200)
-                            .ease(d3.easeQuadOut)
-                            .attr('r', 8)
-                            .attr('opacity', 0.9)
-                            .transition()
-                            .duration(600)
-                            .ease(d3.easeBackOut)
-                            .attr('r', 6)
-                            .attr('opacity', 1)
-                            .on('end', () => {
-                                if (basicInfoFocusCount > 0) {
-                                    setTimeout(addTypingReactionAnimation, 300);
-                                }
-                            });
+                        // Continue animation if still typing
+                        if (basicInfoFocusCount > 0) {
+                            setTimeout(addRadarAnimation, 300);
+                        }
                     }
                 };
-                addTypingReactionAnimation();
+                addRadarAnimation();
             }
         } else {
             // Remove background dot if it exists and shouldn't be shown
@@ -1018,31 +987,7 @@ export default function AlphaPage() {
             }
 
 
-            // Add subtle pulsing effect to education and professional dots
-            const addSubtlePulse = (dot: any) => {
-                const pulse = () => {
-                    dot.transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 7)
-                        .transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 6)
-                        .on('end', () => {
-                            if (g.select('.education-dot, .professional-dot').node()) {
-                                pulse(); // Continue pulsing if elements still exist
-                            }
-                        });
-                };
-
-                // Start pulsing after initial animation
-                setTimeout(pulse, 1500);
-            };
-
-            // Add subtle pulsing to education and professional dots
-            addSubtlePulse(educationDot);
-            addSubtlePulse(professionalDot);
+            // Static dots - no pulsing animation
         } else {
             // Safely remove education and professional dots if no education data
             const educationDotsToRemove = g.selectAll('.education-dot, .professional-dot');
@@ -1103,30 +1048,7 @@ export default function AlphaPage() {
                     .attr('cy', techSkillsPoint[1]);
             }
 
-            // Add subtle pulsing effect to tech skills dot
-            const addTechSkillsSubtlePulse = (dot: any) => {
-                const pulse = () => {
-                    dot.transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 7)
-                        .transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 6)
-                        .on('end', () => {
-                            if (g.select('.tech-skills-dot').node()) {
-                                pulse(); // Continue pulsing if element still exists
-                            }
-                        });
-                };
-
-                // Start pulsing after initial animation
-                setTimeout(pulse, 1700);
-            };
-
-            // Add subtle pulsing to tech skills dot
-            addTechSkillsSubtlePulse(techSkillsDot);
+            // Static dot - no pulsing animation
         } else {
             // Safely remove tech skills dot if no skills data
             const techSkillsDotsToRemove = g.selectAll('.tech-skills-dot');
@@ -1187,30 +1109,7 @@ export default function AlphaPage() {
                     .attr('cy', teamworkPoint[1]);
             }
 
-            // Add subtle pulsing effect to teamwork dot
-            const addTeamworkSubtlePulse = (dot: any) => {
-                const pulse = () => {
-                    dot.transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 7)
-                        .transition()
-                        .duration(2000)
-                        .ease(d3.easeSinInOut)
-                        .attr('r', 6)
-                        .on('end', () => {
-                            if (g.select('.teamwork-dot').node()) {
-                                pulse(); // Continue pulsing if element still exists
-                            }
-                        });
-                };
-
-                // Start pulsing after initial animation
-                setTimeout(pulse, 1900);
-            };
-
-            // Add subtle pulsing to teamwork dot
-            addTeamworkSubtlePulse(teamworkDot);
+            // Static dot - no pulsing animation
         } else {
             // Safely remove teamwork dot if no work experience data
             const teamworkDotsToRemove = g.selectAll('.teamwork-dot');
@@ -1368,31 +1267,7 @@ export default function AlphaPage() {
                 .attr('opacity', 0.7);
         }
 
-        // Add gentle pulsing effect to main dots
-        const addGentlePulse = (dot: any) => {
-            const pulse = () => {
-                dot.transition()
-                    .duration(2500)
-                    .ease(d3.easeSinInOut)
-                    .attr('r', 7)
-                    .transition()
-                    .duration(2500)
-                    .ease(d3.easeSinInOut)
-                    .attr('r', 6)
-                    .on('end', () => {
-                        if (g.select('.progress-dot, .background-dot, .jobmatch-dot').node()) {
-                            pulse(); // Continue pulsing if elements still exist
-                        }
-                    });
-            };
-
-            // Start pulsing after initial animation
-            setTimeout(pulse, 2000);
-        };
-
-        // Add gentle pulsing to main dots
-        addGentlePulse(backgroundDot);
-        addGentlePulse(jobMatchDot);
+        // Static dots - no pulsing animation
     };
 
 
@@ -1403,50 +1278,14 @@ export default function AlphaPage() {
         }));
     };
 
-    const handleInputBlur = () => {
-        // Trigger chart update when user leaves any field
-        if (svgRef.current) {
-            // Small delay to ensure state is updated
-            const updateTimer = setTimeout(() => {
-                if (svgRef.current) {
-                    updateChartWithFormData();
-                }
-            }, 50);
-
-            // Store the timer reference for potential cleanup
-            return () => clearTimeout(updateTimer);
-        }
-    };
 
     // Specialized handlers for basic info fields (firstName, lastName, email, phoneNumber)
     const handleBasicInfoFocus = () => {
         setBasicInfoFocusCount(count => count + 1);
-        // Trigger immediate chart update to show typing state
-        if (svgRef.current) {
-            requestAnimationFrame(() => updateChartWithFormData());
-        }
     };
 
-    const handleBasicInfoBlur = (field: 'firstName' | 'lastName' | 'email' | 'phoneNumber', value: string) => {
+    const handleBasicInfoBlur = () => {
         setBasicInfoFocusCount(count => Math.max(0, count - 1));
-        
-        // Update completion state for the specific field
-        setBasicInfoCompleted(prev => {
-            const nowCompleted = value.trim() !== '';
-            if (prev[field] === nowCompleted) return prev; // No change needed
-            
-            const updated = { ...prev, [field]: nowCompleted };
-            
-            // Trigger chart update after state change
-            if (svgRef.current) {
-                setTimeout(() => updateChartWithFormData(), 0);
-            }
-            
-            return updated;
-        });
-        
-        // Also call the general blur handler for other chart updates
-        handleInputBlur();
     };
 
     // Handle work experience input changes
@@ -1675,7 +1514,7 @@ export default function AlphaPage() {
                                             value={formData.firstName}
                                             onChange={(e) => handleInputChange('firstName', e.target.value)}
                                             onFocus={handleBasicInfoFocus}
-                                            onBlur={(e) => handleBasicInfoBlur('firstName', e.target.value)}
+                                            onBlur={handleBasicInfoBlur}
                                             className={styles.input}
                                             placeholder="Enter your first name"
                                         />
@@ -1691,7 +1530,7 @@ export default function AlphaPage() {
                                             value={formData.lastName}
                                             onChange={(e) => handleInputChange('lastName', e.target.value)}
                                             onFocus={handleBasicInfoFocus}
-                                            onBlur={(e) => handleBasicInfoBlur('lastName', e.target.value)}
+                                            onBlur={handleBasicInfoBlur}
                                             className={styles.input}
                                             placeholder="Enter your last name"
                                         />
@@ -1709,7 +1548,7 @@ export default function AlphaPage() {
                                             value={formData.email}
                                             onChange={(e) => handleInputChange('email', e.target.value)}
                                             onFocus={handleBasicInfoFocus}
-                                            onBlur={(e) => handleBasicInfoBlur('email', e.target.value)}
+                                            onBlur={handleBasicInfoBlur}
                                             className={styles.input}
                                             placeholder="Enter your email address"
                                         />
@@ -1725,7 +1564,7 @@ export default function AlphaPage() {
                                             value={formData.phoneNumber}
                                             onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                                             onFocus={handleBasicInfoFocus}
-                                            onBlur={(e) => handleBasicInfoBlur('phoneNumber', e.target.value)}
+                                            onBlur={handleBasicInfoBlur}
                                             className={styles.input}
                                             placeholder="Enter your phone number"
                                         />
@@ -1783,7 +1622,6 @@ export default function AlphaPage() {
                                             id="collegeName"
                                             value={formData.collegeName}
                                             onChange={(e) => handleInputChange('collegeName', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="Enter your college/university name"
                                         />
@@ -1798,7 +1636,6 @@ export default function AlphaPage() {
                                             id="degree"
                                             value={formData.degree}
                                             onChange={(e) => handleInputChange('degree', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., Bachelor's, Master's, PhD"
                                         />
@@ -1815,7 +1652,6 @@ export default function AlphaPage() {
                                             id="major"
                                             value={formData.major}
                                             onChange={(e) => handleInputChange('major', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., Computer Science, Business Administration"
                                         />
@@ -1830,7 +1666,6 @@ export default function AlphaPage() {
                                             id="graduationYear"
                                             value={formData.graduationYear}
                                             onChange={(e) => handleInputChange('graduationYear', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., 2020"
                                             min="1950"
@@ -1897,7 +1732,6 @@ export default function AlphaPage() {
                                             id="programmingLanguages"
                                             value={formData.programmingLanguages}
                                             onChange={(e) => handleInputChange('programmingLanguages', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., JavaScript, Python, Java"
                                         />
@@ -1912,7 +1746,6 @@ export default function AlphaPage() {
                                             id="frameworks"
                                             value={formData.frameworks}
                                             onChange={(e) => handleInputChange('frameworks', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., React, Node.js, Django"
                                         />
@@ -1929,7 +1762,6 @@ export default function AlphaPage() {
                                             id="databases"
                                             value={formData.databases}
                                             onChange={(e) => handleInputChange('databases', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., React, Angular, Vue.js"
                                         />
@@ -1944,7 +1776,6 @@ export default function AlphaPage() {
                                             id="tools"
                                             value={formData.tools}
                                             onChange={(e) => handleInputChange('tools', e.target.value)}
-                                            onBlur={handleInputBlur}
                                             className={styles.input}
                                             placeholder="e.g., Awards, Certifications, Projects"
                                         />
@@ -2010,7 +1841,6 @@ export default function AlphaPage() {
                                                     id={`companyName_${index}`}
                                                     value={experience.companyName}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'companyName', e.target.value)}
-                                                    onBlur={handleInputBlur}
                                                     className={styles.input}
                                                     placeholder="Enter company name"
                                                 />
@@ -2025,7 +1855,6 @@ export default function AlphaPage() {
                                                     id={`jobTitle_${index}`}
                                                     value={experience.jobTitle}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'jobTitle', e.target.value)}
-                                                    onBlur={handleInputBlur}
                                                     className={styles.input}
                                                     placeholder="Enter job title"
                                                 />
