@@ -90,6 +90,31 @@ export default function AlphaPage() {
     const [isTypingBasicInfo, setIsTypingBasicInfo] = useState(false);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     
+    // Track education fields (collegeName, degree, major, graduationYear) for education dot behavior
+    const [educationFocusCount, setEducationFocusCount] = useState(0);
+    const [isTypingEducation, setIsTypingEducation] = useState(false);
+    const educationTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Track JobMatch fields (education, skills, work experience) for job match dot behavior
+    const [jobMatchFocusCount, setJobMatchFocusCount] = useState(0);
+    const [isTypingJobMatch, setIsTypingJobMatch] = useState(false);
+    const jobMatchTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Track TechSkills fields (programmingLanguages, frameworks, databases, tools) for tech skills dot behavior
+    const [techSkillsFocusCount, setTechSkillsFocusCount] = useState(0);
+    const [isTypingTechSkills, setIsTypingTechSkills] = useState(false);
+    const techSkillsTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Track Professional fields (education, skills, work experience) for professional dot behavior
+    const [professionalFocusCount, setProfessionalFocusCount] = useState(0);
+    const [isTypingProfessional, setIsTypingProfessional] = useState(false);
+    const professionalTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Track Teamwork fields (work experience) for teamwork dot behavior
+    const [teamworkFocusCount, setTeamworkFocusCount] = useState(0);
+    const [isTypingTeamwork, setIsTypingTeamwork] = useState(false);
+    const teamworkTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
     const svgRef = useRef<SVGSVGElement>(null);
     
     // Resume upload states
@@ -253,7 +278,7 @@ export default function AlphaPage() {
                 clearTimeout(typingTimeoutRef.current);
             }
         };
-    }, [formData, basicInfoFocusCount, isTypingBasicInfo]);
+        }, [formData, basicInfoFocusCount, isTypingBasicInfo, educationFocusCount, isTypingEducation, jobMatchFocusCount, isTypingJobMatch, techSkillsFocusCount, isTypingTechSkills, professionalFocusCount, isTypingProfessional, teamworkFocusCount, isTypingTeamwork]);
 
     // Close years dropdowns when clicking outside
     useEffect(() => {
@@ -662,29 +687,17 @@ export default function AlphaPage() {
         const nonBasicFilledCount = filledEducationFields.length + filledSkillsFields.length + workExperienceFieldCount;
         const totalNonBasicFields = nonBasicFilledCount; // Only non-basic fields affect other dots
         
-        // Job Match calculation (no longer affected by basic info directly)
-        const baseLevel = 2;
-        const maxLevel = 3.5;
-        const progressPerField = (maxLevel - baseLevel) / 8; // Spread across more fields
-        
+        // Job Match calculation based on education AND skills fields (table-driven)
+        // Each completed field (education or skills) moves dot 0.5 units outward (0.5/10 of max value)
         let jobMatchValue = 0;
-        if (totalNonBasicFields > 0) {
-            jobMatchValue = baseLevel + (totalNonBasicFields * progressPerField * 0.8);
-            
-            // Job Match gets additional boost from skills and work experience data
-            if (hasSkillsData) {
-                const skillsBoost = filledSkillsFields.length * 0.2;
-                jobMatchValue += skillsBoost;
-            }
-            if (hasWorkExperienceData) {
-                const workExperienceBoost = filledWorkExperienceFields.length * 0.25;
-                jobMatchValue += workExperienceBoost;
-            }
+        const totalJobMatchFields = filledEducationFields.length + filledSkillsFields.length;
+        if (totalJobMatchFields > 0) {
+            jobMatchValue = totalJobMatchFields * 0.5;
         }
         
         // Check if we should show any dots at all
         const shouldShowBackground = true; // Always show background dot
-        const shouldShowJobMatch = jobMatchValue > 0;
+        const shouldShowJobMatch = jobMatchValue > 0; // Only show when education fields are completed
         
         console.log('Background dot calculation:', {
             completedBasicCount,
@@ -692,7 +705,12 @@ export default function AlphaPage() {
             backgroundValue,
             shouldShowBackground
         });
-        console.log('Job Match calculation:', { totalNonBasicFields, jobMatchValue });
+        console.log('Job Match calculation:', { 
+            filledEducationFields: filledEducationFields.length, 
+            filledSkillsFields: filledSkillsFields.length,
+            totalJobMatchFields,
+            jobMatchValue 
+        });
         console.log('Education fields filled:', filledEducationFields.length, hasEducationData);
         console.log('Skills fields filled:', filledSkillsFields.length, hasSkillsData);
         console.log('Work Experience fields filled:', filledWorkExperienceFields.length, hasWorkExperienceData);
@@ -725,7 +743,14 @@ export default function AlphaPage() {
         const jobMatchAngle = angleSlice * 5 - Math.PI / 2;
 
         const backgroundRadius = (backgroundValue / maxValue) * radius;
-        const jobMatchRadius = (jobMatchValue / maxValue) * radius;
+        // JobMatch radius calculation: start at center when just typing, move outward when fields completed
+        let actualJobMatchValue = 0;
+        if (hasEducationData) {
+            actualJobMatchValue = jobMatchValue; // Use calculated value for completed fields
+        }
+        // If just typing but no completed fields, stay at center (value = 0)
+        
+        const jobMatchRadius = (actualJobMatchValue / maxValue) * radius;
 
         const backgroundPoint: [number, number] = [
             Math.cos(backgroundAngle) * backgroundRadius,
@@ -846,36 +871,108 @@ export default function AlphaPage() {
         // No continuous radar signal animation - dot remains static when not typing
 
 
-        // Handle Job Match dot (only show when there's non-basic field activity)
+        // Handle Job Match dot with enhanced UX like BackgroundDot (education and skills fields)
+        const shouldShowJobMatchDot = hasEducationData || hasSkillsData || 
+                                     (isTypingEducation && educationFocusCount > 0) || 
+                                     (isTypingTechSkills && techSkillsFocusCount > 0);
         let jobMatchDot = g.select('.jobmatch-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
         
-        if (shouldShowJobMatch) {
+        if (shouldShowJobMatchDot) {
             if (jobMatchDot.empty()) {
+                // Create job match dot - start at center if just typing, or at final position if has data
+                const startPosition = actualJobMatchValue === 0 ? [0, 0] : jobMatchPoint;
                 jobMatchDot = g.append('circle')
                     .attr('class', 'progress-dot jobmatch-dot')
-                    .attr('cx', jobMatchPoint[0])
-                    .attr('cy', jobMatchPoint[1])
+                    .attr('cx', startPosition[0])
+                    .attr('cy', startPosition[1] - (actualJobMatchValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#3742fa')
                     .attr('stroke', '#2f3542')
-                    .attr('stroke-width', 2)
+                    .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-                jobMatchDot
-                    .transition()
-                    .duration(600)
-                    .delay(200)
-                    .ease(d3.easeBackOut)
-                    .attr('r', 6)
-                    .attr('opacity', 1);
+                if (actualJobMatchValue === 0) {
+                    // Simple fade-in at center when typing
+                    jobMatchDot
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeQuadOut)
+                        .attr('opacity', 1)
+                        .attr('r', 6);
+                } else {
+                    // Fancy drop-in animation with bounce for positioned dots
+                    jobMatchDot
+                        .transition()
+                        .duration(800)
+                        .ease(d3.easeQuadOut)
+                        .attr('cy', jobMatchPoint[1] + 10) // Drop down past target
+                        .attr('opacity', 1)
+                        .attr('r', 10) // Start larger
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeBounceOut)
+                        .attr('cy', jobMatchPoint[1]) // Bounce to final position
+                        .attr('r', 8); // Larger final size for better visibility
+                }
             } else {
                 // Move existing dot to new position with smooth animation
                 jobMatchDot
                     .transition()
-                    .duration(800)
+                    .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', jobMatchPoint[0])
-                    .attr('cy', jobMatchPoint[1]);
+                    .attr('cy', jobMatchPoint[1])
+                    .attr('r', actualJobMatchValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
+            }
+
+            // Enhanced typing animation with radar pulse effect for JobMatch (education and skills fields)
+            if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) {
+                const addJobMatchTypingAnimation = () => {
+                    if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) { // Still typing
+                        // Get current actual position of the job match dot
+                        const currentX = parseFloat(jobMatchDot.attr('cx'));
+                        const currentY = parseFloat(jobMatchDot.attr('cy'));
+
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'jobmatch-typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#3742fa')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
+
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                ring.remove();
+                            });
+
+                        // Dot reaction animation
+                        jobMatchDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) {
+                                    setTimeout(addJobMatchTypingAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addJobMatchTypingAnimation();
             }
         } else {
             // Remove job match dot if it exists and shouldn't be shown
@@ -893,39 +990,46 @@ export default function AlphaPage() {
         }
 
 
-        // Update or create Education and Professional dots if education fields are filled
-        if (hasEducationData) {
-            // Calculate progressive levels based on number of filled education fields
-            const baseEducationLevel = 1.0; // Starting level
-            const maxEducationLevel = 2.5; // Maximum level they can reach
-            const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
+        // Update or create Education dot if education fields are filled OR user is typing
+        const shouldShowEducationDot = hasEducationData || (isTypingEducation && educationFocusCount > 0);
+        
+        // Update or create Professional dot if work experience fields are filled OR user is typing work experience
+        const shouldShowProfessionalDot = hasWorkExperienceData || (isTypingProfessional && professionalFocusCount > 0);
+        
+        if (shouldShowEducationDot) {
+            // Calculate education dot position based on table:
+            // Start typing: 0 (center), 1 field: 2 (1/5), 2 fields: 4 (2/5), 3 fields: 6 (3/5), 4 fields: 8 (4/5)
+            let educationValue = 0; // Start at center when typing
             
-            const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
-            let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9); // Professional grows slightly slower
-            
-            // Professional gets additional boost from skills and work experience data
-            if (hasSkillsData) {
-                const skillsBoost = filledSkillsFields.length * 0.15; // Additional boost per skill field
-                professionalLevel += skillsBoost;
+            if (hasEducationData) {
+                // Each completed field moves dot 2 units outward (2/10 of max value)
+                educationValue = filledEducationFields.length * 2;
             }
+            
+            const educationLevel = educationValue / maxValue; // Convert to 0-1 scale for radius calculation
+            
+            // Professional dot calculation based only on work experience fields (table-driven)
+            // Each completed work experience field moves dot 2 units outward (2/10 of max value)
+            let professionalValue = 0;
             if (hasWorkExperienceData) {
-                const workExperienceBoost = filledWorkExperienceFields.length * 0.2; // Additional boost per work experience field
-                professionalLevel += workExperienceBoost;
+                professionalValue = filledWorkExperienceFields.length * 2;
             }
+            const professionalLevel = professionalValue / maxValue; // Convert to 0-1 scale for radius calculation
             
             console.log('Education progression:', {
                 filledCount: filledEducationFields.length,
                 totalFields: educationFields.length,
+                educationValue,
                 educationLevel,
                 professionalLevel,
-                progressPerField: educationProgressPerField
+                isTyping: isTypingEducation && educationFocusCount > 0
             });
             
             const educationAngle = angleSlice * 1 - Math.PI / 2; // Education is at index 1
             const professionalAngle = angleSlice * 2 - Math.PI / 2; // Professional is at index 2
 
-            const educationRadius = (educationLevel / maxValue) * radius;
-            const professionalRadius = (professionalLevel / maxValue) * radius;
+            const educationRadius = educationLevel * radius; // educationLevel is already 0-1 scale
+            const professionalRadius = professionalLevel * radius;
 
             const educationPoint: [number, number] = [
                 Math.cos(educationAngle) * educationRadius,
@@ -937,193 +1041,515 @@ export default function AlphaPage() {
                 Math.sin(professionalAngle) * professionalRadius
             ];
 
-            // Update or create Education dot (don't remove existing)
+            // Handle Education dot with enhanced UX like BackgroundDot
             let educationDot = g.select('.education-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
             if (educationDot.empty()) {
+                // Create education dot - start at center if just typing, or at final position if has data
+                const startPosition = educationValue === 0 ? [0, 0] : educationPoint;
                 educationDot = g.append('circle')
-                    .attr('class', 'education-dot')
-                    .attr('cx', educationPoint[0])
-                    .attr('cy', educationPoint[1])
+                    .attr('class', 'progress-dot education-dot')
+                    .attr('cx', startPosition[0])
+                    .attr('cy', startPosition[1] - (educationValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#4ecdc4')
                     .attr('stroke', '#2c3e50')
-                    .attr('stroke-width', 2)
+                    .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-                educationDot
-                    .transition()
-                    .duration(600)
-                    .delay(400)
-                    .ease(d3.easeBackOut)
-                    .attr('r', 6)
-                    .attr('opacity', 1);
+                if (educationValue === 0) {
+                    // Simple fade-in at center when typing
+                    educationDot
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeQuadOut)
+                        .attr('opacity', 1)
+                        .attr('r', 6);
+                } else {
+                    // Fancy drop-in animation with bounce for positioned dots
+                    educationDot
+                        .transition()
+                        .duration(800)
+                        .ease(d3.easeQuadOut)
+                        .attr('cy', educationPoint[1] + 10) // Drop down past target
+                        .attr('opacity', 1)
+                        .attr('r', 10) // Start larger
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeBounceOut)
+                        .attr('cy', educationPoint[1]) // Bounce to final position
+                        .attr('r', 8); // Larger final size for better visibility
+                }
             } else {
                 // Move existing dot to new position with smooth animation
                 educationDot
                     .transition()
-                    .duration(800)
+                    .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', educationPoint[0])
-                    .attr('cy', educationPoint[1]);
+                    .attr('cy', educationPoint[1])
+                    .attr('r', educationValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
             }
 
+            // Enhanced typing animation with radar pulse effect for education
+            if (isTypingEducation && educationFocusCount > 0) {
+                const addEducationTypingAnimation = () => {
+                    if (isTypingEducation && educationFocusCount > 0) { // Still typing
+                        // Get current actual position of the education dot
+                        const currentX = parseFloat(educationDot.attr('cx'));
+                        const currentY = parseFloat(educationDot.attr('cy'));
 
-            // Update or create Professional dot (don't remove existing)
-            let professionalDot = g.select('.professional-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
-            if (professionalDot.empty()) {
-                professionalDot = g.append('circle')
-                    .attr('class', 'professional-dot')
-                    .attr('cx', professionalPoint[0])
-                    .attr('cy', professionalPoint[1])
-                    .attr('r', 0)
-                    .attr('fill', '#e74c3c')
-                    .attr('stroke', '#c0392b')
-                    .attr('stroke-width', 2)
-                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'education-typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#4ecdc4')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
 
-                professionalDot
-                    .transition()
-                    .duration(600)
-                    .delay(600)
-                    .ease(d3.easeBackOut)
-                    .attr('r', 6)
-                    .attr('opacity', 1);
-            } else {
-                // Move existing dot to new position with smooth animation
-                professionalDot
-                    .transition()
-                    .duration(800)
-                    .ease(d3.easeQuadInOut)
-                    .attr('cx', professionalPoint[0])
-                    .attr('cy', professionalPoint[1]);
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                ring.remove();
+                            });
+
+                        // Dot reaction animation
+                        educationDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (isTypingEducation && educationFocusCount > 0) {
+                                    setTimeout(addEducationTypingAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addEducationTypingAnimation();
             }
 
 
             // Static dots - no pulsing animation
         } else {
-            // Safely remove education and professional dots if no education data
-            const educationDotsToRemove = g.selectAll('.education-dot, .professional-dot');
+            // Safely remove education dots if no education data and not typing
+            const educationDotsToRemove = g.selectAll('.education-dot');
             safeRemove(educationDotsToRemove);
         }
 
-        // Update or create Tech Skills dot if skills fields are filled
-        if (hasSkillsData) {
-            // Calculate progressive levels based on number of filled skills fields
-            const baseTechSkillsLevel = 1.0; // Starting level
-            const maxTechSkillsLevel = 2.8; // Maximum level they can reach
-            const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
+        // Update or create Professional dot with enhanced UX like BackgroundDot
+        if (shouldShowProfessionalDot) {
+            // Calculate Professional dot position based on table:
+            // Start typing: 0 (center), 1 field: 2 (1/5), 2 fields: 4 (2/5), 3 fields: 6 (3/5), 4 fields: 8 (4/5)
+            let professionalValue = 0; // Start at center when typing
             
-            const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
+            if (hasWorkExperienceData) {
+                // Each completed work experience field moves dot 2 units outward (2/10 of max value)
+                professionalValue = filledWorkExperienceFields.length * 2;
+            }
+            
+            const professionalLevel = professionalValue / maxValue; // Convert to 0-1 scale for radius calculation
+            
+            console.log('Professional progression:', {
+                filledCount: filledWorkExperienceFields.length,
+                totalFields: workExperienceFields.length,
+                professionalValue,
+                professionalLevel,
+                isTyping: isTypingProfessional && professionalFocusCount > 0
+            });
+            
+            const professionalAngle = angleSlice * 2 - Math.PI / 2; // Professional is at index 2
+            const professionalRadius = professionalLevel * radius; // professionalLevel is already 0-1 scale
+
+            const professionalPoint: [number, number] = [
+                Math.cos(professionalAngle) * professionalRadius,
+                Math.sin(professionalAngle) * professionalRadius
+            ];
+
+            // Handle Professional dot with enhanced UX like BackgroundDot
+            let professionalDot = g.select('.professional-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+            if (professionalDot.empty()) {
+                // Create professional dot - start at center if just typing, or at final position if has data
+                const startPosition = professionalValue === 0 ? [0, 0] : professionalPoint;
+                professionalDot = g.append('circle')
+                    .attr('class', 'progress-dot professional-dot')
+                    .attr('cx', startPosition[0])
+                    .attr('cy', startPosition[1] - (professionalValue === 0 ? 0 : 50)) // No drop if at center
+                    .attr('r', 0)
+                    .attr('fill', '#e74c3c')
+                    .attr('stroke', '#c0392b')
+                    .attr('stroke-width', 3)
+                    .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
+
+                if (professionalValue === 0) {
+                    // Simple fade-in at center when typing
+                    professionalDot
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeQuadOut)
+                        .attr('opacity', 1)
+                        .attr('r', 6);
+                } else {
+                    // Fancy drop-in animation with bounce for positioned dots
+                    professionalDot
+                        .transition()
+                        .duration(800)
+                        .ease(d3.easeQuadOut)
+                        .attr('cy', professionalPoint[1] + 10) // Drop down past target
+                        .attr('opacity', 1)
+                        .attr('r', 10) // Start larger
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeBounceOut)
+                        .attr('cy', professionalPoint[1]) // Bounce to final position
+                        .attr('r', 8); // Larger final size for better visibility
+                }
+            } else {
+                // Move existing dot to new position with smooth animation
+                professionalDot
+                    .transition()
+                    .duration(500)
+                    .ease(d3.easeQuadInOut)
+                    .attr('cx', professionalPoint[0])
+                    .attr('cy', professionalPoint[1])
+                    .attr('r', professionalValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
+            }
+
+            // Enhanced typing animation with radar pulse effect for Professional
+            if (isTypingProfessional && professionalFocusCount > 0) {
+                const addProfessionalTypingAnimation = () => {
+                    if (isTypingProfessional && professionalFocusCount > 0) { // Still typing
+                        // Get current actual position of the professional dot
+                        const currentX = parseFloat(professionalDot.attr('cx'));
+                        const currentY = parseFloat(professionalDot.attr('cy'));
+
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'professional-typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#e74c3c')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
+
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                ring.remove();
+                            });
+
+                        // Dot reaction animation
+                        professionalDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (isTypingProfessional && professionalFocusCount > 0) {
+                                    setTimeout(addProfessionalTypingAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addProfessionalTypingAnimation();
+            }
+        } else {
+            // Safely remove professional dot if no work experience data and not typing
+            const professionalDotsToRemove = g.selectAll('.professional-dot');
+            safeRemove(professionalDotsToRemove);
+        }
+
+        // Update or create Tech Skills dot with enhanced UX like BackgroundDot
+        const shouldShowTechSkillsDot = hasSkillsData || hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
+        
+        if (shouldShowTechSkillsDot) {
+            // Calculate TechSkills dot position based on table:
+            // Start typing: 0 (center), 1 field: 0.5 (1/20), 2 fields: 1 (2/20), 3 fields: 1.5 (3/20), 4 fields: 2 (4/20)
+            let techSkillsValue = 0; // Start at center when typing
+            
+            // Count total fields from both skills and work experience
+            const totalTechSkillsFields = filledSkillsFields.length + filledWorkExperienceFields.length;
+            if (totalTechSkillsFields > 0) {
+                // Each completed field (skills or work experience) moves dot 0.5 units outward (0.5/10 of max value)
+                techSkillsValue = totalTechSkillsFields * 0.5;
+            }
+            
+            const techSkillsLevel = techSkillsValue / maxValue; // Convert to 0-1 scale for radius calculation
             
             console.log('Tech Skills progression:', {
-                filledCount: filledSkillsFields.length,
-                totalFields: skillsFields.length,
+                filledSkillsCount: filledSkillsFields.length,
+                filledWorkExperienceCount: filledWorkExperienceFields.length,
+                totalTechSkillsFields,
+                techSkillsValue,
                 techSkillsLevel,
-                progressPerField: techSkillsProgressPerField
+                isTyping: isTypingTechSkills && techSkillsFocusCount > 0
             });
             
             const techSkillsAngle = angleSlice * 3 - Math.PI / 2; // Tech Skills is at index 3
-            const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
+            const techSkillsRadius = techSkillsLevel * radius; // techSkillsLevel is already 0-1 scale
 
             const techSkillsPoint: [number, number] = [
                 Math.cos(techSkillsAngle) * techSkillsRadius,
                 Math.sin(techSkillsAngle) * techSkillsRadius
             ];
 
-            // Update or create Tech Skills dot (don't remove existing)
+            // Handle Tech Skills dot with enhanced UX like BackgroundDot
             let techSkillsDot = g.select('.tech-skills-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
             if (techSkillsDot.empty()) {
+                // Create tech skills dot - start at center if just typing, or at final position if has data
+                const startPosition = techSkillsValue === 0 ? [0, 0] : techSkillsPoint;
                 techSkillsDot = g.append('circle')
-                    .attr('class', 'tech-skills-dot')
-                    .attr('cx', techSkillsPoint[0])
-                    .attr('cy', techSkillsPoint[1])
+                    .attr('class', 'progress-dot tech-skills-dot')
+                    .attr('cx', startPosition[0])
+                    .attr('cy', startPosition[1] - (techSkillsValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#f39c12')
                     .attr('stroke', '#e67e22')
-                    .attr('stroke-width', 2)
+                    .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-                techSkillsDot
-                    .transition()
-                    .duration(600)
-                    .delay(800)
-                    .ease(d3.easeBackOut)
-                    .attr('r', 6)
-                    .attr('opacity', 1);
+                if (techSkillsValue === 0) {
+                    // Simple fade-in at center when typing
+                    techSkillsDot
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeQuadOut)
+                        .attr('opacity', 1)
+                        .attr('r', 6);
+                } else {
+                    // Fancy drop-in animation with bounce for positioned dots
+                    techSkillsDot
+                        .transition()
+                        .duration(800)
+                        .ease(d3.easeQuadOut)
+                        .attr('cy', techSkillsPoint[1] + 10) // Drop down past target
+                        .attr('opacity', 1)
+                        .attr('r', 10) // Start larger
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeBounceOut)
+                        .attr('cy', techSkillsPoint[1]) // Bounce to final position
+                        .attr('r', 8); // Larger final size for better visibility
+                }
             } else {
                 // Move existing dot to new position with smooth animation
                 techSkillsDot
                     .transition()
-                    .duration(800)
+                    .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', techSkillsPoint[0])
-                    .attr('cy', techSkillsPoint[1]);
+                    .attr('cy', techSkillsPoint[1])
+                    .attr('r', techSkillsValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
             }
 
-            // Static dot - no pulsing animation
+            // Enhanced typing animation with radar pulse effect for TechSkills
+            if (isTypingTechSkills && techSkillsFocusCount > 0) {
+                const addTechSkillsTypingAnimation = () => {
+                    if (isTypingTechSkills && techSkillsFocusCount > 0) { // Still typing
+                        // Get current actual position of the tech skills dot
+                        const currentX = parseFloat(techSkillsDot.attr('cx'));
+                        const currentY = parseFloat(techSkillsDot.attr('cy'));
+
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'techskills-typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#f39c12')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
+
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                ring.remove();
+                            });
+
+                        // Dot reaction animation
+                        techSkillsDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (isTypingTechSkills && techSkillsFocusCount > 0) {
+                                    setTimeout(addTechSkillsTypingAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addTechSkillsTypingAnimation();
+            }
         } else {
-            // Safely remove tech skills dot if no skills data
+            // Safely remove tech skills dot if no skills data and not typing
             const techSkillsDotsToRemove = g.selectAll('.tech-skills-dot');
             safeRemove(techSkillsDotsToRemove);
         }
 
-        // Update or create Teamwork dot if work experience fields are filled
-        if (hasWorkExperienceData) {
-            // Calculate progressive levels based on number of filled work experience fields
-            const baseTeamworkLevel = 1.0; // Starting level
-            const maxTeamworkLevel = 2.6; // Maximum level they can reach
-            const teamworkProgressPerField = (maxTeamworkLevel - baseTeamworkLevel) / workExperienceFields.length;
+        // Update or create Teamwork dot with enhanced UX like BackgroundDot
+        const shouldShowTeamworkDot = hasWorkExperienceData || (isTypingTeamwork && teamworkFocusCount > 0);
+        
+        if (shouldShowTeamworkDot) {
+            // Calculate Teamwork dot position based on table:
+            // Start typing: 0 (center), 1 field: 2 (1/5), 2 fields: 4 (2/5), 3 fields: 6 (3/5), 4 fields: 8 (4/5)
+            let teamworkValue = 0; // Start at center when typing
             
-            const teamworkLevel = baseTeamworkLevel + (filledWorkExperienceFields.length * teamworkProgressPerField);
+            if (hasWorkExperienceData) {
+                // Each completed work experience field moves dot 2 units outward (2/10 of max value)
+                teamworkValue = filledWorkExperienceFields.length * 2;
+            }
+            
+            const teamworkLevel = teamworkValue / maxValue; // Convert to 0-1 scale for radius calculation
             
             console.log('Teamwork progression:', {
                 filledCount: filledWorkExperienceFields.length,
                 totalFields: workExperienceFields.length,
+                teamworkValue,
                 teamworkLevel,
-                progressPerField: teamworkProgressPerField
+                isTyping: isTypingTeamwork && teamworkFocusCount > 0
             });
             
             const teamworkAngle = angleSlice * 4 - Math.PI / 2; // Teamwork is at index 4
-            const teamworkRadius = (teamworkLevel / maxValue) * radius;
+            const teamworkRadius = teamworkLevel * radius; // teamworkLevel is already 0-1 scale
 
             const teamworkPoint: [number, number] = [
                 Math.cos(teamworkAngle) * teamworkRadius,
                 Math.sin(teamworkAngle) * teamworkRadius
             ];
 
-            // Update or create Teamwork dot (don't remove existing)
+            // Handle Teamwork dot with enhanced UX like BackgroundDot
             let teamworkDot = g.select('.teamwork-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
             if (teamworkDot.empty()) {
+                // Create teamwork dot - start at center if just typing, or at final position if has data
+                const startPosition = teamworkValue === 0 ? [0, 0] : teamworkPoint;
                 teamworkDot = g.append('circle')
-                    .attr('class', 'teamwork-dot')
-                    .attr('cx', teamworkPoint[0])
-                    .attr('cy', teamworkPoint[1])
+                    .attr('class', 'progress-dot teamwork-dot')
+                    .attr('cx', startPosition[0])
+                    .attr('cy', startPosition[1] - (teamworkValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#8e44ad')
                     .attr('stroke', '#9b59b6')
-                    .attr('stroke-width', 2)
+                    .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
-                teamworkDot
-                    .transition()
-                    .duration(600)
-                    .delay(1000)
-                    .ease(d3.easeBackOut)
-                    .attr('r', 6)
-                    .attr('opacity', 1);
+                if (teamworkValue === 0) {
+                    // Simple fade-in at center when typing
+                    teamworkDot
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeQuadOut)
+                        .attr('opacity', 1)
+                        .attr('r', 6);
+                } else {
+                    // Fancy drop-in animation with bounce for positioned dots
+                    teamworkDot
+                        .transition()
+                        .duration(800)
+                        .ease(d3.easeQuadOut)
+                        .attr('cy', teamworkPoint[1] + 10) // Drop down past target
+                        .attr('opacity', 1)
+                        .attr('r', 10) // Start larger
+                        .transition()
+                        .duration(400)
+                        .ease(d3.easeBounceOut)
+                        .attr('cy', teamworkPoint[1]) // Bounce to final position
+                        .attr('r', 8); // Larger final size for better visibility
+                }
             } else {
                 // Move existing dot to new position with smooth animation
                 teamworkDot
                     .transition()
-                    .duration(800)
+                    .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', teamworkPoint[0])
-                    .attr('cy', teamworkPoint[1]);
+                    .attr('cy', teamworkPoint[1])
+                    .attr('r', teamworkValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
             }
 
-            // Static dot - no pulsing animation
+            // Enhanced typing animation with radar pulse effect for Teamwork
+            if (isTypingTeamwork && teamworkFocusCount > 0) {
+                const addTeamworkTypingAnimation = () => {
+                    if (isTypingTeamwork && teamworkFocusCount > 0) { // Still typing
+                        // Get current actual position of the teamwork dot
+                        const currentX = parseFloat(teamworkDot.attr('cx'));
+                        const currentY = parseFloat(teamworkDot.attr('cy'));
+
+                        // Create expanding ring effect at dot's current position
+                        const ring = g.append('circle')
+                            .attr('class', 'teamwork-typing-ring')
+                            .attr('cx', currentX)
+                            .attr('cy', currentY)
+                            .attr('r', 6)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#8e44ad')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.8);
+
+                        ring.transition()
+                            .duration(800)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 25)
+                            .attr('opacity', 0)
+                            .on('end', function() {
+                                ring.remove();
+                            });
+
+                        // Dot reaction animation
+                        teamworkDot
+                            .transition()
+                            .duration(200)
+                            .ease(d3.easeQuadOut)
+                            .attr('r', 10)
+                            .attr('opacity', 0.9)
+                            .transition()
+                            .duration(600)
+                            .ease(d3.easeBackOut)
+                            .attr('r', 8)
+                            .attr('opacity', 1)
+                            .on('end', () => {
+                                if (isTypingTeamwork && teamworkFocusCount > 0) {
+                                    setTimeout(addTeamworkTypingAnimation, 300);
+                                }
+                            });
+                    }
+                };
+                addTeamworkTypingAnimation();
+            }
         } else {
-            // Safely remove teamwork dot if no work experience data
+            // Safely remove teamwork dot if no work experience data and not typing
             const teamworkDotsToRemove = g.selectAll('.teamwork-dot');
             safeRemove(teamworkDotsToRemove);
         }
@@ -1137,83 +1563,106 @@ export default function AlphaPage() {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
         
-        // Include Job Match (index 5) only if it should be shown
-        if (shouldShowJobMatch) {
+        // Include Job Match (index 5) only if it has completed education or skills fields (not just typing)
+        if (shouldShowJobMatch && jobMatchValue > 0) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
         }
 
-        // Add Education and Professional dots if education data exists
-        if (hasEducationData) {
-            // Calculate education and professional positions
-            const baseEducationLevel = 1.0;
-            const maxEducationLevel = 2.5;
-            const educationProgressPerField = (maxEducationLevel - baseEducationLevel) / educationFields.length;
-
-            const educationLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField);
-            let professionalLevel = baseEducationLevel + (filledEducationFields.length * educationProgressPerField * 0.9);
-
-            // Professional gets additional boost from skills and work experience data
-            if (hasSkillsData) {
-                const skillsBoost = filledSkillsFields.length * 0.15;
-                professionalLevel += skillsBoost;
+        // Add Education dot if education data exists or user is typing
+        const shouldIncludeEducationInShape = hasEducationData || (isTypingEducation && educationFocusCount > 0);
+        if (shouldIncludeEducationInShape) {
+            // Calculate education dot position using same logic as main calculation
+            let educationValue = 0;
+            if (hasEducationData) {
+                educationValue = filledEducationFields.length * 2;
             }
-            if (hasWorkExperienceData) {
-                const workExperienceBoost = filledWorkExperienceFields.length * 0.2;
-                professionalLevel += workExperienceBoost;
-            }
+            const educationLevel = educationValue / maxValue;
 
             const educationAngle = angleSlice * 1 - Math.PI / 2;
-            const professionalAngle = angleSlice * 2 - Math.PI / 2;
-            const educationRadius = (educationLevel / maxValue) * radius;
-            const professionalRadius = (professionalLevel / maxValue) * radius;
+            const educationRadius = educationLevel * radius; // educationLevel is already 0-1 scale
 
             const educationPoint: [number, number] = [
                 Math.cos(educationAngle) * educationRadius,
                 Math.sin(educationAngle) * educationRadius
             ];
+
+            // Only include education dot in shape if it's not at center (has actual data)
+            if (educationValue > 0) {
+                dotPositions.push({ point: educationPoint, index: 1 });
+            }
+        }
+
+        // Add Professional dot if work experience data exists or user is typing
+        const shouldIncludeProfessionalInShape = hasWorkExperienceData || (isTypingProfessional && professionalFocusCount > 0);
+        if (shouldIncludeProfessionalInShape) {
+            // Calculate Professional dot position using same logic as main calculation
+            let professionalValue = 0;
+            if (hasWorkExperienceData) {
+                professionalValue = filledWorkExperienceFields.length * 2;
+            }
+            const professionalLevel = professionalValue / maxValue;
+
+            const professionalAngle = angleSlice * 2 - Math.PI / 2;
+            const professionalRadius = professionalLevel * radius;
+
             const professionalPoint: [number, number] = [
                 Math.cos(professionalAngle) * professionalRadius,
                 Math.sin(professionalAngle) * professionalRadius
             ];
 
-            dotPositions.push({ point: educationPoint, index: 1 });
-            dotPositions.push({ point: professionalPoint, index: 2 });
+            // Only include in shape if has actual data (not just typing)
+            if (hasWorkExperienceData && professionalValue > 0) {
+                dotPositions.push({ point: professionalPoint, index: 2 });
+            }
         }
 
-        // Add Tech Skills dot if skills data exists
-        if (hasSkillsData) {
-            const baseTechSkillsLevel = 1.0;
-            const maxTechSkillsLevel = 2.8;
-            const techSkillsProgressPerField = (maxTechSkillsLevel - baseTechSkillsLevel) / skillsFields.length;
-            const techSkillsLevel = baseTechSkillsLevel + (filledSkillsFields.length * techSkillsProgressPerField);
+        // Add Tech Skills dot if skills or work experience data exists or user is typing
+        const shouldIncludeTechSkillsInShape = hasSkillsData || hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
+        if (shouldIncludeTechSkillsInShape) {
+            // Calculate TechSkills dot position using same logic as main calculation
+            let techSkillsValue = 0;
+            const totalTechSkillsFields = filledSkillsFields.length + filledWorkExperienceFields.length;
+            if (totalTechSkillsFields > 0) {
+                techSkillsValue = totalTechSkillsFields * 0.5;
+            }
+            const techSkillsLevel = techSkillsValue / maxValue;
 
             const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
-            const techSkillsRadius = (techSkillsLevel / maxValue) * radius;
+            const techSkillsRadius = techSkillsLevel * radius;
 
             const techSkillsPoint: [number, number] = [
                 Math.cos(techSkillsAngle) * techSkillsRadius,
                 Math.sin(techSkillsAngle) * techSkillsRadius
             ];
 
-            dotPositions.push({ point: techSkillsPoint, index: 3 });
+            // Only include in shape if has actual data (not just typing)
+            if ((hasSkillsData || hasWorkExperienceData) && techSkillsValue > 0) {
+                dotPositions.push({ point: techSkillsPoint, index: 3 });
+            }
         }
 
-        // Add Teamwork dot if work experience data exists
-        if (hasWorkExperienceData) {
-            const baseTeamworkLevel = 1.0;
-            const maxTeamworkLevel = 2.6;
-            const teamworkProgressPerField = (maxTeamworkLevel - baseTeamworkLevel) / workExperienceFields.length;
-            const teamworkLevel = baseTeamworkLevel + (filledWorkExperienceFields.length * teamworkProgressPerField);
+        // Add Teamwork dot if work experience data exists or user is typing
+        const shouldIncludeTeamworkInShape = hasWorkExperienceData || (isTypingTeamwork && teamworkFocusCount > 0);
+        if (shouldIncludeTeamworkInShape) {
+            // Calculate Teamwork dot position using same logic as main calculation
+            let teamworkValue = 0;
+            if (hasWorkExperienceData) {
+                teamworkValue = filledWorkExperienceFields.length * 2;
+            }
+            const teamworkLevel = teamworkValue / maxValue;
 
             const teamworkAngle = angleSlice * 4 - Math.PI / 2;
-            const teamworkRadius = (teamworkLevel / maxValue) * radius;
+            const teamworkRadius = teamworkLevel * radius;
 
             const teamworkPoint: [number, number] = [
                 Math.cos(teamworkAngle) * teamworkRadius,
                 Math.sin(teamworkAngle) * teamworkRadius
             ];
 
-            dotPositions.push({ point: teamworkPoint, index: 4 });
+            // Only include in shape if has actual data (not just typing)
+            if (hasWorkExperienceData && teamworkValue > 0) {
+                dotPositions.push({ point: teamworkPoint, index: 4 });
+            }
         }
 
         // Sort dots by their hexagon index to maintain proper order
@@ -1304,6 +1753,91 @@ export default function AlphaPage() {
                 setIsTypingBasicInfo(false);
             }, 1000);
         }
+
+        // Track typing in education fields
+        const educationFields = ['collegeName', 'degree', 'major', 'graduationYear'];
+        if (educationFields.includes(field)) {
+            setIsTypingEducation(true);
+
+            // Clear existing timeout
+            if (educationTypingTimeoutRef.current) {
+                clearTimeout(educationTypingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            educationTypingTimeoutRef.current = setTimeout(() => {
+                setIsTypingEducation(false);
+            }, 1000);
+        }
+
+        // Track typing in JobMatch fields (education and skills fields)
+        const jobMatchFields = ['collegeName', 'degree', 'major', 'graduationYear', 'programmingLanguages', 'frameworks', 'databases', 'tools'];
+        
+        if (jobMatchFields.includes(field)) {
+            setIsTypingJobMatch(true);
+
+            // Clear existing timeout
+            if (jobMatchTypingTimeoutRef.current) {
+                clearTimeout(jobMatchTypingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            jobMatchTypingTimeoutRef.current = setTimeout(() => {
+                setIsTypingJobMatch(false);
+            }, 1000);
+        }
+
+        // Track typing in TechSkills fields (skills + work experience)
+        const techSkillsFields = ['programmingLanguages', 'frameworks', 'databases', 'tools'];
+        const isTechSkillsWorkExperienceField = field.startsWith('workExperience_') || ['companyName', 'jobTitle', 'employedYears'].some(f => field.includes(f));
+        
+        if (techSkillsFields.includes(field) || isTechSkillsWorkExperienceField) {
+            setIsTypingTechSkills(true);
+
+            // Clear existing timeout
+            if (techSkillsTypingTimeoutRef.current) {
+                clearTimeout(techSkillsTypingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            techSkillsTypingTimeoutRef.current = setTimeout(() => {
+                setIsTypingTechSkills(false);
+            }, 1000);
+        }
+
+        // Track typing in Professional fields (only work experience)
+        const isProfessionalWorkExperienceField = field.startsWith('workExperience_') || ['companyName', 'jobTitle', 'employedYears'].some(f => field.includes(f));
+        
+        if (isProfessionalWorkExperienceField) {
+            setIsTypingProfessional(true);
+
+            // Clear existing timeout
+            if (professionalTypingTimeoutRef.current) {
+                clearTimeout(professionalTypingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            professionalTypingTimeoutRef.current = setTimeout(() => {
+                setIsTypingProfessional(false);
+            }, 1000);
+        }
+
+        // Track typing in Teamwork fields (work experience - same as Professional)
+        const isTeamworkWorkExperienceField = field.startsWith('workExperience_') || ['companyName', 'jobTitle', 'employedYears'].some(f => field.includes(f));
+        
+        if (isTeamworkWorkExperienceField) {
+            setIsTypingTeamwork(true);
+
+            // Clear existing timeout
+            if (teamworkTypingTimeoutRef.current) {
+                clearTimeout(teamworkTypingTimeoutRef.current);
+            }
+
+            // Set new timeout to stop typing animation after 1 second of no typing
+            teamworkTypingTimeoutRef.current = setTimeout(() => {
+                setIsTypingTeamwork(false);
+            }, 1000);
+        }
     };
 
 
@@ -1314,6 +1848,106 @@ export default function AlphaPage() {
 
     const handleBasicInfoBlur = () => {
         setBasicInfoFocusCount(count => Math.max(0, count - 1));
+    };
+
+    // Specialized handlers for education fields (collegeName, degree, major, graduationYear)
+    const handleEducationFocus = () => {
+        setEducationFocusCount(count => count + 1);
+        setIsTypingEducation(true);
+        
+        // Clear existing timeout
+        if (educationTypingTimeoutRef.current) {
+            clearTimeout(educationTypingTimeoutRef.current);
+        }
+    };
+
+    const handleEducationBlur = () => {
+        setEducationFocusCount(count => Math.max(0, count - 1));
+        
+        // Set timeout to stop typing animation
+        educationTypingTimeoutRef.current = setTimeout(() => {
+            setIsTypingEducation(false);
+        }, 500); // Stop animation 500ms after last blur
+    };
+
+    // Specialized handlers for JobMatch fields (education, skills, work experience)
+    const handleJobMatchFocus = () => {
+        setJobMatchFocusCount(count => count + 1);
+        setIsTypingJobMatch(true);
+        
+        // Clear existing timeout
+        if (jobMatchTypingTimeoutRef.current) {
+            clearTimeout(jobMatchTypingTimeoutRef.current);
+        }
+    };
+
+    const handleJobMatchBlur = () => {
+        setJobMatchFocusCount(count => Math.max(0, count - 1));
+        
+        // Set timeout to stop typing animation
+        jobMatchTypingTimeoutRef.current = setTimeout(() => {
+            setIsTypingJobMatch(false);
+        }, 500); // Stop animation 500ms after last blur
+    };
+
+    // Specialized handlers for TechSkills fields (programmingLanguages, frameworks, databases, tools)
+    const handleTechSkillsFocus = () => {
+        setTechSkillsFocusCount(count => count + 1);
+        setIsTypingTechSkills(true);
+        
+        // Clear existing timeout
+        if (techSkillsTypingTimeoutRef.current) {
+            clearTimeout(techSkillsTypingTimeoutRef.current);
+        }
+    };
+
+    const handleTechSkillsBlur = () => {
+        setTechSkillsFocusCount(count => Math.max(0, count - 1));
+        
+        // Set timeout to stop typing animation
+        techSkillsTypingTimeoutRef.current = setTimeout(() => {
+            setIsTypingTechSkills(false);
+        }, 500); // Stop animation 500ms after last blur
+    };
+
+    // Specialized handlers for Professional fields (education, skills, work experience)
+    const handleProfessionalFocus = () => {
+        setProfessionalFocusCount(count => count + 1);
+        setIsTypingProfessional(true);
+        
+        // Clear existing timeout
+        if (professionalTypingTimeoutRef.current) {
+            clearTimeout(professionalTypingTimeoutRef.current);
+        }
+    };
+
+    const handleProfessionalBlur = () => {
+        setProfessionalFocusCount(count => Math.max(0, count - 1));
+        
+        // Set timeout to stop typing animation
+        professionalTypingTimeoutRef.current = setTimeout(() => {
+            setIsTypingProfessional(false);
+        }, 500); // Stop animation 500ms after last blur
+    };
+
+    // Specialized handlers for Teamwork fields (work experience)
+    const handleTeamworkFocus = () => {
+        setTeamworkFocusCount(count => count + 1);
+        setIsTypingTeamwork(true);
+        
+        // Clear existing timeout
+        if (teamworkTypingTimeoutRef.current) {
+            clearTimeout(teamworkTypingTimeoutRef.current);
+        }
+    };
+
+    const handleTeamworkBlur = () => {
+        setTeamworkFocusCount(count => Math.max(0, count - 1));
+        
+        // Set timeout to stop typing animation
+        teamworkTypingTimeoutRef.current = setTimeout(() => {
+            setIsTypingTeamwork(false);
+        }, 500); // Stop animation 500ms after last blur
     };
 
     // Handle work experience input changes
@@ -1650,6 +2284,8 @@ export default function AlphaPage() {
                                             id="collegeName"
                                             value={formData.collegeName}
                                             onChange={(e) => handleInputChange('collegeName', e.target.value)}
+                                            onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="Enter your college/university name"
                                         />
@@ -1664,6 +2300,8 @@ export default function AlphaPage() {
                                             id="degree"
                                             value={formData.degree}
                                             onChange={(e) => handleInputChange('degree', e.target.value)}
+                                            onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., Bachelor's, Master's, PhD"
                                         />
@@ -1680,6 +2318,8 @@ export default function AlphaPage() {
                                             id="major"
                                             value={formData.major}
                                             onChange={(e) => handleInputChange('major', e.target.value)}
+                                            onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., Computer Science, Business Administration"
                                         />
@@ -1694,6 +2334,8 @@ export default function AlphaPage() {
                                             id="graduationYear"
                                             value={formData.graduationYear}
                                             onChange={(e) => handleInputChange('graduationYear', e.target.value)}
+                                            onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., 2020"
                                             min="1950"
@@ -1760,6 +2402,8 @@ export default function AlphaPage() {
                                             id="programmingLanguages"
                                             value={formData.programmingLanguages}
                                             onChange={(e) => handleInputChange('programmingLanguages', e.target.value)}
+                                            onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., JavaScript, Python, Java"
                                         />
@@ -1774,6 +2418,8 @@ export default function AlphaPage() {
                                             id="frameworks"
                                             value={formData.frameworks}
                                             onChange={(e) => handleInputChange('frameworks', e.target.value)}
+                                            onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., React, Node.js, Django"
                                         />
@@ -1790,6 +2436,8 @@ export default function AlphaPage() {
                                             id="databases"
                                             value={formData.databases}
                                             onChange={(e) => handleInputChange('databases', e.target.value)}
+                                            onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., React, Angular, Vue.js"
                                         />
@@ -1804,6 +2452,8 @@ export default function AlphaPage() {
                                             id="tools"
                                             value={formData.tools}
                                             onChange={(e) => handleInputChange('tools', e.target.value)}
+                                            onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
+                                            onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             placeholder="e.g., Awards, Certifications, Projects"
                                         />
@@ -1870,6 +2520,8 @@ export default function AlphaPage() {
                                                     id={`companyName_${index}`}
                                                     value={experience.companyName}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'companyName', e.target.value)}
+                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
+                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
                                                     className={styles.input}
                                                     placeholder="Enter company name"
                                                 />
@@ -1884,6 +2536,8 @@ export default function AlphaPage() {
                                                     id={`jobTitle_${index}`}
                                                     value={experience.jobTitle}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'jobTitle', e.target.value)}
+                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
+                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
                                                     className={styles.input}
                                                     placeholder="Enter job title"
                                                 />
@@ -1900,6 +2554,8 @@ export default function AlphaPage() {
                                                     <div 
                                                         className={styles.dropdownSelected} 
                                                         onClick={() => toggleYearsDropdown(index)}
+                                                        onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
+                                                        onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
                                                         aria-haspopup="listbox"
                                                         aria-expanded={yearsDropdownStates[index] || false}
                                                         role="combobox"
