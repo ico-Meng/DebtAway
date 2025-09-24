@@ -773,7 +773,7 @@ export default function AlphaPage() {
                 backgroundDot = g.append('circle')
                     .attr('class', 'progress-dot background-dot')
                     .attr('cx', backgroundPoint[0])
-                    .attr('cy', backgroundPoint[1] - 50) // Start above
+                    .attr('cy', backgroundPoint[1] - 20) // Start above
                     .attr('r', 0)
                     .attr('fill', '#ff6b6b')
                     .attr('stroke', '#ff4757')
@@ -783,9 +783,9 @@ export default function AlphaPage() {
                 // Fancy drop-in animation with bounce
                 backgroundDot
                     .transition()
-                    .duration(800)
+                    .duration(100)
                     .ease(d3.easeQuadOut)
-                    .attr('cy', backgroundPoint[1] + 10) // Drop down past target
+                    .attr('cy', backgroundPoint[1] + 5) // Drop down past target
                     .attr('opacity', 1)
                     .attr('r', 10) // Start larger
                     .transition()
@@ -1030,11 +1030,19 @@ export default function AlphaPage() {
             });
             
             const educationAngle = angleSlice * 1 - Math.PI / 2; // Education is at index 1
+            const professionalAngle = angleSlice * 2 - Math.PI / 2; // Professional is at index 2
+
             const educationRadius = educationLevel * radius; // educationLevel is already 0-1 scale
+            const professionalRadius = professionalLevel * radius;
 
             const educationPoint: [number, number] = [
                 Math.cos(educationAngle) * educationRadius,
                 Math.sin(educationAngle) * educationRadius
+            ];
+
+            const professionalPoint: [number, number] = [
+                Math.cos(professionalAngle) * professionalRadius,
+                Math.sin(professionalAngle) * professionalRadius
             ];
 
             // Handle Education dot with enhanced UX like BackgroundDot
@@ -1615,23 +1623,19 @@ export default function AlphaPage() {
             }
         }
 
-        // Add Tech Skills dot if work experience data exists or user is typing
-        const shouldIncludeTechSkillsInShape = hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
+        // Add Tech Skills dot if skills data exists or user is typing
+        const shouldIncludeTechSkillsInShape = hasSkillsData || (isTypingTechSkills && techSkillsFocusCount > 0);
         if (shouldIncludeTechSkillsInShape) {
             // Calculate TechSkills dot position using same logic as main calculation
             let techSkillsValue = 0;
 
-            // Count completed work experience fields (Company Name, Job Title, Years) across all entries
-            let completedWorkExperienceFieldCount = 0;
-            formData.workExperiences.forEach((experience) => {
-                if (experience.companyName.trim() !== '') completedWorkExperienceFieldCount++;
-                if (experience.jobTitle.trim() !== '') completedWorkExperienceFieldCount++;
-                if (experience.employedYears.trim() !== '') completedWorkExperienceFieldCount++;
-            });
+            // Count completed skills fields (Programming Languages, Technologies, Frameworks & Tools, Achievements)
+            const completedSkillsFieldCount = filledSkillsFields.length;
 
-            // Each completed field moves dot 1 unit outward (1/10 of max value), capped at 4
-            if (completedWorkExperienceFieldCount > 0) {
-                techSkillsValue = Math.min(completedWorkExperienceFieldCount, 4);
+            // Each completed field moves dot 2 units outward (2/10 of max value)
+            // Cap at maximum to not exceed endpoint
+            if (completedSkillsFieldCount > 0) {
+                techSkillsValue = Math.min(completedSkillsFieldCount * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
             }
             const techSkillsLevel = techSkillsValue / maxValue;
 
@@ -1644,7 +1648,7 @@ export default function AlphaPage() {
             ];
 
             // Only include in shape if has actual data (not just typing)
-            if (hasWorkExperienceData && techSkillsValue > 0) {
+            if (hasSkillsData && techSkillsValue > 0) {
                 dotPositions.push({ point: techSkillsPoint, index: 3 });
             }
         }
@@ -1680,25 +1684,6 @@ export default function AlphaPage() {
         // Extract the points in correct order
         const orderedDotPoints = dotPositions.map(dp => dp.point);
 
-        // Helper function to check if a point is outside a polygon
-        const isPointOutsidePolygon = (point: [number, number], polygon: [number, number][]): boolean => {
-            if (polygon.length < 3) return true; // Need at least 3 points for a polygon
-            
-            let inside = false;
-            const [px, py] = point;
-            
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-                const [ix, iy] = polygon[i];
-                const [jx, jy] = polygon[j];
-                
-                if (((iy > py) !== (jy > py)) && (px < (jx - ix) * (py - iy) / (jy - iy) + ix)) {
-                    inside = !inside;
-                }
-            }
-            
-            return !inside; // Return true if point is outside
-        };
-
         // Create shape that connects all dots and encloses center area
         let shapePoints: [number, number][];
 
@@ -1709,81 +1694,51 @@ export default function AlphaPage() {
                 orderedDotPoints[0],
                 orderedDotPoints[1]
             ];
-        } else if (orderedDotPoints.length > 2) {
-            // With 3+ dots, check if center is outside the shape and include it if needed
-            const centerPoint: [number, number] = [0, 0];
-            
-            // Check if center point is outside the polygon formed by the dots
-            const isCenterOutside = isPointOutsidePolygon(centerPoint, orderedDotPoints);
-            
-            if (isCenterOutside) {
-                // Include center point to create proper enclosure
-                shapePoints = [centerPoint, ...orderedDotPoints];
-            } else {
-                // Center is inside, use just the dot positions
-                shapePoints = orderedDotPoints;
-            }
         } else {
-            // No dots or single dot - no shape needed
-            shapePoints = [];
+            // With 3+ dots, create a proper polygon connecting all dots
+            // This naturally encloses the center area and defines the shape by the dots
+            shapePoints = orderedDotPoints;
         }
 
-        // Only create shape if there are more than two dots (3+ dots) OR exactly 2 dots
-        if (shapePoints.length >= 2) {
-            // Create line generator for the shape
-            const line = d3.line<[number, number]>()
-                .x(d => d[0])
-                .y(d => d[1])
-                .curve(d3.curveLinearClosed);
+        // Create line generator for the shape
+        const line = d3.line<[number, number]>()
+            .x(d => d[0])
+            .y(d => d[1])
+            .curve(d3.curveLinearClosed);
 
-            // Update existing shape or create new one
-            let progressShape = g.select<SVGPathElement>('.progress-triangle');
+        // Update existing shape or create new one
+        let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-            if (progressShape.empty()) {
-                // Create shape for the first time
-                progressShape = g.append('path')
-                    .attr('class', 'progress-triangle')
-                    .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
-                    .attr('stroke', '#CFAEE8')
-                    .attr('stroke-width', 1.5)
-                    .attr('opacity', 0)
-                    .style('transform', 'scale(0)')
-                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+        if (progressShape.empty()) {
+            // Create shape for the first time
+            progressShape = g.append('path')
+                .attr('class', 'progress-triangle')
+                .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
+                .attr('stroke', '#CFAEE8')
+                .attr('stroke-width', 1.5)
+                .attr('opacity', 0)
+                .style('transform', 'scale(0)')
+                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
-                // Initial appearance animation
-                progressShape
-                    .datum(shapePoints)
-                    .attr('d', line)
-                    .transition()
-                    .duration(1000)
-                    .delay(400)
-                    .ease(d3.easeBackOut.overshoot(1.1))
-                    .attr('opacity', 0.7)
-                    .style('transform', 'scale(1)');
-            } else {
-                // Smoothly transition existing shape to new configuration
-                progressShape
-                    .datum(shapePoints)
-                    .transition()
-                    .duration(800)
-                    .ease(d3.easeQuadInOut)
-                    .attr('d', line)
-                    .attr('opacity', 0.7);
-            }
+            // Initial appearance animation
+            progressShape
+                .datum(shapePoints)
+                .attr('d', line)
+                .transition()
+                .duration(1000)
+                .delay(400)
+                .ease(d3.easeBackOut.overshoot(1.1))
+                .attr('opacity', 0.7)
+                .style('transform', 'scale(1)');
         } else {
-            // Remove shape if not enough points
-            const existingShape = g.select('.progress-triangle');
-            if (!existingShape.empty()) {
-                existingShape
-                    .transition()
-                    .duration(600)
-                    .ease(d3.easeQuadInOut)
-                    .attr('opacity', 0)
-                    .style('transform', 'scale(0.1)')
-                    .on('end', function() {
-                        safeRemove(existingShape);
-                    });
-            }
+            // Smoothly transition existing shape to new configuration
+            progressShape
+                .datum(shapePoints)
+                .transition()
+                .duration(800)
+                .ease(d3.easeQuadInOut)
+                .attr('d', line)
+                .attr('opacity', 0.7);
         }
 
         // Static dots - no pulsing animation
