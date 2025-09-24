@@ -687,17 +687,18 @@ export default function AlphaPage() {
         const nonBasicFilledCount = filledEducationFields.length + filledSkillsFields.length + workExperienceFieldCount;
         const totalNonBasicFields = nonBasicFilledCount; // Only non-basic fields affect other dots
         
-        // Job Match calculation based on education AND skills fields (table-driven)
-        // Each completed field (education or skills) moves dot 0.5 units outward (0.5/10 of max value)
+        // Job Match calculation based on education, skills, AND work experience fields (table-driven)
+        // Each completed field moves dot 0.5 units outward (0.5/10 of max value)
+        // Cap at maximum to not exceed endpoint
         let jobMatchValue = 0;
-        const totalJobMatchFields = filledEducationFields.length + filledSkillsFields.length;
+        const totalJobMatchFields = filledEducationFields.length + filledSkillsFields.length + filledWorkExperienceFields.length;
         if (totalJobMatchFields > 0) {
-            jobMatchValue = totalJobMatchFields * 0.5;
+            jobMatchValue = Math.min(totalJobMatchFields * 0.5, 8); // Cap at 8 to not exceed endpoint (8/10 of max radius)
         }
         
         // Check if we should show any dots at all
         const shouldShowBackground = true; // Always show background dot
-        const shouldShowJobMatch = jobMatchValue > 0; // Only show when education fields are completed
+        const shouldShowJobMatch = jobMatchValue > 0; // Only show when any job match fields are completed
         
         console.log('Background dot calculation:', {
             completedBasicCount,
@@ -708,6 +709,7 @@ export default function AlphaPage() {
         console.log('Job Match calculation:', { 
             filledEducationFields: filledEducationFields.length, 
             filledSkillsFields: filledSkillsFields.length,
+            filledWorkExperienceFields: filledWorkExperienceFields.length,
             totalJobMatchFields,
             jobMatchValue 
         });
@@ -801,7 +803,8 @@ export default function AlphaPage() {
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', backgroundPoint[0])
-                    .attr('cy', backgroundPoint[1]);
+                    .attr('cy', backgroundPoint[1])
+                    .attr('r', backgroundValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
             }
 
             // Enhanced typing animation with radar pulse effect (original timing)
@@ -871,10 +874,11 @@ export default function AlphaPage() {
         // No continuous radar signal animation - dot remains static when not typing
 
 
-        // Handle Job Match dot with enhanced UX like BackgroundDot (education and skills fields)
-        const shouldShowJobMatchDot = hasEducationData || hasSkillsData || 
+        // Handle Job Match dot with enhanced UX like BackgroundDot (education, skills, and work experience fields)
+        const shouldShowJobMatchDot = hasEducationData || hasSkillsData || hasWorkExperienceData || 
                                      (isTypingEducation && educationFocusCount > 0) || 
-                                     (isTypingTechSkills && techSkillsFocusCount > 0);
+                                     (isTypingTechSkills && techSkillsFocusCount > 0) ||
+                                     (isTypingJobMatch && jobMatchFocusCount > 0);
         let jobMatchDot = g.select('.jobmatch-dot') as d3.Selection<SVGCircleElement, unknown, null, undefined>;
         
         if (shouldShowJobMatchDot) {
@@ -925,10 +929,10 @@ export default function AlphaPage() {
                     .attr('r', actualJobMatchValue === 0 ? 6 : 8); // Smaller at center, larger when positioned
             }
 
-            // Enhanced typing animation with radar pulse effect for JobMatch (education and skills fields)
-            if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) {
+            // Enhanced typing animation with radar pulse effect for JobMatch (education, skills, and work experience fields)
+            if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0) || (isTypingJobMatch && jobMatchFocusCount > 0)) {
                 const addJobMatchTypingAnimation = () => {
-                    if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) { // Still typing
+                    if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0) || (isTypingJobMatch && jobMatchFocusCount > 0)) { // Still typing
                         // Get current actual position of the job match dot
                         const currentX = parseFloat(jobMatchDot.attr('cx'));
                         const currentY = parseFloat(jobMatchDot.attr('cy'));
@@ -966,7 +970,7 @@ export default function AlphaPage() {
                             .attr('r', 8)
                             .attr('opacity', 1)
                             .on('end', () => {
-                                if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0)) {
+                                if ((isTypingEducation && educationFocusCount > 0) || (isTypingTechSkills && techSkillsFocusCount > 0) || (isTypingJobMatch && jobMatchFocusCount > 0)) {
                                     setTimeout(addJobMatchTypingAnimation, 300);
                                 }
                             });
@@ -1026,19 +1030,11 @@ export default function AlphaPage() {
             });
             
             const educationAngle = angleSlice * 1 - Math.PI / 2; // Education is at index 1
-            const professionalAngle = angleSlice * 2 - Math.PI / 2; // Professional is at index 2
-
             const educationRadius = educationLevel * radius; // educationLevel is already 0-1 scale
-            const professionalRadius = professionalLevel * radius;
 
             const educationPoint: [number, number] = [
                 Math.cos(educationAngle) * educationRadius,
                 Math.sin(educationAngle) * educationRadius
-            ];
-
-            const professionalPoint: [number, number] = [
-                Math.cos(professionalAngle) * professionalRadius,
-                Math.sin(professionalAngle) * professionalRadius
             ];
 
             // Handle Education dot with enhanced UX like BackgroundDot
@@ -1156,7 +1152,8 @@ export default function AlphaPage() {
             
             if (hasWorkExperienceData) {
                 // Each completed work experience field moves dot 2 units outward (2/10 of max value)
-                professionalValue = filledWorkExperienceFields.length * 2;
+                // Cap at maximum to not exceed endpoint
+                professionalValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
             }
             
             const professionalLevel = professionalValue / maxValue; // Convert to 0-1 scale for radius calculation
@@ -1282,26 +1279,26 @@ export default function AlphaPage() {
         }
 
         // Update or create Tech Skills dot with enhanced UX like BackgroundDot
-        const shouldShowTechSkillsDot = hasSkillsData || hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
+        const shouldShowTechSkillsDot = hasSkillsData || (isTypingTechSkills && techSkillsFocusCount > 0);
         
         if (shouldShowTechSkillsDot) {
             // Calculate TechSkills dot position based on table:
-            // Start typing: 0 (center), 1 field: 0.5 (1/20), 2 fields: 1 (2/20), 3 fields: 1.5 (3/20), 4 fields: 2 (4/20)
+            // Start typing: 0 (center), 1 field: 2 (1/5), 2 fields: 4 (2/5), 3 fields: 6 (3/5), 4 fields: 8 (4/5)
             let techSkillsValue = 0; // Start at center when typing
-            
-            // Count total fields from both skills and work experience
-            const totalTechSkillsFields = filledSkillsFields.length + filledWorkExperienceFields.length;
-            if (totalTechSkillsFields > 0) {
-                // Each completed field (skills or work experience) moves dot 0.5 units outward (0.5/10 of max value)
-                techSkillsValue = totalTechSkillsFields * 0.5;
+
+            // Count completed skills fields (Programming Languages, Technologies, Frameworks & Tools, Achievements)
+            const completedSkillsFieldCount = filledSkillsFields.length;
+
+            // Each completed field moves dot 2 units outward (2/10 of max value)
+            // Cap at maximum to not exceed endpoint
+            if (completedSkillsFieldCount > 0) {
+                techSkillsValue = Math.min(completedSkillsFieldCount * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
             }
             
             const techSkillsLevel = techSkillsValue / maxValue; // Convert to 0-1 scale for radius calculation
             
             console.log('Tech Skills progression:', {
-                filledSkillsCount: filledSkillsFields.length,
-                filledWorkExperienceCount: filledWorkExperienceFields.length,
-                totalTechSkillsFields,
+                completedSkillsFieldCount,
                 techSkillsValue,
                 techSkillsLevel,
                 isTyping: isTypingTechSkills && techSkillsFocusCount > 0
@@ -1429,7 +1426,8 @@ export default function AlphaPage() {
             
             if (hasWorkExperienceData) {
                 // Each completed work experience field moves dot 2 units outward (2/10 of max value)
-                teamworkValue = filledWorkExperienceFields.length * 2;
+                // Cap at maximum to not exceed endpoint
+                teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
             }
             
             const teamworkLevel = teamworkValue / maxValue; // Convert to 0-1 scale for radius calculation
@@ -1563,7 +1561,7 @@ export default function AlphaPage() {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
         
-        // Include Job Match (index 5) only if it has completed education or skills fields (not just typing)
+        // Include Job Match (index 5) only if it has completed education, skills, or work experience fields (not just typing)
         if (shouldShowJobMatch && jobMatchValue > 0) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
         }
@@ -1598,7 +1596,8 @@ export default function AlphaPage() {
             // Calculate Professional dot position using same logic as main calculation
             let professionalValue = 0;
             if (hasWorkExperienceData) {
-                professionalValue = filledWorkExperienceFields.length * 2;
+                // Cap at maximum to not exceed endpoint
+                professionalValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint
             }
             const professionalLevel = professionalValue / maxValue;
 
@@ -1616,14 +1615,23 @@ export default function AlphaPage() {
             }
         }
 
-        // Add Tech Skills dot if skills or work experience data exists or user is typing
-        const shouldIncludeTechSkillsInShape = hasSkillsData || hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
+        // Add Tech Skills dot if work experience data exists or user is typing
+        const shouldIncludeTechSkillsInShape = hasWorkExperienceData || (isTypingTechSkills && techSkillsFocusCount > 0);
         if (shouldIncludeTechSkillsInShape) {
             // Calculate TechSkills dot position using same logic as main calculation
             let techSkillsValue = 0;
-            const totalTechSkillsFields = filledSkillsFields.length + filledWorkExperienceFields.length;
-            if (totalTechSkillsFields > 0) {
-                techSkillsValue = totalTechSkillsFields * 0.5;
+
+            // Count completed work experience fields (Company Name, Job Title, Years) across all entries
+            let completedWorkExperienceFieldCount = 0;
+            formData.workExperiences.forEach((experience) => {
+                if (experience.companyName.trim() !== '') completedWorkExperienceFieldCount++;
+                if (experience.jobTitle.trim() !== '') completedWorkExperienceFieldCount++;
+                if (experience.employedYears.trim() !== '') completedWorkExperienceFieldCount++;
+            });
+
+            // Each completed field moves dot 1 unit outward (1/10 of max value), capped at 4
+            if (completedWorkExperienceFieldCount > 0) {
+                techSkillsValue = Math.min(completedWorkExperienceFieldCount, 4);
             }
             const techSkillsLevel = techSkillsValue / maxValue;
 
@@ -1636,7 +1644,7 @@ export default function AlphaPage() {
             ];
 
             // Only include in shape if has actual data (not just typing)
-            if ((hasSkillsData || hasWorkExperienceData) && techSkillsValue > 0) {
+            if (hasWorkExperienceData && techSkillsValue > 0) {
                 dotPositions.push({ point: techSkillsPoint, index: 3 });
             }
         }
@@ -1647,7 +1655,8 @@ export default function AlphaPage() {
             // Calculate Teamwork dot position using same logic as main calculation
             let teamworkValue = 0;
             if (hasWorkExperienceData) {
-                teamworkValue = filledWorkExperienceFields.length * 2;
+                // Cap at maximum to not exceed endpoint
+                teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint
             }
             const teamworkLevel = teamworkValue / maxValue;
 
@@ -1671,6 +1680,25 @@ export default function AlphaPage() {
         // Extract the points in correct order
         const orderedDotPoints = dotPositions.map(dp => dp.point);
 
+        // Helper function to check if a point is outside a polygon
+        const isPointOutsidePolygon = (point: [number, number], polygon: [number, number][]): boolean => {
+            if (polygon.length < 3) return true; // Need at least 3 points for a polygon
+            
+            let inside = false;
+            const [px, py] = point;
+            
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const [ix, iy] = polygon[i];
+                const [jx, jy] = polygon[j];
+                
+                if (((iy > py) !== (jy > py)) && (px < (jx - ix) * (py - iy) / (jy - iy) + ix)) {
+                    inside = !inside;
+                }
+            }
+            
+            return !inside; // Return true if point is outside
+        };
+
         // Create shape that connects all dots and encloses center area
         let shapePoints: [number, number][];
 
@@ -1681,51 +1709,81 @@ export default function AlphaPage() {
                 orderedDotPoints[0],
                 orderedDotPoints[1]
             ];
+        } else if (orderedDotPoints.length > 2) {
+            // With 3+ dots, check if center is outside the shape and include it if needed
+            const centerPoint: [number, number] = [0, 0];
+            
+            // Check if center point is outside the polygon formed by the dots
+            const isCenterOutside = isPointOutsidePolygon(centerPoint, orderedDotPoints);
+            
+            if (isCenterOutside) {
+                // Include center point to create proper enclosure
+                shapePoints = [centerPoint, ...orderedDotPoints];
+            } else {
+                // Center is inside, use just the dot positions
+                shapePoints = orderedDotPoints;
+            }
         } else {
-            // With 3+ dots, create a proper polygon connecting all dots
-            // This naturally encloses the center area and defines the shape by the dots
-            shapePoints = orderedDotPoints;
+            // No dots or single dot - no shape needed
+            shapePoints = [];
         }
 
-        // Create line generator for the shape
-        const line = d3.line<[number, number]>()
-            .x(d => d[0])
-            .y(d => d[1])
-            .curve(d3.curveLinearClosed);
+        // Only create shape if there are more than two dots (3+ dots) OR exactly 2 dots
+        if (shapePoints.length >= 2) {
+            // Create line generator for the shape
+            const line = d3.line<[number, number]>()
+                .x(d => d[0])
+                .y(d => d[1])
+                .curve(d3.curveLinearClosed);
 
-        // Update existing shape or create new one
-        let progressShape = g.select<SVGPathElement>('.progress-triangle');
+            // Update existing shape or create new one
+            let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-        if (progressShape.empty()) {
-            // Create shape for the first time
-            progressShape = g.append('path')
-                .attr('class', 'progress-triangle')
-                .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
-                .attr('stroke', '#CFAEE8')
-                .attr('stroke-width', 1.5)
-                .attr('opacity', 0)
-                .style('transform', 'scale(0)')
-                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+            if (progressShape.empty()) {
+                // Create shape for the first time
+                progressShape = g.append('path')
+                    .attr('class', 'progress-triangle')
+                    .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
+                    .attr('stroke', '#CFAEE8')
+                    .attr('stroke-width', 1.5)
+                    .attr('opacity', 0)
+                    .style('transform', 'scale(0)')
+                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
-            // Initial appearance animation
-            progressShape
-                .datum(shapePoints)
-                .attr('d', line)
-                .transition()
-                .duration(1000)
-                .delay(400)
-                .ease(d3.easeBackOut.overshoot(1.1))
-                .attr('opacity', 0.7)
-                .style('transform', 'scale(1)');
+                // Initial appearance animation
+                progressShape
+                    .datum(shapePoints)
+                    .attr('d', line)
+                    .transition()
+                    .duration(1000)
+                    .delay(400)
+                    .ease(d3.easeBackOut.overshoot(1.1))
+                    .attr('opacity', 0.7)
+                    .style('transform', 'scale(1)');
+            } else {
+                // Smoothly transition existing shape to new configuration
+                progressShape
+                    .datum(shapePoints)
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
+                    .attr('d', line)
+                    .attr('opacity', 0.7);
+            }
         } else {
-            // Smoothly transition existing shape to new configuration
-            progressShape
-                .datum(shapePoints)
-                .transition()
-                .duration(800)
-                .ease(d3.easeQuadInOut)
-                .attr('d', line)
-                .attr('opacity', 0.7);
+            // Remove shape if not enough points
+            const existingShape = g.select('.progress-triangle');
+            if (!existingShape.empty()) {
+                existingShape
+                    .transition()
+                    .duration(600)
+                    .ease(d3.easeQuadInOut)
+                    .attr('opacity', 0)
+                    .style('transform', 'scale(0.1)')
+                    .on('end', function() {
+                        safeRemove(existingShape);
+                    });
+            }
         }
 
         // Static dots - no pulsing animation
@@ -1770,10 +1828,11 @@ export default function AlphaPage() {
             }, 1000);
         }
 
-        // Track typing in JobMatch fields (education and skills fields)
+        // Track typing in JobMatch fields (education, skills, and work experience fields)
         const jobMatchFields = ['collegeName', 'degree', 'major', 'graduationYear', 'programmingLanguages', 'frameworks', 'databases', 'tools'];
+        const isJobMatchWorkExperienceField = field.startsWith('workExperience_') || ['companyName', 'jobTitle', 'employedYears'].some(f => field.includes(f));
         
-        if (jobMatchFields.includes(field)) {
+        if (jobMatchFields.includes(field) || isJobMatchWorkExperienceField) {
             setIsTypingJobMatch(true);
 
             // Clear existing timeout
@@ -1787,11 +1846,10 @@ export default function AlphaPage() {
             }, 1000);
         }
 
-        // Track typing in TechSkills fields (skills + work experience)
+        // Track typing in TechSkills fields (skills only)
         const techSkillsFields = ['programmingLanguages', 'frameworks', 'databases', 'tools'];
-        const isTechSkillsWorkExperienceField = field.startsWith('workExperience_') || ['companyName', 'jobTitle', 'employedYears'].some(f => field.includes(f));
         
-        if (techSkillsFields.includes(field) || isTechSkillsWorkExperienceField) {
+        if (techSkillsFields.includes(field)) {
             setIsTypingTechSkills(true);
 
             // Clear existing timeout
@@ -2520,8 +2578,8 @@ export default function AlphaPage() {
                                                     id={`companyName_${index}`}
                                                     value={experience.companyName}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'companyName', e.target.value)}
-                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
-                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
+                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleJobMatchFocus(); }}
+                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleJobMatchBlur(); }}
                                                     className={styles.input}
                                                     placeholder="Enter company name"
                                                 />
@@ -2536,8 +2594,8 @@ export default function AlphaPage() {
                                                     id={`jobTitle_${index}`}
                                                     value={experience.jobTitle}
                                                     onChange={(e) => handleWorkExperienceChange(index, 'jobTitle', e.target.value)}
-                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
-                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
+                                                    onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleJobMatchFocus(); }}
+                                                    onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleJobMatchBlur(); }}
                                                     className={styles.input}
                                                     placeholder="Enter job title"
                                                 />
@@ -2554,8 +2612,8 @@ export default function AlphaPage() {
                                                     <div 
                                                         className={styles.dropdownSelected} 
                                                         onClick={() => toggleYearsDropdown(index)}
-                                                        onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleTechSkillsFocus(); }}
-                                                        onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleTechSkillsBlur(); }}
+                                                        onFocus={() => { handleProfessionalFocus(); handleTeamworkFocus(); handleJobMatchFocus(); }}
+                                                        onBlur={() => { handleProfessionalBlur(); handleTeamworkBlur(); handleJobMatchBlur(); }}
                                                         aria-haspopup="listbox"
                                                         aria-expanded={yearsDropdownStates[index] || false}
                                                         role="combobox"
