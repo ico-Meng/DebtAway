@@ -384,12 +384,12 @@ export default function AlphaPage() {
 
             greyGradient.append('stop')
                 .attr('offset', '0%')
-                .style('stop-color', '#e0e0e0')
+                .style('stop-color', '#F0E8BB')
                 .style('stop-opacity', 0.8);
 
             greyGradient.append('stop')
                 .attr('offset', '100%')
-                .style('stop-color', '#e0e0e0')
+                .style('stop-color', '#F0E8BB')
                 .style('stop-opacity', 0.3);
 
             // Green gradient for form data
@@ -801,8 +801,8 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 backgroundDot
-                    .transition()
-                    .duration(500)
+                    .transition('position')
+                    .duration(400)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', backgroundPoint[0])
                     .attr('cy', backgroundPoint[1])
@@ -837,9 +837,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - use a separate named transition so it doesn't cancel position
                         backgroundDot
-                            .transition()
+                            .transition('pulse')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -857,6 +857,12 @@ export default function AlphaPage() {
                     }
                 };
                 addTypingReactionAnimation();
+            } else {
+                // Not typing: ensure no radar rings and no pulse animation
+                g.selectAll('.typing-ring').remove();
+                if (!backgroundDot.empty()) {
+                    (backgroundDot as any).interrupt('pulse');
+                }
             }
         } else {
             // Remove background dot if it exists and shouldn't be shown
@@ -899,17 +905,17 @@ export default function AlphaPage() {
 
                 if (actualJobMatchValue === 0) {
                     // Simple fade-in at center when typing
-                    jobMatchDot
-                        .transition()
+                jobMatchDot
+                    .transition()
                         .duration(400)
                         .ease(d3.easeQuadOut)
                         .attr('opacity', 1)
                         .attr('r', 6);
-                } else {
+            } else {
                     // Fancy drop-in animation with bounce for positioned dots
-                    jobMatchDot
-                        .transition()
-                        .duration(800)
+                jobMatchDot
+                    .transition()
+                    .duration(800)
                         .ease(d3.easeQuadOut)
                         .attr('cy', jobMatchPoint[1] + 10) // Drop down past target
                         .attr('opacity', 1)
@@ -923,7 +929,7 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 jobMatchDot
-                    .transition()
+                    .transition('position-job')
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', jobMatchPoint[0])
@@ -959,9 +965,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - separate transition name to avoid cancelling movement
                         jobMatchDot
-                            .transition()
+                            .transition('pulse-job')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -979,6 +985,12 @@ export default function AlphaPage() {
                     }
                 };
                 addJobMatchTypingAnimation();
+            } else {
+                // Not typing: remove any job match rings and stop pulse
+                g.selectAll('.jobmatch-typing-ring').remove();
+                if (!jobMatchDot.empty()) {
+                    (jobMatchDot as any).interrupt('pulse-job');
+                }
             }
         } else {
             // Remove job match dot if it exists and shouldn't be shown
@@ -1064,17 +1076,17 @@ export default function AlphaPage() {
 
                 if (educationValue === 0) {
                     // Simple fade-in at center when typing
-                    educationDot
-                        .transition()
+                educationDot
+                    .transition()
                         .duration(400)
                         .ease(d3.easeQuadOut)
                         .attr('opacity', 1)
                         .attr('r', 6);
-                } else {
+            } else {
                     // Fancy drop-in animation with bounce for positioned dots
-                    educationDot
-                        .transition()
-                        .duration(800)
+                educationDot
+                    .transition()
+                    .duration(800)
                         .ease(d3.easeQuadOut)
                         .attr('cy', educationPoint[1] + 10) // Drop down past target
                         .attr('opacity', 1)
@@ -1088,7 +1100,7 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 educationDot
-                    .transition()
+                    .transition('position-edu')
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', educationPoint[0])
@@ -1124,9 +1136,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - separate transition name to avoid cancelling movement
                         educationDot
-                            .transition()
+                            .transition('pulse-edu')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -1144,6 +1156,12 @@ export default function AlphaPage() {
                     }
                 };
                 addEducationTypingAnimation();
+            } else {
+                // Not typing: remove any education rings and stop pulse
+                g.selectAll('.education-typing-ring').remove();
+                if (!educationDot.empty()) {
+                    (educationDot as any).interrupt('pulse-edu');
+                }
             }
 
 
@@ -1201,17 +1219,17 @@ export default function AlphaPage() {
 
                 if (professionalValue === 0) {
                     // Simple fade-in at center when typing
-                    professionalDot
-                        .transition()
+                professionalDot
+                    .transition()
                         .duration(400)
                         .ease(d3.easeQuadOut)
                         .attr('opacity', 1)
                         .attr('r', 6);
-                } else {
+            } else {
                     // Fancy drop-in animation with bounce for positioned dots
-                    professionalDot
-                        .transition()
-                        .duration(800)
+                professionalDot
+                    .transition()
+                    .duration(800)
                         .ease(d3.easeQuadOut)
                         .attr('cy', professionalPoint[1] + 10) // Drop down past target
                         .attr('opacity', 1)
@@ -1225,7 +1243,7 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 professionalDot
-                    .transition()
+                    .transition('position-prof')
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', professionalPoint[0])
@@ -1261,9 +1279,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - separate transition name to avoid cancelling movement
                         professionalDot
-                            .transition()
+                            .transition('pulse-prof')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -1281,6 +1299,12 @@ export default function AlphaPage() {
                     }
                 };
                 addProfessionalTypingAnimation();
+            } else {
+                // Not typing: remove any professional rings and stop pulse
+                g.selectAll('.professional-typing-ring').remove();
+                if (!professionalDot.empty()) {
+                    (professionalDot as any).interrupt('pulse-prof');
+                }
             }
         } else {
             // Safely remove professional dot if no work experience data and not typing
@@ -1339,17 +1363,17 @@ export default function AlphaPage() {
 
                 if (techSkillsValue === 0) {
                     // Simple fade-in at center when typing
-                    techSkillsDot
-                        .transition()
+                techSkillsDot
+                    .transition()
                         .duration(400)
                         .ease(d3.easeQuadOut)
                         .attr('opacity', 1)
                         .attr('r', 6);
-                } else {
+            } else {
                     // Fancy drop-in animation with bounce for positioned dots
-                    techSkillsDot
-                        .transition()
-                        .duration(800)
+                techSkillsDot
+                    .transition()
+                    .duration(800)
                         .ease(d3.easeQuadOut)
                         .attr('cy', techSkillsPoint[1] + 10) // Drop down past target
                         .attr('opacity', 1)
@@ -1363,7 +1387,7 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 techSkillsDot
-                    .transition()
+                    .transition('position-tech')
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', techSkillsPoint[0])
@@ -1399,9 +1423,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - separate transition name to avoid cancelling movement
                         techSkillsDot
-                            .transition()
+                            .transition('pulse-tech')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -1419,6 +1443,12 @@ export default function AlphaPage() {
                     }
                 };
                 addTechSkillsTypingAnimation();
+            } else {
+                // Not typing: remove any tech skills rings and stop pulse
+                g.selectAll('.techskills-typing-ring').remove();
+                if (!techSkillsDot.empty()) {
+                    (techSkillsDot as any).interrupt('pulse-tech');
+                }
             }
         } else {
             // Safely remove tech skills dot if no skills data and not typing
@@ -1434,7 +1464,7 @@ export default function AlphaPage() {
             // Start typing: 0 (center), 1 field: 2 (1/5), 2 fields: 4 (2/5), 3 fields: 6 (3/5), 4 fields: 8 (4/5)
             let teamworkValue = 0; // Start at center when typing
             
-            if (hasWorkExperienceData) {
+        if (hasWorkExperienceData) {
                 // Each completed work experience field moves dot 2 units outward (2/10 of max value)
                 // Cap at maximum to not exceed endpoint
                 teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
@@ -1475,17 +1505,17 @@ export default function AlphaPage() {
 
                 if (teamworkValue === 0) {
                     // Simple fade-in at center when typing
-                    teamworkDot
-                        .transition()
+                teamworkDot
+                    .transition()
                         .duration(400)
                         .ease(d3.easeQuadOut)
                         .attr('opacity', 1)
                         .attr('r', 6);
-                } else {
+            } else {
                     // Fancy drop-in animation with bounce for positioned dots
-                    teamworkDot
-                        .transition()
-                        .duration(800)
+                teamworkDot
+                    .transition()
+                    .duration(800)
                         .ease(d3.easeQuadOut)
                         .attr('cy', teamworkPoint[1] + 10) // Drop down past target
                         .attr('opacity', 1)
@@ -1499,7 +1529,7 @@ export default function AlphaPage() {
             } else {
                 // Move existing dot to new position with smooth animation
                 teamworkDot
-                    .transition()
+                    .transition('position-team')
                     .duration(500)
                     .ease(d3.easeQuadInOut)
                     .attr('cx', teamworkPoint[0])
@@ -1535,9 +1565,9 @@ export default function AlphaPage() {
                                 ring.remove();
                             });
 
-                        // Dot reaction animation
+                        // Dot reaction animation - separate transition name to avoid cancelling movement
                         teamworkDot
-                            .transition()
+                            .transition('pulse-team')
                             .duration(200)
                             .ease(d3.easeQuadOut)
                             .attr('r', 10)
@@ -1555,6 +1585,12 @@ export default function AlphaPage() {
                     }
                 };
                 addTeamworkTypingAnimation();
+            } else {
+                // Not typing: remove any teamwork rings and stop pulse
+                g.selectAll('.teamwork-typing-ring').remove();
+                if (!teamworkDot.empty()) {
+                    (teamworkDot as any).interrupt('pulse-team');
+                }
             }
         } else {
             // Safely remove teamwork dot if no work experience data and not typing
@@ -1570,7 +1606,7 @@ export default function AlphaPage() {
         if (shouldShowBackground) {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
-
+        
         // Include Job Match (index 5) only if it should be shown - use exact same position
         if (shouldShowJobMatch) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
@@ -1580,7 +1616,7 @@ export default function AlphaPage() {
         if (shouldShowEducationDot) {
             // Calculate education dot position using same logic as main calculation
             let educationValue = 0;
-            if (hasEducationData) {
+        if (hasEducationData) {
                 educationValue = filledEducationFields.length * 2;
             }
             const educationLevel = educationValue / maxValue;
@@ -1632,7 +1668,7 @@ export default function AlphaPage() {
         if (shouldShowTeamworkDot) {
             // Calculate Teamwork dot position using same logic as main calculation
             let teamworkValue = 0;
-            if (hasWorkExperienceData) {
+        if (hasWorkExperienceData) {
                 teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10);
             }
             const teamworkLevel = teamworkValue / maxValue;
@@ -1689,39 +1725,39 @@ export default function AlphaPage() {
 
         // Always create/update the shape when there are dots to connect
         if (orderedDotPoints.length > 0) {
-            // Update existing shape or create new one
-            let progressShape = g.select<SVGPathElement>('.progress-triangle');
+        // Update existing shape or create new one
+        let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-            if (progressShape.empty()) {
+        if (progressShape.empty()) {
                 // Create shape for the first time - insert at beginning so it stays behind dots
                 progressShape = g.insert('path', ':first-child')
-                    .attr('class', 'progress-triangle')
-                    .attr('fill', 'rgba(207, 174, 232, 0.6)') // Purple with good opacity
-                    .attr('stroke', '#CFAEE8')
+                .attr('class', 'progress-triangle')
+                    .attr('fill', 'rgba(192, 147, 226, 0.6)') // Purple with good opacity
+                .attr('stroke', '#CFAEE8')
                     .attr('stroke-width', 2)
-                    .attr('opacity', 0)
-                    .style('transform', 'scale(0)')
-                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+                .attr('opacity', 0)
+                .style('transform', 'scale(0)')
+                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
                 // Initial appearance animation - show immediately when dots appear
-                progressShape
-                    .datum(shapePoints)
-                    .attr('d', line)
-                    .transition()
-                    .duration(800)
+            progressShape
+                .datum(shapePoints)
+                .attr('d', line)
+                .transition()
+                    .duration(400)
                     .delay(100)
-                    .ease(d3.easeBackOut.overshoot(1.1))
-                    .attr('opacity', 0.8)
-                    .style('transform', 'scale(1)');
-            } else {
-                // Smoothly transition existing shape to new configuration
-                progressShape
-                    .datum(shapePoints)
-                    .transition()
-                    .duration(800)
-                    .ease(d3.easeQuadInOut)
-                    .attr('d', line)
-                    .attr('opacity', 0.8);
+                .ease(d3.easeBackOut.overshoot(1.1))
+                    .attr('opacity', 0.9)
+                .style('transform', 'scale(1)');
+        } else {
+            // Smoothly transition existing shape to new configuration
+            progressShape
+                .datum(shapePoints)
+                .transition()
+                    .duration(400)
+                .ease(d3.easeQuadInOut)
+                .attr('d', line)
+                    .attr('opacity', 0.9);
             }
         } else {
             // No dots visible, hide the progress shape
@@ -1854,10 +1890,19 @@ export default function AlphaPage() {
     // Specialized handlers for basic info fields (firstName, lastName, email, phoneNumber)
     const handleBasicInfoFocus = () => {
         setBasicInfoFocusCount(count => count + 1);
+        setIsTypingBasicInfo(true);
     };
 
     const handleBasicInfoBlur = () => {
         setBasicInfoFocusCount(count => Math.max(0, count - 1));
+        setIsTypingBasicInfo(false);
+        // Ensure immediate position update on blur
+        // Defer to next frame to allow state to flush before recalculating
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Specialized handlers for education fields (collegeName, degree, major, graduationYear)
@@ -1873,11 +1918,13 @@ export default function AlphaPage() {
 
     const handleEducationBlur = () => {
         setEducationFocusCount(count => Math.max(0, count - 1));
-        
-        // Set timeout to stop typing animation
-        educationTypingTimeoutRef.current = setTimeout(() => {
-            setIsTypingEducation(false);
-        }, 500); // Stop animation 500ms after last blur
+        setIsTypingEducation(false);
+        // Force an immediate dot recompute so EducationDot moves on blur
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Specialized handlers for JobMatch fields (education, skills, work experience)
@@ -1893,11 +1940,13 @@ export default function AlphaPage() {
 
     const handleJobMatchBlur = () => {
         setJobMatchFocusCount(count => Math.max(0, count - 1));
-        
-        // Set timeout to stop typing animation
-        jobMatchTypingTimeoutRef.current = setTimeout(() => {
-            setIsTypingJobMatch(false);
-        }, 500); // Stop animation 500ms after last blur
+        setIsTypingJobMatch(false);
+        // Force immediate recompute so JobMatchDot moves on blur
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Specialized handlers for TechSkills fields (programmingLanguages, frameworks, databases, tools)
@@ -1913,11 +1962,13 @@ export default function AlphaPage() {
 
     const handleTechSkillsBlur = () => {
         setTechSkillsFocusCount(count => Math.max(0, count - 1));
-        
-        // Set timeout to stop typing animation
-        techSkillsTypingTimeoutRef.current = setTimeout(() => {
-            setIsTypingTechSkills(false);
-        }, 500); // Stop animation 500ms after last blur
+        setIsTypingTechSkills(false);
+        // Force immediate recompute so TechSkillsDot moves on blur
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Specialized handlers for Professional fields (education, skills, work experience)
@@ -1933,11 +1984,13 @@ export default function AlphaPage() {
 
     const handleProfessionalBlur = () => {
         setProfessionalFocusCount(count => Math.max(0, count - 1));
-        
-        // Set timeout to stop typing animation
-        professionalTypingTimeoutRef.current = setTimeout(() => {
-            setIsTypingProfessional(false);
-        }, 500); // Stop animation 500ms after last blur
+        setIsTypingProfessional(false);
+        // Force immediate recompute so ProfessionalDot moves on blur
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Specialized handlers for Teamwork fields (work experience)
@@ -1953,11 +2006,13 @@ export default function AlphaPage() {
 
     const handleTeamworkBlur = () => {
         setTeamworkFocusCount(count => Math.max(0, count - 1));
-        
-        // Set timeout to stop typing animation
-        teamworkTypingTimeoutRef.current = setTimeout(() => {
-            setIsTypingTeamwork(false);
-        }, 500); // Stop animation 500ms after last blur
+        setIsTypingTeamwork(false);
+        // Force immediate recompute so TeamworkDot moves on blur
+        requestAnimationFrame(() => {
+            if (svgRef.current) {
+                updateChartWithFormData();
+            }
+        });
     };
 
     // Handle work experience input changes
@@ -2005,10 +2060,19 @@ export default function AlphaPage() {
 
     const handleNext = () => {
         if (currentStep < 6) {
-            // Interrupt any ongoing D3 transitions before step change
+            // Interrupt transitions first so we don't cancel the movement we trigger below
             if (svgRef.current) {
                 const svg = d3.select(svgRef.current);
                 svg.selectAll('*').interrupt();
+            }
+
+            // Clear typing/focus and force recompute so backgroundDot moves before step change
+            setIsTypingBasicInfo(false);
+            setBasicInfoFocusCount(0);
+            if (svgRef.current) {
+                requestAnimationFrame(() => {
+                    updateChartWithFormData();
+                });
             }
 
             setCurrentStep(currentStep + 1);
@@ -2182,7 +2246,7 @@ export default function AlphaPage() {
                                                 <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
                                                     <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
                                                     Loading...
-                                                </text>
+                                            </text>
                                             </g>
                                         </svg>
                                     </div>
@@ -2228,6 +2292,7 @@ export default function AlphaPage() {
                                     />
                                 </div>
 
+                                <div onBlurCapture={handleBasicInfoBlur}>
                                 <div className={styles.formRowContainer}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="firstName" className={styles.label}>
@@ -2294,6 +2359,7 @@ export default function AlphaPage() {
                                             placeholder="Enter your phone number"
                                         />
                                     </div>
+                                    </div>
                                 </div>
 
                                 <div className={styles.navButtonsRight}>
@@ -2344,7 +2410,7 @@ export default function AlphaPage() {
                                                 <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
                                                     <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
                                                     Loading...
-                                                </text>
+                                            </text>
                                             </g>
                                         </svg>
                                     </div>
@@ -2500,7 +2566,7 @@ export default function AlphaPage() {
                                                 <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
                                                     <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
                                                     Loading...
-                                                </text>
+                                            </text>
                                             </g>
                                         </svg>
                                     </div>
@@ -2653,7 +2719,7 @@ export default function AlphaPage() {
                                                 <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
                                                     <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
                                                     Loading...
-                                                </text>
+                                            </text>
                                             </g>
                                         </svg>
                                     </div>
@@ -2905,7 +2971,7 @@ export default function AlphaPage() {
                                                 <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
                                                     <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
                                                     Loading...
-                                                </text>
+                                            </text>
                                             </g>
                                         </svg>
                                     </div>
