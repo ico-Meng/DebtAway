@@ -1560,122 +1560,87 @@ export default function AlphaPage() {
             safeRemove(teamworkDotsToRemove);
         }
 
-        // Create comprehensive shape that encloses all visible dots
+        // Create comprehensive shape that uses exact dot positions from rendered dots
         // Collect all visible dot positions with their proper hexagon indices
         const dotPositions: { point: [number, number], index: number }[] = [];
 
-        // Include Background (index 0) only if it should be shown
+        // Include Background (index 0) only if it should be shown - use exact same position
         if (shouldShowBackground) {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
-        
-        // Include Job Match (index 5) only if it has completed education, skills, or work experience fields (not just typing)
-        if (shouldShowJobMatch && jobMatchValue > 0) {
+
+        // Include Job Match (index 5) only if it should be shown - use exact same position
+        if (shouldShowJobMatch) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
         }
 
-        // Add Education dot if education data exists or user is typing
-        const shouldIncludeEducationInShape = hasEducationData || (isTypingEducation && educationFocusCount > 0);
-        if (shouldIncludeEducationInShape) {
+        // Include Education dot if it's being shown - use exact same position
+        if (shouldShowEducationDot) {
             // Calculate education dot position using same logic as main calculation
             let educationValue = 0;
             if (hasEducationData) {
                 educationValue = filledEducationFields.length * 2;
             }
             const educationLevel = educationValue / maxValue;
-
             const educationAngle = angleSlice * 1 - Math.PI / 2;
-            const educationRadius = educationLevel * radius; // educationLevel is already 0-1 scale
-
+            const educationRadius = educationLevel * radius;
             const educationPoint: [number, number] = [
                 Math.cos(educationAngle) * educationRadius,
                 Math.sin(educationAngle) * educationRadius
             ];
-
-            // Only include education dot in shape if it's not at center (has actual data)
-            if (educationValue > 0) {
-                dotPositions.push({ point: educationPoint, index: 1 });
-            }
+            dotPositions.push({ point: educationPoint, index: 1 });
         }
 
-        // Add Professional dot if work experience data exists or user is typing
-        const shouldIncludeProfessionalInShape = hasWorkExperienceData || (isTypingProfessional && professionalFocusCount > 0);
-        if (shouldIncludeProfessionalInShape) {
+        // Include Professional dot if it's being shown - use exact same position
+        if (shouldShowProfessionalDot) {
             // Calculate Professional dot position using same logic as main calculation
             let professionalValue = 0;
             if (hasWorkExperienceData) {
-                // Cap at maximum to not exceed endpoint
-                professionalValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint
+                professionalValue = Math.min(filledWorkExperienceFields.length * 2, 10);
             }
             const professionalLevel = professionalValue / maxValue;
-
             const professionalAngle = angleSlice * 2 - Math.PI / 2;
             const professionalRadius = professionalLevel * radius;
-
             const professionalPoint: [number, number] = [
                 Math.cos(professionalAngle) * professionalRadius,
                 Math.sin(professionalAngle) * professionalRadius
             ];
-
-            // Only include in shape if has actual data (not just typing)
-            if (hasWorkExperienceData && professionalValue > 0) {
-                dotPositions.push({ point: professionalPoint, index: 2 });
-            }
+            dotPositions.push({ point: professionalPoint, index: 2 });
         }
 
-        // Add Tech Skills dot if skills data exists or user is typing
-        const shouldIncludeTechSkillsInShape = hasSkillsData || (isTypingTechSkills && techSkillsFocusCount > 0);
-        if (shouldIncludeTechSkillsInShape) {
+        // Include Tech Skills dot if it's being shown - use exact same position
+        if (shouldShowTechSkillsDot) {
             // Calculate TechSkills dot position using same logic as main calculation
             let techSkillsValue = 0;
-
-            // Count completed skills fields (Programming Languages, Technologies, Frameworks & Tools, Achievements)
             const completedSkillsFieldCount = filledSkillsFields.length;
-
-            // Each completed field moves dot 2 units outward (2/10 of max value)
-            // Cap at maximum to not exceed endpoint
             if (completedSkillsFieldCount > 0) {
-                techSkillsValue = Math.min(completedSkillsFieldCount * 2, 10); // Cap at 10 to not exceed endpoint (100% of max radius)
+                techSkillsValue = Math.min(completedSkillsFieldCount * 2, 10);
             }
             const techSkillsLevel = techSkillsValue / maxValue;
-
             const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
             const techSkillsRadius = techSkillsLevel * radius;
-
             const techSkillsPoint: [number, number] = [
                 Math.cos(techSkillsAngle) * techSkillsRadius,
                 Math.sin(techSkillsAngle) * techSkillsRadius
             ];
-
-            // Only include in shape if has actual data (not just typing)
-            if (hasSkillsData && techSkillsValue > 0) {
-                dotPositions.push({ point: techSkillsPoint, index: 3 });
-            }
+            dotPositions.push({ point: techSkillsPoint, index: 3 });
         }
 
-        // Add Teamwork dot if work experience data exists or user is typing
-        const shouldIncludeTeamworkInShape = hasWorkExperienceData || (isTypingTeamwork && teamworkFocusCount > 0);
-        if (shouldIncludeTeamworkInShape) {
+        // Include Teamwork dot if it's being shown - use exact same position
+        if (shouldShowTeamworkDot) {
             // Calculate Teamwork dot position using same logic as main calculation
             let teamworkValue = 0;
             if (hasWorkExperienceData) {
-                // Cap at maximum to not exceed endpoint
-                teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10); // Cap at 10 to not exceed endpoint
+                teamworkValue = Math.min(filledWorkExperienceFields.length * 2, 10);
             }
             const teamworkLevel = teamworkValue / maxValue;
-
             const teamworkAngle = angleSlice * 4 - Math.PI / 2;
             const teamworkRadius = teamworkLevel * radius;
-
             const teamworkPoint: [number, number] = [
                 Math.cos(teamworkAngle) * teamworkRadius,
                 Math.sin(teamworkAngle) * teamworkRadius
             ];
-
-            // Only include in shape if has actual data (not just typing)
-            if (hasWorkExperienceData && teamworkValue > 0) {
-                dotPositions.push({ point: teamworkPoint, index: 4 });
-            }
+            dotPositions.push({ point: teamworkPoint, index: 4 });
         }
 
         // Sort dots by their hexagon index to maintain proper order
@@ -1687,7 +1652,21 @@ export default function AlphaPage() {
         // Create shape that connects all dots and encloses center area
         let shapePoints: [number, number][];
 
-        if (orderedDotPoints.length === 2) {
+        if (orderedDotPoints.length === 0) {
+            // No dots, create small triangle at center
+            shapePoints = [
+                [0, 0],
+                [10, 0],
+                [5, 10]
+            ];
+        } else if (orderedDotPoints.length === 1) {
+            // With only 1 dot, create a triangle using the dot + center point
+            shapePoints = [
+                [0, 0], // Center point
+                orderedDotPoints[0],
+                [orderedDotPoints[0][0] * 0.5, orderedDotPoints[0][1] * 0.5] // Midpoint
+            ];
+        } else if (orderedDotPoints.length === 2) {
             // With only 2 dots, create a triangle using the 2 dots + center point
             shapePoints = [
                 [0, 0], // Center point
@@ -1706,39 +1685,55 @@ export default function AlphaPage() {
             .y(d => d[1])
             .curve(d3.curveLinearClosed);
 
-        // Update existing shape or create new one
-        let progressShape = g.select<SVGPathElement>('.progress-triangle');
+        // Always create/update the shape when there are dots to connect
+        if (orderedDotPoints.length > 0) {
+            // Update existing shape or create new one
+            let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-        if (progressShape.empty()) {
-            // Create shape for the first time
-            progressShape = g.append('path')
-                .attr('class', 'progress-triangle')
-                .attr('fill', 'rgba(207, 174, 232, 0.4)') // Purple with transparency
-                .attr('stroke', '#CFAEE8')
-                .attr('stroke-width', 1.5)
-                .attr('opacity', 0)
-                .style('transform', 'scale(0)')
-                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+            if (progressShape.empty()) {
+                // Create shape for the first time - insert at beginning so it stays behind dots
+                progressShape = g.insert('path', ':first-child')
+                    .attr('class', 'progress-triangle')
+                    .attr('fill', 'rgba(207, 174, 232, 0.6)') // Purple with good opacity
+                    .attr('stroke', '#CFAEE8')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0)
+                    .style('transform', 'scale(0)')
+                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
-            // Initial appearance animation
-            progressShape
-                .datum(shapePoints)
-                .attr('d', line)
-                .transition()
-                .duration(1000)
-                .delay(400)
-                .ease(d3.easeBackOut.overshoot(1.1))
-                .attr('opacity', 0.7)
-                .style('transform', 'scale(1)');
+                // Initial appearance animation - show immediately when dots appear
+                progressShape
+                    .datum(shapePoints)
+                    .attr('d', line)
+                    .transition()
+                    .duration(800)
+                    .delay(100)
+                    .ease(d3.easeBackOut.overshoot(1.1))
+                    .attr('opacity', 0.8)
+                    .style('transform', 'scale(1)');
+            } else {
+                // Smoothly transition existing shape to new configuration
+                progressShape
+                    .datum(shapePoints)
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeQuadInOut)
+                    .attr('d', line)
+                    .attr('opacity', 0.8);
+            }
         } else {
-            // Smoothly transition existing shape to new configuration
-            progressShape
-                .datum(shapePoints)
-                .transition()
-                .duration(800)
-                .ease(d3.easeQuadInOut)
-                .attr('d', line)
-                .attr('opacity', 0.7);
+            // No dots visible, hide the progress shape
+            const progressShape = g.select<SVGPathElement>('.progress-triangle');
+            if (!progressShape.empty()) {
+                progressShape
+                    .transition()
+                    .duration(400)
+                    .attr('opacity', 0)
+                    .style('transform', 'scale(0)')
+                    .on('end', function() {
+                        progressShape.remove();
+                    });
+            }
         }
 
         // Static dots - no pulsing animation
