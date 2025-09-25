@@ -813,15 +813,15 @@ export default function AlphaPage() {
             if (isTypingBasicInfo && basicInfoFocusCount > 0) {
                 const addTypingReactionAnimation = () => {
                     if (isTypingBasicInfo && basicInfoFocusCount > 0) { // Still typing
-                        // Get current actual position of the background dot
-                        const currentX = parseFloat(backgroundDot.attr('cx'));
-                        const currentY = parseFloat(backgroundDot.attr('cy'));
+                        // Use target position instead of current position to ensure radar ring appears at correct location
+                        const targetX = backgroundPoint[0];
+                        const targetY = backgroundPoint[0];
 
-                        // Create expanding ring effect at dot's current position
+                        // Create expanding ring effect at dot's target position
                         const ring = g.append('circle')
                             .attr('class', 'typing-ring')
-                            .attr('cx', currentX)
-                            .attr('cy', currentY)
+                            .attr('cx', targetX)
+                            .attr('cy', targetY)
                             .attr('r', 6)
                             .attr('fill', 'none')
                             .attr('stroke', '#ff6b6b')
@@ -1299,7 +1299,7 @@ export default function AlphaPage() {
                     }
                 };
                 addProfessionalTypingAnimation();
-            } else {
+        } else {
                 // Not typing: remove any professional rings and stop pulse
                 g.selectAll('.professional-typing-ring').remove();
                 if (!professionalDot.empty()) {
@@ -1443,7 +1443,7 @@ export default function AlphaPage() {
                     }
                 };
                 addTechSkillsTypingAnimation();
-            } else {
+        } else {
                 // Not typing: remove any tech skills rings and stop pulse
                 g.selectAll('.techskills-typing-ring').remove();
                 if (!techSkillsDot.empty()) {
@@ -1585,7 +1585,7 @@ export default function AlphaPage() {
                     }
                 };
                 addTeamworkTypingAnimation();
-            } else {
+        } else {
                 // Not typing: remove any teamwork rings and stop pulse
                 g.selectAll('.teamwork-typing-ring').remove();
                 if (!teamworkDot.empty()) {
@@ -1733,8 +1733,9 @@ export default function AlphaPage() {
                 progressShape = g.insert('path', ':first-child')
                 .attr('class', 'progress-triangle')
                     .attr('fill', 'rgba(192, 147, 226, 0.6)') // Purple with good opacity
-                .attr('stroke', '#CFAEE8')
+                .attr('stroke', '#9B7BB8')
                     .attr('stroke-width', 2)
+                    .attr('stroke-opacity', 1)
                 .attr('opacity', 0)
                 .style('transform', 'scale(0)')
                 .style('transform-origin', '0px 0px'); // Center at origin since g is translated
@@ -1757,7 +1758,10 @@ export default function AlphaPage() {
                     .duration(400)
                 .ease(d3.easeQuadInOut)
                 .attr('d', line)
-                    .attr('opacity', 0.9);
+                .attr('stroke', '#9B7BB8')
+                .attr('stroke-width', 3)
+                .attr('stroke-opacity', 1)
+                .attr('opacity', 0.9);
             }
         } else {
             // No dots visible, hide the progress shape
@@ -2752,7 +2756,7 @@ export default function AlphaPage() {
 
 
                                 {formData.workExperiences.map((experience, index) => (
-                                    <div key={index} style={{ marginBottom: '16px' }}>
+                                    <div key={index} style={{ marginBottom: '4px' }}>
                                         <div className={styles.formRowContainer}>
                                             <div className={styles.formGroup} style={{ width: '40%' }}>
                                                 <label htmlFor={`companyName_${index}`} className={styles.label}>

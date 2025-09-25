@@ -270,6 +270,7 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    height: 48px; /* Fixed height to prevent vertical expansion */
     padding: 0.75rem;
     font-size: 1rem;
     border: 2px solid #e2e8f0;
@@ -277,6 +278,7 @@
     background-color: #edece3;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-sizing: border-box; /* Ensure padding is included in height calculation */
 }
 
 .dropdownSelected:hover {
