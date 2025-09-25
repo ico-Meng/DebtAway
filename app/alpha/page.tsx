@@ -2116,7 +2116,7 @@ export default function AlphaPage() {
             <Head>
                 <title>Resume Evaluation Assessment</title>
                 <meta name="description" content="Interactive resume evaluation radar chart" />
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
                 <style>{globalStyles}</style>
                 <style>{`
                     body {
@@ -2129,7 +2129,22 @@ export default function AlphaPage() {
 
             <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
                 <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff', marginBottom: 12, paddingBottom: 0 }}>Ambit Alpha</h1>
+                    <h1 className={styles.title} style={{ 
+                        backgroundColor: '#ffffff', 
+                        marginBottom: 12, 
+                        paddingBottom: 0,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        fontFamily: '"Playfair Display", "Georgia", serif',
+                        fontWeight: 700,
+                        fontSize: '2.5rem',
+                        letterSpacing: '0.05em',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                        Ambit Alpha
+                    </h1>
                     {progressBarElement}
 
                     <div className={styles.form}>
@@ -2155,7 +2170,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
                                             <span>Self Potential</span>
                                         </div>
                                     </div>
@@ -2279,7 +2294,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
                                             <span>Self Potential</span>
                                         </div>
                                     </div>
@@ -2397,7 +2412,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
                                             <span>Self Potential</span>
                                         </div>
                                     </div>
@@ -2512,7 +2527,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
                                             <span>Self Potential</span>
                                         </div>
                                     </div>
@@ -2726,7 +2741,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#90EE90' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
                                             <span>Self Potential</span>
                                         </div>
                                     </div>
