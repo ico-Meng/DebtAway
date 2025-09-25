@@ -494,7 +494,7 @@ export default function AlphaPage() {
                 .attr('stroke', '#e0e0e0')
                 .attr('stroke-width', 1);
 
-            // Add category labels
+            // Add category labels with elegant styling
             g.selectAll('.radar-label')
                 .data(labels)
                 .enter()
@@ -510,9 +510,11 @@ export default function AlphaPage() {
                 })
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'central')
-                .attr('font-size', '12px')
-                .attr('font-weight', 'bold')
-                .attr('fill', '#333')
+                .attr('font-size', '14px')
+                .attr('font-weight', '700')
+                .attr('font-family', "'Playfair Display', 'Georgia', serif")
+                .attr('fill', '#2c2c2c')
+                .attr('letter-spacing', '0.5px')
                 .text(d => d);
 
             console.log('Grid completed with D3');
@@ -2156,17 +2158,55 @@ export default function AlphaPage() {
                                                 display: 'block'
                                             }}
                                         >
-                                            {/* Fallback content */}
-                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
-                                                Loading chart...
-                                            </text>
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                                </text>
+                                            </g>
                                         </svg>
                                     </div>
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
                                             <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
-                                            <span>Self Potential</span>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2280,17 +2320,55 @@ export default function AlphaPage() {
                                                 display: 'block'
                                             }}
                                         >
-                                            {/* Fallback content */}
-                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
-                                                Loading chart...
-                                            </text>
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                                </text>
+                                            </g>
                                         </svg>
                                     </div>
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
                                             <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
-                                            <span>Self Potential</span>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2398,17 +2476,55 @@ export default function AlphaPage() {
                                                 display: 'block'
                                             }}
                                         >
-                                            {/* Fallback content */}
-                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
-                                                Loading chart...
-                                            </text>
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                                </text>
+                                            </g>
                                         </svg>
                                     </div>
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
                                             <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
-                                            <span>Self Potential</span>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2513,17 +2629,55 @@ export default function AlphaPage() {
                                                 display: 'block'
                                             }}
                                         >
-                                            {/* Fallback content */}
-                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
-                                                Loading chart...
-                                            </text>
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                                </text>
+                                            </g>
                                         </svg>
                                     </div>
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
                                             <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
-                                            <span>Self Potential</span>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2727,17 +2881,55 @@ export default function AlphaPage() {
                                                 display: 'block'
                                             }}
                                         >
-                                            {/* Fallback content */}
-                                            <text x="250" y="250" textAnchor="middle" fill="#666" fontSize="16">
-                                                Loading chart...
-                                            </text>
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                                </text>
+                                            </g>
                                         </svg>
                                     </div>
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
                                             <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
-                                            <span>Self Potential</span>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
                                         </div>
                                     </div>
                                 </div>

@@ -105,6 +105,7 @@
     width: 100%;
     max-width: 1200px;
     padding: 2.5rem;
+    padding-top: 0rem;
 }
 
 .formSection {
@@ -362,6 +363,7 @@
 .progressBarContainer {
     width: 100%;
     padding: 1rem 2.5rem;
+    padding-bottom: 0rem;
     background-color: white;
 }
 
