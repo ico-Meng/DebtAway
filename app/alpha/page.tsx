@@ -125,6 +125,9 @@ export default function AlphaPage() {
     // Years dropdown states for each work experience
     const [yearsDropdownStates, setYearsDropdownStates] = useState<{[key: number]: boolean}>({});
     const yearsDropdownRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
+    
+    // Track active tab in Career Fit Analysis
+    const [activeTab, setActiveTab] = useState('Personal Capability');
 
     // Radar chart data
     const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
@@ -3130,29 +3133,229 @@ export default function AlphaPage() {
                             <div className={styles.formSection}>
                                 <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
                                     <div className={styles.chartWrapper}>
-                                        <svg ref={svgRef} className={styles.radarChart} style={{ width: '100%', height: '500px' }}></svg>
+                                        <svg
+                                            ref={svgRef}
+                                            width="500"
+                                            height="500"
+                                            className={styles.radarChart}
+                                            style={{
+                                                display: 'block'
+                                            }}
+                                        >
+                                            {/* Fancy dots loading animation */}
+                                            <g className="dots-loading-animation">
+                                                {/* First dot - slightly lighter */}
+                                                <circle cx="230" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Second dot - slightly darker */}
+                                                <circle cx="250" cy="250" r="6" fill="#B8733A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Third dot - original color */}
+                                                <circle cx="270" cy="250" r="6" fill="#CF844A" opacity="0.8">
+                                                    <animate attributeName="r" values="6;10;6" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+                                                </circle>
+                                                
+                                                {/* Loading text with elegant font */}
+                                                <text x="250" y="280" textAnchor="middle" fill="#CF844A" fontSize="20" fontWeight="400" fontFamily="'Playfair Display', 'Georgia', serif" opacity="0.9">
+                                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                                    Loading...
+                                            </text>
+                                            </g>
+                                        </svg>
+                                    </div>
+
+                                    <div className={styles.legend}>
+                                        <div className={styles.legendItem}>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Self Potential</span>
+                                        </div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                            <span style={{ 
+                                                fontFamily: "'Playfair Display', 'Georgia', serif",
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                color: '#2c2c2c',
+                                                letterSpacing: '0.5px'
+                                            }}>Resume Power</span>
+                                        </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className={styles.analysisContainer}>
-                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Analysis Results</h2>
-                                    <p style={{ textAlign: 'center', color: '#666', fontSize: '1.1rem', marginBottom: '2rem' }}>
-                                        Your comprehensive resume analysis and recommendations will appear here.
-                                    </p>
+                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Career Fit Analysis</h2>
                                     
+                                    {/* Modern Tab Design */}
                                     <div style={{ 
-                                        background: '#f8f9fa', 
-                                        border: '1px solid #e9ecef', 
-                                        borderRadius: '8px', 
-                                        padding: '2rem', 
-                                        textAlign: 'center',
-                                        margin: '2rem 0'
+                                        display: 'flex', 
+                                        backgroundColor: '#f8f9fa',
+                                        borderRadius: '12px',
+                                        padding: '6px',
+                                        marginBottom: '32px',
+                                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                        border: '1px solid #e9ecef'
                                     }}>
-                                        <h3 style={{ color: '#333', marginBottom: '1rem' }}>Analysis Coming Soon</h3>
-                                        <p style={{ color: '#666', lineHeight: '1.6' }}>
-                                            We're preparing your personalized analysis based on your profile information. 
-                                            This will include skill assessments, career recommendations, and improvement suggestions.
-                                        </p>
+                                        <button
+                                            className={styles.tabButton}
+                                            onClick={() => setActiveTab('Personal Capability')}
+                                            style={{
+                                                flex: 1,
+                                                padding: '12px 24px',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                backgroundColor: activeTab === 'Personal Capability' 
+                                                    ? 'linear-gradient(135deg, #9B6A10 0%, #B8860B 100%)' 
+                                                    : 'transparent',
+                                                color: activeTab === 'Personal Capability' ? '#8B4513' : '#495057',
+                                                fontWeight: '600',
+                                                fontSize: '17px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                                                position: 'relative',
+                                                outline: 'none',
+                                                boxShadow: activeTab === 'Personal Capability' 
+                                                    ? '0 4px 16px rgba(155, 106, 16, 0.25)' 
+                                                    : 'none',
+                                                transform: activeTab === 'Personal Capability' 
+                                                    ? 'translateY(-1px) scale(1.02)' 
+                                                    : 'translateY(0) scale(1)',
+                                                letterSpacing: '0.3px',
+                                                textTransform: 'none',
+                                                overflow: 'hidden'
+                                            }}
+                                            onFocus={(e) => e.target.style.outline = 'none'}
+                                            onMouseEnter={(e) => {
+                                                if (activeTab !== 'Personal Capability') {
+                                                    e.currentTarget.style.backgroundColor = 'linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%)';
+                                                    e.currentTarget.style.color = '#9B6A10';
+                                                    e.currentTarget.style.transform = 'translateY(-1px) scale(1.01)';
+                                                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(155, 106, 16, 0.15)';
+                                                } else {
+                                                    e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
+                                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(155, 106, 16, 0.3)';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (activeTab !== 'Personal Capability') {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                    e.currentTarget.style.color = '#495057';
+                                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                } else {
+                                                    e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(155, 106, 16, 0.25)';
+                                                }
+                                            }}
+                                        >
+                                            <span style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                gap: '8px'
+                                            }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ 
+                                                    opacity: activeTab === 'Personal Capability' ? 1 : 0.7 
+                                                }}>
+                                                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                                Personal Capability
+                                            </span>
+                                        </button>
+                                        <button
+                                            className={styles.tabButton}
+                                            onClick={() => setActiveTab('Resume Power')}
+                                            style={{
+                                                flex: 1,
+                                                padding: '12px 24px',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                backgroundColor: activeTab === 'Resume Power' 
+                                                    ? 'linear-gradient(135deg, #9B6A10 0%, #B8860B 100%)' 
+                                                    : 'transparent',
+                                                color: activeTab === 'Resume Power' ? '#8B4513' : '#495057',
+                                                fontWeight: '600',
+                                                fontSize: '17px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                                                position: 'relative',
+                                                outline: 'none',
+                                                boxShadow: activeTab === 'Resume Power' 
+                                                    ? '0 4px 16px rgba(155, 106, 16, 0.25)' 
+                                                    : 'none',
+                                                transform: activeTab === 'Resume Power' 
+                                                    ? 'translateY(-1px) scale(1.02)' 
+                                                    : 'translateY(0) scale(1)',
+                                                letterSpacing: '0.3px',
+                                                textTransform: 'none',
+                                                overflow: 'hidden'
+                                            }}
+                                            onFocus={(e) => e.target.style.outline = 'none'}
+                                            onMouseEnter={(e) => {
+                                                if (activeTab !== 'Resume Power') {
+                                                    e.currentTarget.style.backgroundColor = 'linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%)';
+                                                    e.currentTarget.style.color = '#9B6A10';
+                                                    e.currentTarget.style.transform = 'translateY(-1px) scale(1.01)';
+                                                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(155, 106, 16, 0.15)';
+                                                } else {
+                                                    e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
+                                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(155, 106, 16, 0.3)';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (activeTab !== 'Resume Power') {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                    e.currentTarget.style.color = '#495057';
+                                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                } else {
+                                                    e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(155, 106, 16, 0.25)';
+                                                }
+                                            }}
+                                        >
+                                            <span style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                gap: '8px'
+                                            }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ 
+                                                    opacity: activeTab === 'Resume Power' ? 1 : 0.7 
+                                                }}>
+                                                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+                                                </svg>
+                                                Resume Power
+                                            </span>
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Tab Content */}
+                                    <div style={{ minHeight: '200px', padding: '20px 0' }}>
+                                        <div style={{ 
+                                            textAlign: 'center', 
+                                            fontSize: '18px', 
+                                            fontWeight: '600',
+                                            color: '#333',
+                                            padding: '40px 20px'
+                                        }}>
+                                            {activeTab}
+                                        </div>
                                     </div>
                                 </div>
 
