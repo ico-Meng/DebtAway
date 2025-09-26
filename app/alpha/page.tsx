@@ -814,8 +814,10 @@ export default function AlphaPage() {
                 const addTypingReactionAnimation = () => {
                     if (isTypingBasicInfo && basicInfoFocusCount > 0) { // Still typing
                         // Use target position instead of current position to ensure radar ring appears at correct location
-                        const targetX = backgroundPoint[0];
-                        const targetY = backgroundPoint[0];
+                        //const targetX = backgroundPoint[0];
+                        //const targetY = backgroundPoint[0];
+                        const targetX = parseFloat(backgroundDot.attr('cx'));
+                        const targetY = parseFloat(backgroundDot.attr('cy'));
 
                         // Create expanding ring effect at dot's target position
                         const ring = g.append('circle')
