@@ -5,6 +5,7 @@ import Head from 'next/head';
 import * as d3 from 'd3';
 import styles from './alpha.module.css';
 import '../globals.css';
+import { API_ENDPOINT } from "@/app/components/config";
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -2088,6 +2089,44 @@ export default function AlphaPage() {
         }
     };
 
+    // Handle Ambit Alpha analysis
+    const handleAmbitAlphaAnalysis = async () => {
+        try {
+            console.log('Sending data to Ambit Alpha API...');
+            
+            // Create FormData to handle file upload
+            const formDataToSend = new FormData();
+            formDataToSend.append('target_job', targetJob);
+            formDataToSend.append('form_data', JSON.stringify(formData));
+            
+            // Add resume file if it exists
+            if (resumeFile) {
+                formDataToSend.append('resume_file', resumeFile);
+                console.log('Including resume file:', resumeFile.name, resumeFile.size, 'bytes');
+            } else {
+                console.log('No resume file to upload');
+            }
+
+            const response = await fetch(`${API_ENDPOINT}/ambit_alpha`, {
+                method: 'POST',
+                //headers: { 'Content-Type': 'application/json', },
+                body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Ambit Alpha analysis successful:', result);
+                setCurrentStep(6); // Navigate to analysis results
+            } else {
+                console.error('Ambit Alpha analysis failed:', response.statusText);
+                alert('Analysis failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error calling Ambit Alpha API:', error);
+            alert('Error connecting to analysis service. Please try again.');
+        }
+    };
+
     const handleBack = () => {
         if (currentStep > 1) {
             // Interrupt any ongoing D3 transitions before step change
@@ -3121,7 +3160,7 @@ export default function AlphaPage() {
                                         </button>
                                         <button
                                             className={styles.submitButton}
-                                            onClick={() => setCurrentStep(6)}
+                                            onClick={handleAmbitAlphaAnalysis}
                                             style={{ minWidth: 120, maxWidth: 140 }}
                                         >
                                             Analysis
