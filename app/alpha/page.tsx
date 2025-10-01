@@ -57,6 +57,25 @@ const globalStyles = `
     background-color: #edece3 !important;
     background-image: none !important;
   }
+
+  @keyframes pulse-0 {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+  }
+
+  @keyframes pulse-1 {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+  }
+
+  .advice-card {
+    transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+
+  .advice-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  }
 `;
 
 export default function AlphaPage() {
@@ -129,6 +148,66 @@ export default function AlphaPage() {
     
     // Track active tab in Career Fit Analysis
     const [activeTab, setActiveTab] = useState('Personal Capability');
+
+    // Advice scrolling states
+    const [currentAdviceIndex, setCurrentAdviceIndex] = useState(0);
+    const [isAdviceAnimating, setIsAdviceAnimating] = useState(false);
+
+    // Analysis results state
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
+
+    // Sample improvement advice data (this would come from the backend API response)
+    const improvementAdvice = [
+        {
+            category: "Technical Skills",
+            icon: "⚡",
+            advice: "Learn React.js and Next.js frameworks through online courses and build 2-3 portfolio projects",
+            color: "#4F46E5"
+        },
+        {
+            category: "Professional Experience",
+            icon: "🚀",
+            advice: "Gain experience with microservices architecture by contributing to open-source projects",
+            color: "#059669"
+        },
+        {
+            category: "Education",
+            icon: "🎓",
+            advice: "Consider obtaining AWS certifications to strengthen your cloud computing knowledge",
+            color: "#DC2626"
+        },
+        {
+            category: "Background",
+            icon: "💼",
+            advice: "Develop leadership skills by mentoring junior developers or leading small team projects",
+            color: "#7C3AED"
+        },
+        {
+            category: "Teamwork",
+            icon: "🤝",
+            advice: "Improve communication skills by participating in tech meetups and presenting your work",
+            color: "#EA580C"
+        },
+        {
+            category: "Job Match",
+            icon: "🎯",
+            advice: "Focus on building full-stack applications that demonstrate both frontend and backend expertise",
+            color: "#0891B2"
+        }
+    ];
+
+    // Scroll advice every 5 seconds (3 items at a time)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsAdviceAnimating(true);
+            setTimeout(() => {
+                setCurrentAdviceIndex((prev) => (prev + 3) % improvementAdvice.length);
+                setIsAdviceAnimating(false);
+            }, 400);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [improvementAdvice.length]);
 
     // Radar chart data
     const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
@@ -2116,6 +2195,7 @@ export default function AlphaPage() {
             if (response.ok) {
                 const result = await response.json();
                 console.log('Ambit Alpha analysis successful:', result);
+                setAnalysisResult(result); // Store analysis result
                 setCurrentStep(6); // Navigate to analysis results
             } else {
                 console.error('Ambit Alpha analysis failed:', response.statusText);
@@ -3235,7 +3315,41 @@ export default function AlphaPage() {
                                 </div>
 
                                 <div className={styles.analysisContainer}>
-                                    <h2 className={styles.sectionTitle} style={{ marginBottom: 16 }}>Career Fit Analysis</h2>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                        <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Career Fit Analysis</h2>
+                                        <div style={{
+                                            backgroundColor: '#f8f9fa',
+                                            border: '1px solid #e9ecef',
+                                            borderRadius: '12px',
+                                            padding: '16px 20px',
+                                            maxWidth: '350px',
+                                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
+                                        }}>
+                                            <div style={{
+                                                fontSize: '16px',
+                                                fontWeight: '600',
+                                                color: '#2c2c2c',
+                                                marginBottom: '8px',
+                                                lineHeight: '1.4'
+                                            }}>
+                                                {analysisResult?.job_analysis?.analysis?.standardized_title || 'Job Title'}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '14px',
+                                                color: '#6c757d',
+                                                fontWeight: '500',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="12" cy="7" r="4"></circle>
+                                                </svg>
+                                                {analysisResult?.job_analysis?.analysis?.company_name || 'Company Name'}
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     {/* Modern Tab Design */}
                                     <div style={{ 
@@ -3385,16 +3499,227 @@ export default function AlphaPage() {
                                     </div>
                                     
                                     {/* Tab Content */}
-                                    <div style={{ minHeight: '200px', padding: '20px 0' }}>
-                                        <div style={{ 
-                                            textAlign: 'center', 
-                                            fontSize: '18px', 
-                                            fontWeight: '600',
-                                            color: '#333',
-                                            padding: '40px 20px'
-                                        }}>
-                                            {activeTab}
-                                        </div>
+                                    <div style={{ minHeight: '500px', padding: '20px 0' }}>
+                                        {activeTab === 'Personal Capability' ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                                                {/* Improvement Advice Section - Now at Top */}
+                                                <div style={{
+                                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                                    borderRadius: '20px',
+                                                    padding: '28px',
+                                                    border: '1px solid #e2e8f0',
+                                                    boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)',
+                                                    position: 'relative',
+                                                    overflow: 'hidden'
+                                                }}>
+                                                    {/* Subtle background pattern */}
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        right: 0,
+                                                        width: '200px',
+                                                        height: '200px',
+                                                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.03) 0%, transparent 70%)',
+                                                        borderRadius: '50%',
+                                                        transform: 'translate(50%, -50%)'
+                                                    }} />
+
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        marginBottom: '24px'
+                                                    }}>
+                                                        <h3 style={{
+                                                            fontSize: '18px',
+                                                            fontWeight: '700',
+                                                            color: '#1e293b',
+                                                            margin: 0,
+                                                            letterSpacing: '-0.02em'
+                                                        }}>
+                                                            ✨ Personalized Growth Recommendations
+                                                        </h3>
+
+                                                        {/* Scroll indicator */}
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
+                                                            color: '#64748b',
+                                                            fontSize: '12px',
+                                                            fontWeight: '500'
+                                                        }}>
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <path d="M7 13l3 3 7-7"></path>
+                                                                <path d="M13 20h7a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7"></path>
+                                                            </svg>
+                                                            {Math.floor(currentAdviceIndex / 3) + 1} of {Math.ceil(improvementAdvice.length / 3)}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Three Rows of Advice */}
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: '16px',
+                                                        position: 'relative',
+                                                        minHeight: '200px'
+                                                    }}>
+                                                        {[0, 1, 2].map((rowIndex) => {
+                                                            const adviceIndex = (currentAdviceIndex + rowIndex) % improvementAdvice.length;
+                                                            const advice = improvementAdvice[adviceIndex];
+
+                                                            return (
+                                                                <div
+                                                                    key={`advice-${currentAdviceIndex}-${rowIndex}`}
+                                                                    style={{
+                                                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                                                        backdropFilter: 'blur(10px)',
+                                                                        borderRadius: '12px',
+                                                                        padding: '20px',
+                                                                        border: '1px solid rgba(226, 232, 240, 0.8)',
+                                                                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+                                                                        transform: isAdviceAnimating ? 'translateX(-8px) scale(0.98)' : 'translateX(0) scale(1)',
+                                                                        opacity: isAdviceAnimating ? 0.6 : 1,
+                                                                        transition: 'all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                                                                        position: 'relative',
+                                                                        overflow: 'hidden'
+                                                                    }}
+                                                                >
+                                                                    {/* Accent line */}
+                                                                    <div style={{
+                                                                        position: 'absolute',
+                                                                        left: 0,
+                                                                        top: 0,
+                                                                        bottom: 0,
+                                                                        width: '4px',
+                                                                        background: `linear-gradient(180deg, ${advice.color} 0%, ${advice.color}99 100%)`
+                                                                    }} />
+
+                                                                    <div style={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'flex-start',
+                                                                        gap: '16px'
+                                                                    }}>
+                                                                        {/* Icon */}
+                                                                        <div style={{
+                                                                            width: '40px',
+                                                                            height: '40px',
+                                                                            borderRadius: '10px',
+                                                                            background: `linear-gradient(135deg, ${advice.color}15 0%, ${advice.color}25 100%)`,
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: '18px',
+                                                                            flexShrink: 0
+                                                                        }}>
+                                                                            {advice.icon}
+                                                                        </div>
+
+                                                                        {/* Content */}
+                                                                        <div style={{ flex: 1 }}>
+                                                                            <div style={{
+                                                                                fontSize: '13px',
+                                                                                fontWeight: '600',
+                                                                                color: advice.color,
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.5px',
+                                                                                marginBottom: '6px'
+                                                                            }}>
+                                                                                {advice.category}
+                                                                            </div>
+                                                                            <p style={{
+                                                                                fontSize: '14px',
+                                                                                lineHeight: '1.6',
+                                                                                color: '#334155',
+                                                                                margin: 0,
+                                                                                fontWeight: '500'
+                                                                            }}>
+                                                                                {advice.advice}
+                                                                            </p>
+                                                                        </div>
+
+                                                                        {/* Priority indicator */}
+                                                                        <div style={{
+                                                                            width: '6px',
+                                                                            height: '6px',
+                                                                            borderRadius: '50%',
+                                                                            backgroundColor: advice.color,
+                                                                            opacity: 0.6,
+                                                                            flexShrink: 0,
+                                                                            marginTop: '6px'
+                                                                        }} />
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Progress Indicators */}
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        marginTop: '24px'
+                                                    }}>
+                                                        {Array.from({ length: Math.ceil(improvementAdvice.length / 3) }).map((_, index) => (
+                                                            <button
+                                                                key={index}
+                                                                style={{
+                                                                    width: index === Math.floor(currentAdviceIndex / 3) ? '24px' : '8px',
+                                                                    height: '8px',
+                                                                    borderRadius: '4px',
+                                                                    backgroundColor: index === Math.floor(currentAdviceIndex / 3) ? '#6366f1' : '#cbd5e1',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                                                                    boxShadow: index === Math.floor(currentAdviceIndex / 3) ? '0 2px 8px rgba(99, 102, 241, 0.3)' : 'none'
+                                                                }}
+                                                                onClick={() => {
+                                                                    setIsAdviceAnimating(true);
+                                                                    setTimeout(() => {
+                                                                        setCurrentAdviceIndex(index * 3);
+                                                                        setIsAdviceAnimating(false);
+                                                                    }, 400);
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Radar Chart Section - Now Below */}
+                                                <div style={{
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                                    borderRadius: '20px',
+                                                    padding: '24px',
+                                                    border: '1px solid #e2e8f0',
+                                                    boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+                                                    display: 'flex',
+                                                    justifyContent: 'center'
+                                                }}>
+                                                    <svg
+                                                        ref={svgRef}
+                                                        className={styles.radarChart}
+                                                        style={{
+                                                            display: 'block',
+                                                            maxWidth: '450px',
+                                                            height: '350px'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                fontSize: '18px',
+                                                fontWeight: '600',
+                                                color: '#333',
+                                                padding: '40px 20px'
+                                            }}>
+                                                {activeTab}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

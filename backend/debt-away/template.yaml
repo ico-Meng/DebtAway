@@ -32,6 +32,8 @@ Parameters:
     Type: String
   StripeSecretKey:
     Type: String
+  OpenaiApiKey:
+    Type: String
 
 
 Resources:
@@ -140,6 +142,7 @@ Resources:
           S3_BUCKET_NAME: !Ref ChatAiS3Bucket
           STRIPE_SECRET_KEY: !Ref StripeSecretKey
           OPENROUTER_APIKEY: !Ref OpenRouterApiKey
+          OPENAI_APIKEY: !Ref OpenaiApiKey
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group

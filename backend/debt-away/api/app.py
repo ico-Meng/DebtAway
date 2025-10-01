@@ -4,17 +4,52 @@ import stripe
 import uuid
 import time
 from datetime import datetime
-from config import STRIPE_SECRET_KEY
+from config import STRIPE_SECRET_KEY, OPENAI_APIKEY
+import openai
+import requests
+from bs4 import BeautifulSoup
 from aws_lambda_powertools import Logger
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Form
 from mangum import Mangum  # type: ignore
 import asyncio
+from pydantic import BaseModel
+from typing import List, Optional
 
 
 logger = Logger()
 s3 = boto3.client("s3", region_name="us-east-1")
 stripe.api_key = STRIPE_SECRET_KEY
+
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=OPENAI_APIKEY)
+
+# Pydantic models for structured output
+class AspectScore(BaseModel):
+    score: int  # 1-10
+    strengths: List[str]
+    improvements: List[str]  # 2-5 improvement advice
+
+class JobMatchAnalysis(BaseModel):
+    standardized_title: str
+    technical_skills: List[str]
+    soft_skills: List[str]
+    industry: str
+    experience_level: str
+    key_responsibilities: List[str]
+    salary_range: Optional[str]
+    company_name: Optional[str]
+
+    # User comparison and scoring
+    background_score: AspectScore
+    education_score: AspectScore
+    professional_score: AspectScore
+    tech_skills_score: AspectScore
+    teamwork_score: AspectScore
+    job_match_score: AspectScore
+
+    overall_score: int  # 1-100
+    analysis_confidence: str  # high/medium/low
 
 app = FastAPI()
 handler = Mangum(app, lifespan="off")
@@ -672,3 +707,362 @@ async def referral_application(file: UploadFile = File(...), form_data: str = Fo
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error processing referral application: {str(e)}")
+
+
+async def fetch_web_page_content(url: str):
+    """
+    Fetch and extract text content from a web page URL
+    """
+    try:
+        logger.info(f"Fetching web page content from: {url}")
+        
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            logger.warning(f"Invalid URL format: {url}")
+            return f"Invalid URL format: {url}"
+        
+        # Add headers to mimic a real browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+        }
+        
+        # Make the request with timeout
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        # Check if content is HTML
+        content_type = response.headers.get('content-type', '').lower()
+        if 'text/html' not in content_type:
+            logger.warning(f"Non-HTML content type: {content_type}")
+            return f"Non-HTML content detected: {content_type}"
+        
+        # Parse the HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "footer", "header"]):
+            script.decompose()
+        
+        # Extract text content
+        text_content = soup.get_text()
+        
+        # Clean up the text
+        lines = (line.strip() for line in text_content.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = ' '.join(chunk for chunk in chunks if chunk)
+        
+        # Check if we got meaningful content
+        if len(text.strip()) < 50:
+            logger.warning(f"Very little content extracted: {len(text)} characters")
+            return f"Very little content extracted from the page. This might not be a valid job posting."
+        
+        # Limit content length to avoid token limits (keep first 8000 characters)
+        if len(text) > 4000:
+            text = text[:4000] + "... [content truncated]"
+        
+        logger.info(f"Successfully extracted {len(text)} characters from web page")
+        return text
+        
+    except requests.exceptions.Timeout:
+        logger.error(f"Timeout fetching web page: {url}")
+        return f"Timeout fetching web page content from: {url}"
+    except requests.exceptions.ConnectionError:
+        logger.error(f"Connection error fetching web page: {url}")
+        return f"Connection error fetching web page content from: {url}"
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"HTTP error fetching web page: {str(e)}")
+        return f"HTTP error fetching web page content: {str(e)}"
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error fetching web page: {str(e)}")
+        return f"Request error fetching web page content: {str(e)}"
+    except ImportError as e:
+        logger.error(f"Missing dependency: {str(e)}")
+        return f"Missing dependency for web scraping: {str(e)}"
+    except Exception as e:
+        logger.error(f"Unexpected error parsing web page content: {str(e)}")
+        return f"Unexpected error parsing web page content: {str(e)}"
+
+
+async def analyze_target_job_with_openai(target_job: str, user_data: dict = None):
+    """
+    Analyze target job using OpenAI GPT-4o-mini with web page content and compare with user data
+    """
+    try:
+        logger.info(f"Analyzing target job with OpenAI: {target_job}")
+        
+        # First, fetch the web page content
+        web_content = await fetch_web_page_content(target_job)
+        
+        # Build user profile summary
+        user_profile = ""
+        if user_data:
+            user_profile = f"""
+            USER PROFILE:
+            Name: {user_data.get('firstName', '')} {user_data.get('lastName', '')}
+            Education: {user_data.get('degree', '')} in {user_data.get('major', '')} from {user_data.get('collegeName', '')} ({user_data.get('graduationYear', '')})
+            Technical Skills:
+            - Programming Languages: {user_data.get('programmingLanguages', '')}
+            - Frameworks: {user_data.get('frameworks', '')}
+            - Databases: {user_data.get('databases', '')}
+            - Tools: {user_data.get('tools', '')}
+            Work Experience: {len(user_data.get('workExperiences', []))} positions
+            """
+
+            # Add work experience details
+            work_experiences = user_data.get('workExperiences', [])
+            if work_experiences:
+                user_profile += "\nWork Experience Details:\n"
+                for i, exp in enumerate(work_experiences, 1):
+                    user_profile += f"{i}. {exp.get('title', '')} at {exp.get('company', '')} ({exp.get('startDate', '')} - {exp.get('endDate', 'Present')})\n"
+                    user_profile += f"   Description: {exp.get('description', '')}\n"
+
+        # Create the comprehensive prompt
+        prompt = f"""
+        Analyze the following job posting and compare it with the user's profile:
+
+        JOB POSTING:
+        URL: "{target_job}"
+        Content: {web_content}
+
+        {user_profile}
+
+        ANALYSIS REQUIREMENTS:
+        1. Extract job details from the posting content:
+           - standardized_title: Clean, professional job title
+           - company_name: Extract the company/organization name from the job posting
+           - technical_skills: Required programming languages, frameworks, tools
+           - soft_skills: Communication, leadership, teamwork requirements
+           - industry: Business sector (e.g., Technology, Finance, Healthcare)
+           - experience_level: Entry, Mid, Senior level
+           - key_responsibilities: Main job duties and tasks
+           - salary_range: Compensation if mentioned
+
+        2. Compare user profile against job requirements
+        3. Score each aspect (1-10) with specific strengths and 2-5 improvement recommendations:
+           - Background: Overall professional background alignment
+           - Education: Degree relevance, school prestige, academic achievements
+           - Professional: Work experience relevance, career progression, industry experience
+           - Technical Skills: Programming languages, frameworks, tools alignment
+           - Teamwork: Collaboration skills, team leadership, communication
+           - Job Match: Overall fit for this specific position
+
+        4. Provide overall score (1-100) representing job match percentage
+
+        For each improvement recommendation, be specific and actionable (e.g., "Learn React.js through online courses" instead of "Improve frontend skills").
+
+        IMPORTANT: Pay special attention to extracting the actual company name from the job posting content.
+        """
+        
+        # Call OpenAI GPT-4o-mini with structured output
+        response = client.beta.chat.completions.parse(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a career analyst with access to current job market data. Analyze job positions and provide detailed information about required skills, industry trends, and market insights. Compare user profiles against job requirements and provide specific, actionable improvement recommendations."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format=JobMatchAnalysis,
+            temperature=0.3,
+            max_tokens=2000
+        )
+        
+        # Extract the parsed structured analysis
+        analysis_data = response.choices[0].message.parsed
+
+        logger.info(f"OpenAI analysis completed for job: {target_job}")
+        logger.info(f"Analysis result: {analysis_data.model_dump()}")
+
+        return {
+            "success": True,
+            "analysis": analysis_data.model_dump(),
+            "structured_output": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in OpenAI job analysis: {str(e)}")
+        # Create default AspectScore for error case
+        default_aspect = {
+            "score": 1,
+            "strengths": ["Analysis could not be completed"],
+            "improvements": ["Please try again later", "Ensure job URL is accessible"]
+        }
+
+        return {
+            "success": False,
+            "error": str(e),
+            "analysis": {
+                "standardized_title": target_job,
+                "technical_skills": [],
+                "soft_skills": [],
+                "industry": "Unknown",
+                "experience_level": "Unknown",
+                "key_responsibilities": [],
+                "salary_range": "Unknown",
+                "company_name": "Unknown",
+                "background_score": default_aspect,
+                "education_score": default_aspect,
+                "professional_score": default_aspect,
+                "tech_skills_score": default_aspect,
+                "teamwork_score": default_aspect,
+                "job_match_score": default_aspect,
+                "overall_score": 1,
+                "analysis_confidence": "low"
+            }
+        }
+
+
+@app.post("/ambit_alpha")
+async def ambit_alpha(
+    target_job: str = Form(...),
+    form_data: str = Form(...),
+    resume_file: UploadFile = File(None)
+):
+    try:
+        logger.info("icoico: Received Ambit Alpha analysis request")
+        
+        # Parse form data
+        import json
+        form_data_parsed = json.loads(form_data) if form_data else {}
+        
+        # Analyze target job with OpenAI using user data
+        logger.info("Starting OpenAI job analysis with user data comparison...")
+        try:
+            job_analysis_result = await analyze_target_job_with_openai(target_job, form_data_parsed)
+            logger.info("OpenAI analysis completed successfully")
+        except Exception as e:
+            logger.error(f"Error in OpenAI analysis: {str(e)}")
+            # Create default AspectScore for error case
+            default_aspect = {
+                "score": 1,
+                "strengths": ["Analysis could not be completed"],
+                "improvements": ["Please try again later", "Ensure job URL is accessible"]
+            }
+            job_analysis_result = {
+                "success": False,
+                "error": str(e),
+                "analysis": {
+                    "standardized_title": target_job,
+                    "technical_skills": [],
+                    "soft_skills": [],
+                    "industry": "Unknown",
+                    "experience_level": "Unknown",
+                    "key_responsibilities": [],
+                    "salary_range": "Unknown",
+                    "company_name": "Unknown",
+                    "background_score": default_aspect,
+                    "education_score": default_aspect,
+                    "professional_score": default_aspect,
+                    "tech_skills_score": default_aspect,
+                    "teamwork_score": default_aspect,
+                    "job_match_score": default_aspect,
+                    "overall_score": 1,
+                    "analysis_confidence": "low"
+                }
+            }
+        
+        # Log resume file information
+        resume_info = "No resume file uploaded"
+        if resume_file and resume_file.filename:
+            resume_info = f"Resume file: {resume_file.filename} ({resume_file.content_type}, {resume_file.size} bytes)"
+            logger.info(f"Resume file details: {resume_info}")
+        
+        # Log the complete user data
+        #logger.info("=== AMBIT ALPHA USER DATA ===")
+        #logger.info(f"Target Job: {target_job}")
+        #logger.info(f"Form Data: {json.dumps(form_data_parsed, indent=2)}")
+        #logger.info(f"Resume: {resume_info}")
+        
+        # Log OpenAI job analysis results
+        #logger.info("=== OPENAI JOB ANALYSIS ===")
+        if job_analysis_result.get("success"):
+            analysis_data = job_analysis_result.get("analysis", {})
+            #logger.info(f"Standardized Title: {analysis_data.get('standardized_title', 'N/A')}")
+            #logger.info(f"Technical Skills: {analysis_data.get('technical_skills', [])}")
+            #logger.info(f"Soft Skills: {analysis_data.get('soft_skills', [])}")
+            #logger.info(f"Industry: {analysis_data.get('industry', 'N/A')}")
+            #logger.info(f"Experience Level: {analysis_data.get('experience_level', 'N/A')}")
+            #logger.info(f"Salary Range: {analysis_data.get('salary_range', 'N/A')}")
+            #logger.info(f"Analysis Confidence: {analysis_data.get('analysis_confidence', 'N/A')}")
+        else:
+            logger.warning(f"OpenAI analysis failed: {job_analysis_result.get('error', 'Unknown error')}")
+        
+        # Extract specific sections for detailed logging
+        basic_info = {
+            'firstName': form_data_parsed.get('firstName', ''),
+            'lastName': form_data_parsed.get('lastName', ''),
+            'email': form_data_parsed.get('email', ''),
+            'phoneNumber': form_data_parsed.get('phoneNumber', '')
+        }
+        
+        education_info = {
+            'collegeName': form_data_parsed.get('collegeName', ''),
+            'degree': form_data_parsed.get('degree', ''),
+            'major': form_data_parsed.get('major', ''),
+            'graduationYear': form_data_parsed.get('graduationYear', '')
+        }
+        
+        skills_info = {
+            'programmingLanguages': form_data_parsed.get('programmingLanguages', ''),
+            'frameworks': form_data_parsed.get('frameworks', ''),
+            'databases': form_data_parsed.get('databases', ''),
+            'tools': form_data_parsed.get('tools', '')
+        }
+        
+        work_experience = form_data_parsed.get('workExperiences', [])
+        
+        # Log detailed breakdown
+        logger.info("=== DETAILED BREAKDOWN ===")
+        logger.info(f"Basic Info: {json.dumps(basic_info, indent=2)}")
+        logger.info(f"Education: {json.dumps(education_info, indent=2)}")
+        logger.info(f"Skills: {json.dumps(skills_info, indent=2)}")
+        logger.info(f"Work Experience ({len(work_experience)} entries): {json.dumps(work_experience, indent=2)}")
+        
+        # Calculate some basic metrics
+        filled_basic_fields = sum(1 for v in basic_info.values() if v.strip())
+        filled_education_fields = sum(1 for v in education_info.values() if v.strip())
+        filled_skills_fields = sum(1 for v in skills_info.values() if v.strip())
+        total_work_entries = len(work_experience)
+        
+        logger.info("=== ANALYSIS METRICS ===")
+        logger.info(f"Filled Basic Info Fields: {filled_basic_fields}/4")
+        logger.info(f"Filled Education Fields: {filled_education_fields}/4")
+        logger.info(f"Filled Skills Fields: {filled_skills_fields}/4")
+        logger.info(f"Work Experience Entries: {total_work_entries}")
+        
+        # Log completion status
+        completion_percentage = ((filled_basic_fields + filled_education_fields + filled_skills_fields) / 12) * 100
+        logger.info(f"Form Completion: {completion_percentage:.1f}%")
+        
+        logger.info("=== AMBIT ALPHA ANALYSIS COMPLETE ===")
+        
+        return {
+            "status": "success",
+            "message": "Ambit Alpha analysis data received and logged successfully",
+            "analysis_id": f"ambit_alpha_{int(time.time())}",
+            "completion_percentage": round(completion_percentage, 1),
+            "resume_uploaded": resume_file and resume_file.filename is not None,
+            "job_analysis": job_analysis_result,
+            "data_summary": {
+                "target_job": target_job,
+                "basic_info_complete": filled_basic_fields,
+                "education_complete": filled_education_fields,
+                "skills_complete": filled_skills_fields,
+                "work_experience_count": total_work_entries,
+                "resume_file": resume_info
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in ambit_alpha: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error processing Ambit Alpha analysis: {str(e)}")
