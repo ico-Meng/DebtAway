@@ -76,6 +76,17 @@ const globalStyles = `
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
   }
+
+  @keyframes thinking-pulse {
+    0%, 80%, 100% { 
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+    40% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 `;
 
 export default function AlphaPage() {
@@ -149,12 +160,11 @@ export default function AlphaPage() {
     // Track active tab in Career Fit Analysis
     const [activeTab, setActiveTab] = useState('Personal Capability');
 
-    // Advice scrolling states
-    const [currentAdviceIndex, setCurrentAdviceIndex] = useState(0);
-    const [isAdviceAnimating, setIsAdviceAnimating] = useState(false);
+    // Removed automatic animation states - now using individual blocks
 
     // Analysis results state
     const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     // Sample improvement advice data (this would come from the backend API response)
     const improvementAdvice = [
@@ -196,18 +206,7 @@ export default function AlphaPage() {
         }
     ];
 
-    // Scroll advice every 5 seconds (3 items at a time)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setIsAdviceAnimating(true);
-            setTimeout(() => {
-                setCurrentAdviceIndex((prev) => (prev + 3) % improvementAdvice.length);
-                setIsAdviceAnimating(false);
-            }, 400);
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [improvementAdvice.length]);
+    // Removed automatic scrolling - now using individual blocks
 
     // Radar chart data
     const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
@@ -2171,6 +2170,7 @@ export default function AlphaPage() {
     // Handle Ambit Alpha analysis
     const handleAmbitAlphaAnalysis = async () => {
         try {
+            setIsAnalyzing(true); // Start thinking animation
             console.log('Sending data to Ambit Alpha API...');
             
             // Create FormData to handle file upload
@@ -2204,6 +2204,8 @@ export default function AlphaPage() {
         } catch (error) {
             console.error('Error calling Ambit Alpha API:', error);
             alert('Error connecting to analysis service. Please try again.');
+        } finally {
+            setIsAnalyzing(false); // Stop thinking animation
         }
     };
 
@@ -3241,9 +3243,54 @@ export default function AlphaPage() {
                                         <button
                                             className={styles.submitButton}
                                             onClick={handleAmbitAlphaAnalysis}
-                                            style={{ minWidth: 120, maxWidth: 140 }}
+                                            disabled={isAnalyzing}
+                                            style={{ 
+                                                minWidth: 120, 
+                                                maxWidth: 140,
+                                                opacity: isAnalyzing ? 0.7 : 1,
+                                                cursor: isAnalyzing ? 'not-allowed' : 'pointer'
+                                            }}
                                         >
-                                            Analysis
+                                            {isAnalyzing ? (
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    gap: '8px'
+                                                }}>
+                                                    {/* Thinking animation dots */}
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        gap: '4px',
+                                                        alignItems: 'center'
+                                                    }}>
+                                                        <div style={{
+                                                            width: '6px',
+                                                            height: '6px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: 'white',
+                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite'
+                                                        }} />
+                                                        <div style={{
+                                                            width: '6px',
+                                                            height: '6px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: 'white',
+                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite 0.2s'
+                                                        }} />
+                                                        <div style={{
+                                                            width: '6px',
+                                                            height: '6px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: 'white',
+                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite 0.4s'
+                                                        }} />
+                                                    </div>
+                                                    <span style={{ fontSize: '14px' }}>Analyzing...</span>
+                                                </div>
+                                            ) : (
+                                                'Analysis'
+                                            )}
                                         </button>
                                     </div>
                                 </div>
@@ -3501,212 +3548,73 @@ export default function AlphaPage() {
                                     {/* Tab Content */}
                                     <div style={{ minHeight: '500px', padding: '20px 0' }}>
                                         {activeTab === 'Personal Capability' ? (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                                                {/* Improvement Advice Section - Now at Top */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                                {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                                                    borderRadius: '20px',
-                                                    padding: '28px',
-                                                    border: '1px solid #e2e8f0',
-                                                    boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)',
-                                                    position: 'relative',
-                                                    overflow: 'hidden'
+                                                    height: '350px', // Fixed height for exactly 3 items
+                                                    overflowY: 'auto',
+                                                    paddingRight: '4px'
                                                 }}>
-                                                    {/* Subtle background pattern */}
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        right: 0,
-                                                        width: '200px',
-                                                        height: '200px',
-                                                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.03) 0%, transparent 70%)',
-                                                        borderRadius: '50%',
-                                                        transform: 'translate(50%, -50%)'
-                                                    }} />
-
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        marginBottom: '24px'
-                                                    }}>
-                                                        <h3 style={{
-                                                            fontSize: '18px',
-                                                            fontWeight: '700',
-                                                            color: '#1e293b',
-                                                            margin: 0,
-                                                            letterSpacing: '-0.02em'
-                                                        }}>
-                                                            ✨ Personalized Growth Recommendations
-                                                        </h3>
-
-                                                        {/* Scroll indicator */}
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '8px',
-                                                            color: '#64748b',
-                                                            fontSize: '12px',
-                                                            fontWeight: '500'
-                                                        }}>
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M7 13l3 3 7-7"></path>
-                                                                <path d="M13 20h7a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v7"></path>
-                                                            </svg>
-                                                            {Math.floor(currentAdviceIndex / 3) + 1} of {Math.ceil(improvementAdvice.length / 3)}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Three Rows of Advice */}
+                                                    {/* Custom scrollbar styling */}
+                                                    <style jsx>{`
+                                                        div::-webkit-scrollbar {
+                                                            width: 8px;
+                                                        }
+                                                        div::-webkit-scrollbar-track {
+                                                            background: #f1f3f4;
+                                                            border-radius: 4px;
+                                                        }
+                                                        div::-webkit-scrollbar-thumb {
+                                                            background: linear-gradient(180deg, #9B6A10 0%, #B8860B 100%);
+                                                            border-radius: 4px;
+                                                            border: 1px solid #f1f3f4;
+                                                        }
+                                                        div::-webkit-scrollbar-thumb:hover {
+                                                            background: linear-gradient(180deg, #8B5A0A 0%, #A67C0A 100%);
+                                                        }
+                                                    `}</style>
+                                                    
                                                     <div style={{
                                                         display: 'flex',
                                                         flexDirection: 'column',
-                                                        gap: '16px',
-                                                        position: 'relative',
-                                                        minHeight: '200px'
+                                                        gap: '16px'
                                                     }}>
-                                                        {[0, 1, 2].map((rowIndex) => {
-                                                            const adviceIndex = (currentAdviceIndex + rowIndex) % improvementAdvice.length;
-                                                            const advice = improvementAdvice[adviceIndex];
-
-                                                            return (
-                                                                <div
-                                                                    key={`advice-${currentAdviceIndex}-${rowIndex}`}
-                                                                    style={{
-                                                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                                                        backdropFilter: 'blur(10px)',
-                                                                        borderRadius: '12px',
-                                                                        padding: '20px',
-                                                                        border: '1px solid rgba(226, 232, 240, 0.8)',
-                                                                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
-                                                                        transform: isAdviceAnimating ? 'translateX(-8px) scale(0.98)' : 'translateX(0) scale(1)',
-                                                                        opacity: isAdviceAnimating ? 0.6 : 1,
-                                                                        transition: 'all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                                                                        position: 'relative',
-                                                                        overflow: 'hidden'
-                                                                    }}
-                                                                >
-                                                                    {/* Accent line */}
-                                                                    <div style={{
-                                                                        position: 'absolute',
-                                                                        left: 0,
-                                                                        top: 0,
-                                                                        bottom: 0,
-                                                                        width: '4px',
-                                                                        background: `linear-gradient(180deg, ${advice.color} 0%, ${advice.color}99 100%)`
-                                                                    }} />
-
-                                                                    <div style={{
-                                                                        display: 'flex',
-                                                                        alignItems: 'flex-start',
-                                                                        gap: '16px'
-                                                                    }}>
-                                                                        {/* Icon */}
-                                                                        <div style={{
-                                                                            width: '40px',
-                                                                            height: '40px',
-                                                                            borderRadius: '10px',
-                                                                            background: `linear-gradient(135deg, ${advice.color}15 0%, ${advice.color}25 100%)`,
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            fontSize: '18px',
-                                                                            flexShrink: 0
-                                                                        }}>
-                                                                            {advice.icon}
-                                                                        </div>
-
-                                                                        {/* Content */}
-                                                                        <div style={{ flex: 1 }}>
-                                                                            <div style={{
-                                                                                fontSize: '13px',
-                                                                                fontWeight: '600',
-                                                                                color: advice.color,
-                                                                                textTransform: 'uppercase',
-                                                                                letterSpacing: '0.5px',
-                                                                                marginBottom: '6px'
-                                                                            }}>
-                                                                                {advice.category}
-                                                                            </div>
-                                                                            <p style={{
-                                                                                fontSize: '14px',
-                                                                                lineHeight: '1.6',
-                                                                                color: '#334155',
-                                                                                margin: 0,
-                                                                                fontWeight: '500'
-                                                                            }}>
-                                                                                {advice.advice}
-                                                                            </p>
-                                                                        </div>
-
-                                                                        {/* Priority indicator */}
-                                                                        <div style={{
-                                                                            width: '6px',
-                                                                            height: '6px',
-                                                                            borderRadius: '50%',
-                                                                            backgroundColor: advice.color,
-                                                                            opacity: 0.6,
-                                                                            flexShrink: 0,
-                                                                            marginTop: '6px'
-                                                                        }} />
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Progress Indicators */}
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center',
-                                                        gap: '6px',
-                                                        marginTop: '24px'
-                                                    }}>
-                                                        {Array.from({ length: Math.ceil(improvementAdvice.length / 3) }).map((_, index) => (
-                                                            <button
-                                                                key={index}
+                                                        {improvementAdvice.map((advice, index) => (
+                                                            <div
+                                                                key={`advice-${index}`}
                                                                 style={{
-                                                                    width: index === Math.floor(currentAdviceIndex / 3) ? '24px' : '8px',
-                                                                    height: '8px',
-                                                                    borderRadius: '4px',
-                                                                    backgroundColor: index === Math.floor(currentAdviceIndex / 3) ? '#6366f1' : '#cbd5e1',
-                                                                    border: 'none',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                                                                    boxShadow: index === Math.floor(currentAdviceIndex / 3) ? '0 2px 8px rgba(99, 102, 241, 0.3)' : 'none'
+                                                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                                                    borderRadius: '20px',
+                                                                    padding: '20px 24px',
+                                                                    border: '1px solid #e2e8f0',
+                                                                    boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    transition: 'all 0.2s ease'
                                                                 }}
-                                                                onClick={() => {
-                                                                    setIsAdviceAnimating(true);
-                                                                    setTimeout(() => {
-                                                                        setCurrentAdviceIndex(index * 3);
-                                                                        setIsAdviceAnimating(false);
-                                                                    }, 400);
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                                                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08)';
                                                                 }}
-                                                            />
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(15, 23, 42, 0.04)';
+                                                                }}
+                                                            >
+                                                                <p style={{
+                                                                    fontSize: '18px',
+                                                                    lineHeight: '1.7',
+                                                                    color: '#2c2c2c',
+                                                                    margin: 0,
+                                                                    fontWeight: '600',
+                                                                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                                                    letterSpacing: '-0.01em'
+                                                                }}>
+                                                                    {advice.advice}
+                                                                </p>
+                                                            </div>
                                                         ))}
                                                     </div>
-                                                </div>
-
-                                                {/* Radar Chart Section - Now Below */}
-                                                <div style={{
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                                                    borderRadius: '20px',
-                                                    padding: '24px',
-                                                    border: '1px solid #e2e8f0',
-                                                    boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
-                                                    display: 'flex',
-                                                    justifyContent: 'center'
-                                                }}>
-                                                    <svg
-                                                        ref={svgRef}
-                                                        className={styles.radarChart}
-                                                        style={{
-                                                            display: 'block',
-                                                            maxWidth: '450px',
-                                                            height: '350px'
-                                                        }}
-                                                    />
                                                 </div>
                                             </div>
                                         ) : (

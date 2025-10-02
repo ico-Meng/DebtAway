@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Fo
 from mangum import Mangum  # type: ignore
 import asyncio
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 logger = Logger()
@@ -857,10 +857,10 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
         IMPORTANT: Pay special attention to extracting the actual company name from the job posting content.
         """
         
-        # Call OpenAI GPT-4o-mini with structured output
-        response = client.beta.chat.completions.parse(
+        # Call OpenAI GPT-4o-mini with structured output using responses.parse
+        response = client.responses.parse(
             model="gpt-4o-mini",
-            messages=[
+            input=[
                 {
                     "role": "system",
                     "content": "You are a career analyst with access to current job market data. Analyze job positions and provide detailed information about required skills, industry trends, and market insights. Compare user profiles against job requirements and provide specific, actionable improvement recommendations."
@@ -870,20 +870,18 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
                     "content": prompt
                 }
             ],
-            response_format=JobMatchAnalysis,
-            temperature=0.3,
-            max_tokens=2000
+            text_format=JobMatchAnalysis
         )
         
         # Extract the parsed structured analysis
-        analysis_data = response.choices[0].message.parsed
+        analysis_data = response.output_parsed
 
         logger.info(f"OpenAI analysis completed for job: {target_job}")
-        logger.info(f"Analysis result: {analysis_data.model_dump()}")
+        logger.info(f"Analysis result: {analysis_data}")
 
         return {
             "success": True,
-            "analysis": analysis_data.model_dump(),
+            "analysis": analysis_data.dict(),
             "structured_output": True
         }
         
