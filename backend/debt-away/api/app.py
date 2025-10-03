@@ -8,6 +8,8 @@ from config import STRIPE_SECRET_KEY, OPENAI_APIKEY
 import openai
 import requests
 from bs4 import BeautifulSoup
+import PyPDF2
+import io
 from aws_lambda_powertools import Logger
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Form
@@ -30,6 +32,67 @@ class AspectScore(BaseModel):
     strengths: List[str]
     improvements: List[str]  # 2-5 improvement advice
 
+class BackgroundInfo(BaseModel):
+    full_name: Optional[str] = None
+    email_address: Optional[str] = None
+    home_address: Optional[str] = None
+    personal_website: Optional[str] = None
+
+class EducationInfo(BaseModel):
+    college_name: Optional[str] = None
+    degree: Optional[str] = None
+    major: Optional[str] = None
+    location: Optional[str] = None
+    duration: Optional[str] = None
+    gpa: Optional[str] = None
+    coursework: List[str] = []
+
+class ProfessionalInfo(BaseModel):
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    location: Optional[str] = None
+    duration: Optional[str] = None
+    technologies_used: List[str] = []
+
+class TechnicalSkills(BaseModel):
+    domain_knowledge: List[str] = []
+    technologies: List[str] = []
+    tools: List[str] = []
+    software: List[str] = []
+
+class TeamworkInfo(BaseModel):
+    teamwork_experience: List[str] = []
+    leadership_experience: List[str] = []
+
+class ATSReview(BaseModel):
+    formatting_issues: List[str] = []
+    syntax_issues: List[str] = []
+    ats_compatibility_score: int  # 0-100
+
+class ResumeParsedData(BaseModel):
+    background: BackgroundInfo
+    education: List[EducationInfo]
+    professional: List[ProfessionalInfo]
+    technical_skills: TechnicalSkills
+    teamwork: TeamworkInfo
+    ats_review: ATSReview
+
+class ResumeAnalysis(BaseModel):
+    background_score: int  # 1-10
+    education_score: int  # 1-10
+    professional_score: int  # 1-10
+    technical_skills_score: int  # 1-10
+    teamwork_score: int  # 1-10
+    ats_score: int  # 1-10
+    overall_score: int  # 1-10
+    background_improvements: List[str] = []
+    education_improvements: List[str] = []
+    professional_improvements: List[str] = []
+    technical_skills_improvements: List[str] = []
+    teamwork_improvements: List[str] = []
+    ats_improvements: List[str] = []
+    general_improvements: List[str] = []
+
 class JobMatchAnalysis(BaseModel):
     standardized_title: str
     technical_skills: List[str]
@@ -50,6 +113,7 @@ class JobMatchAnalysis(BaseModel):
 
     overall_score: int  # 1-100
     analysis_confidence: str  # high/medium/low
+    resume_analysis: Optional[ResumeAnalysis] = None
 
 app = FastAPI()
 handler = Mangum(app, lifespan="off")
@@ -709,6 +773,35 @@ async def referral_application(file: UploadFile = File(...), form_data: str = Fo
         raise HTTPException(status_code=500, detail=f"Error processing referral application: {str(e)}")
 
 
+async def extract_text_from_pdf(file_content: bytes) -> str:
+    """
+    Extract text content from PDF file bytes
+    """
+    try:
+        # Create a BytesIO object from the file content
+        pdf_file = io.BytesIO(file_content)
+        
+        # Create PDF reader object
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        
+        # Extract text from all pages
+        text_content = ""
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            text_content += page.extract_text() + "\n"
+        
+        logger.info(f"Successfully extracted text from PDF with {len(pdf_reader.pages)} pages")
+        return text_content.strip()
+        
+    except Exception as e:
+        logger.error(f"Error extracting text from PDF: {str(e)}")
+        # Fallback: try to decode as text if it's not a PDF
+        try:
+            return file_content.decode('utf-8', errors='ignore')
+        except:
+            return "Unable to extract text from file"
+
+
 async def fetch_web_page_content(url: str):
     """
     Fetch and extract text content from a web page URL
@@ -918,6 +1011,212 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
         }
 
 
+async def parse_resume_with_openai(resume_content: str):
+    """
+    Parse resume content using OpenAI GPT-4o-mini as a file parser, ATS checker, and job recruiter
+    """
+    try:
+        logger.info("Starting resume parsing with OpenAI...")
+        
+        prompt = f"""
+        You are an expert resume parser, ATS (Application Tracking System) checker, and job recruiter. 
+        Parse the following resume content and extract structured information.
+
+        RESUME CONTENT:
+        {resume_content}
+
+        EXTRACTION REQUIREMENTS:
+        1. Background Information:
+           - Full name
+           - Email address
+           - Home address
+           - Personal website
+
+        2. Education (extract ALL education entries):
+           - College/university name
+           - Degree type
+           - Major/field of study
+           - Location
+           - Duration (start and end dates)
+           - GPA (if mentioned)
+           - Relevant coursework
+
+        3. Professional Experience (extract ALL work entries):
+           - Company name
+           - Job title
+           - Location
+           - Duration (start and end dates)
+           - Technologies/tools used in projects
+
+        4. Technical Skills:
+           - Domain knowledge areas
+           - Technologies mentioned
+           - Tools used
+           - Software applications
+
+        5. Teamwork:
+           - Teamwork experiences mentioned
+           - Leadership experiences mentioned
+
+        6. ATS Review:
+           - Formatting issues that could affect ATS parsing
+           - Syntax issues in the document
+           - ATS compatibility score (0-100)
+
+        IMPORTANT:
+        - Extract ALL instances of education and work experience (not just the first one)
+        - If information is not available, leave as null/empty
+        - Be thorough in identifying all technologies, tools, and skills mentioned
+        - Focus on ATS compatibility issues that could prevent resume parsing
+        - Provide specific, actionable feedback for ATS optimization
+        """
+        
+        # Call OpenAI with structured output for resume parsing
+        response = client.responses.parse(
+            model="gpt-4o-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": "You are an expert resume parser, ATS specialist, and technical recruiter with deep knowledge of resume formats, applicant tracking systems, and technical hiring. Extract comprehensive information from resumes with high accuracy and attention to ATS compatibility."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            text_format=ResumeParsedData
+        )
+        
+        # Extract the parsed structured data
+        parsed_data = response.output_parsed
+        
+        logger.info(f"Resume parsing completed successfully")
+        logger.info(f"Resume parsed data: {parsed_data}")
+        
+        return {
+            "success": True,
+            "parsed_data": parsed_data.dict(),
+            "structured_output": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in resume parsing: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "parsed_data": {
+                "background": {
+                    "full_name": None,
+                    "email_address": None,
+                    "home_address": None,
+                    "personal_website": None
+                },
+                "education": [],
+                "professional": [],
+                "technical_skills": {
+                    "domain_knowledge": [],
+                    "technologies": [],
+                    "tools": [],
+                    "software": []
+                },
+                "teamwork": {
+                    "teamwork_experience": [],
+                    "leadership_experience": []
+                },
+                "ats_review": {
+                    "formatting_issues": ["Resume parsing failed"],
+                    "syntax_issues": ["Unable to parse resume"],
+                    "ats_compatibility_score": 0
+                }
+            }
+        }
+
+
+async def analyze_resume_with_openai(resume_parsed_data: dict, job_requirements: str):
+    """
+    Analyze parsed resume data using OpenAI GPT-4o-mini as a technical recruiter/HR
+    """
+    try:
+        logger.info("Starting resume analysis with OpenAI...")
+        
+        prompt = f"""
+        You are an experienced technical recruiter and HR professional. 
+        Analyze the following parsed resume data against the job requirements and provide comprehensive feedback.
+
+        JOB REQUIREMENTS:
+        {job_requirements}
+
+        PARSED RESUME DATA:
+        {resume_parsed_data}
+
+        ANALYSIS REQUIREMENTS:
+        For each section (Background, Education, Professional, Technical Skills, Teamwork, ATS), provide:
+        1. Score (1-10): How well does this section align with job requirements?
+        2. Improvement suggestions: Specific, actionable advice to improve this section
+
+        Focus on:
+        - How well the resume content matches the job requirements
+        - Missing information that would strengthen the application
+        - Areas where the candidate could better highlight relevant experience
+        - ATS optimization opportunities
+        - Specific improvements to make the resume more competitive
+
+        Provide specific, actionable feedback that would help the candidate improve their resume for this specific role.
+        Only include non-empty, relevant improvement suggestions.
+        """
+        
+        # Call OpenAI with structured output for resume analysis
+        response = client.responses.parse(
+            model="gpt-4o-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": "You are an expert technical recruiter and HR professional with deep knowledge of resume optimization and technical hiring. Analyze parsed resume data with the perspective of both human recruiters and ATS systems to provide comprehensive, actionable feedback."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            text_format=ResumeAnalysis
+        )
+        
+        # Extract the parsed structured analysis
+        analysis_data = response.output_parsed
+        
+        logger.info(f"Resume analysis completed successfully")
+        logger.info(f"Resume analysis result: {analysis_data}")
+        
+        return {
+            "success": True,
+            "analysis": analysis_data.dict(),
+            "structured_output": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in resume analysis: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "analysis": {
+                "background_score": 1,
+                "education_score": 1,
+                "professional_score": 1,
+                "technical_skills_score": 1,
+                "teamwork_score": 1,
+                "ats_score": 1,
+                "overall_score": 1,
+                "background_improvements": ["Analysis could not be completed"],
+                "education_improvements": ["Unable to analyze education"],
+                "professional_improvements": ["Unable to analyze professional experience"],
+                "technical_skills_improvements": ["Unable to analyze technical skills"],
+                "teamwork_improvements": ["Unable to analyze teamwork"],
+                "ats_improvements": ["Unable to analyze ATS compatibility"],
+                "general_improvements": ["Please try again later"]
+            }
+        }
+
+
 @app.post("/ambit_alpha")
 async def ambit_alpha(
     target_job: str = Form(...),
@@ -969,9 +1268,73 @@ async def ambit_alpha(
         
         # Log resume file information
         resume_info = "No resume file uploaded"
+        resume_analysis_result = None
+        
         if resume_file and resume_file.filename:
             resume_info = f"Resume file: {resume_file.filename} ({resume_file.content_type}, {resume_file.size} bytes)"
             logger.info(f"Resume file details: {resume_info}")
+            
+            # Analyze resume if file is provided
+            try:
+                logger.info("Starting resume parsing and analysis...")
+                resume_content = await resume_file.read()
+                
+                # Check if it's a PDF file and extract text properly
+                if resume_file.content_type == 'application/pdf' or resume_file.filename.lower().endswith('.pdf'):
+                    logger.info("Detected PDF file, extracting text...")
+                    resume_text = await extract_text_from_pdf(resume_content)
+                else:
+                    # For non-PDF files, try to decode as text
+                    resume_text = resume_content.decode('utf-8', errors='ignore')
+                
+                logger.info("Step 0: Extracted resume text content (first 200 chars): %s", resume_text[:200] if resume_text else "No content")
+                
+                # Step 1: Parse resume content
+                logger.info("Step 1: Parsing resume content...")
+                resume_parsing_result = await parse_resume_with_openai(resume_text)
+                
+                if not resume_parsing_result.get("success"):
+                    logger.error(f"Resume parsing failed: {resume_parsing_result.get('error')}")
+                    raise Exception(f"Resume parsing failed: {resume_parsing_result.get('error')}")
+                
+                # Step 2: Analyze parsed resume data
+                logger.info("Step 2: Analyzing parsed resume data...")
+                
+                # Create job requirements summary for resume analysis
+                job_requirements = f"""
+                Job Title: {job_analysis_result.get('analysis', {}).get('standardized_title', target_job)}
+                Technical Skills Required: {', '.join(job_analysis_result.get('analysis', {}).get('technical_skills', []))}
+                Soft Skills Required: {', '.join(job_analysis_result.get('analysis', {}).get('soft_skills', []))}
+                Industry: {job_analysis_result.get('analysis', {}).get('industry', 'Unknown')}
+                Experience Level: {job_analysis_result.get('analysis', {}).get('experience_level', 'Unknown')}
+                Key Responsibilities: {', '.join(job_analysis_result.get('analysis', {}).get('key_responsibilities', []))}
+                """
+                
+                resume_analysis_result = await analyze_resume_with_openai(
+                    resume_parsing_result.get('parsed_data', {}), 
+                    job_requirements
+                )
+                
+                # Combine parsing and analysis results
+                resume_analysis_result['parsed_data'] = resume_parsing_result.get('parsed_data', {})
+                logger.info("Resume parsing and analysis completed successfully")
+                
+            except Exception as e:
+                logger.error(f"Error in resume analysis: {str(e)}")
+                resume_analysis_result = {
+                    "success": False,
+                    "error": str(e),
+                    "analysis": {
+                        "ats_score": 0,
+                        "resume_strengths": ["Resume analysis failed"],
+                        "resume_weaknesses": ["Unable to analyze resume"],
+                        "missing_keywords": ["Analysis error"],
+                        "formatting_issues": ["Unable to assess"],
+                        "improvement_suggestions": ["Please try again"],
+                        "overall_resume_rating": 1,
+                        "recruiter_feedback": "Resume analysis encountered an error. Please try again."
+                    }
+                }
         
         # Log the complete user data
         #logger.info("=== AMBIT ALPHA USER DATA ===")
@@ -1042,13 +1405,19 @@ async def ambit_alpha(
         
         logger.info("=== AMBIT ALPHA ANALYSIS COMPLETE ===")
         
+        # Combine job analysis with resume analysis
+        combined_analysis = job_analysis_result.copy()
+        if resume_analysis_result:
+            combined_analysis["analysis"]["resume_analysis"] = resume_analysis_result.get("analysis")
+        
         return {
             "status": "success",
             "message": "Ambit Alpha analysis data received and logged successfully",
             "analysis_id": f"ambit_alpha_{int(time.time())}",
             "completion_percentage": round(completion_percentage, 1),
             "resume_uploaded": resume_file and resume_file.filename is not None,
-            "job_analysis": job_analysis_result,
+            "job_analysis": combined_analysis,
+            "resume_analysis": resume_analysis_result,
             "data_summary": {
                 "target_job": target_job,
                 "basic_info_complete": filled_basic_fields,

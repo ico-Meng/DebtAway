@@ -165,6 +165,166 @@ export default function AlphaPage() {
     // Analysis results state
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    // Resume analysis data
+    const [resumeAnalysisData, setResumeAnalysisData] = useState<any>(null);
+    
+    // Generate resume analysis suggestions from backend data
+    const getResumeAnalysisSuggestions = () => {
+        if (!resumeAnalysisData) {
+            console.log('No resume analysis data available');
+            return [];
+        }
+        
+        console.log('Resume analysis data structure:', resumeAnalysisData);
+        
+        const suggestions: Array<{
+            category: string;
+            icon: string;
+            advice: string;
+            color: string;
+        }> = [];
+        
+        // ATS Issues from parsed data
+        if (resumeAnalysisData.parsed_data?.ats_review) {
+            const atsReview = resumeAnalysisData.parsed_data.ats_review;
+            
+            // Formatting issues
+            if (atsReview.formatting_issues && atsReview.formatting_issues.length > 0) {
+                atsReview.formatting_issues.forEach((issue: string) => {
+                    if (issue && issue.trim() && issue !== "N/A") {
+                        suggestions.push({
+                            category: "ATS Formatting Issue",
+                            icon: "📝",
+                            advice: issue,
+                            color: "#EA580C"
+                        });
+                    }
+                });
+            }
+            
+            // Syntax issues
+            if (atsReview.syntax_issues && atsReview.syntax_issues.length > 0) {
+                atsReview.syntax_issues.forEach((issue: string) => {
+                    if (issue && issue.trim() && issue !== "N/A") {
+                        suggestions.push({
+                            category: "ATS Syntax Issue",
+                            icon: "⚠️",
+                            advice: issue,
+                            color: "#DC2626"
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Improvement suggestions from analysis
+        if (resumeAnalysisData.analysis) {
+            console.log('Analysis data found:', resumeAnalysisData.analysis);
+            const analysis = resumeAnalysisData.analysis;
+            
+            // Background improvements
+            if (analysis.background_improvements && analysis.background_improvements.length > 0) {
+                analysis.background_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "Background Improvement",
+                            icon: "👤",
+                            advice: improvement,
+                            color: "#4F46E5"
+                        });
+                    }
+                });
+            }
+            
+            // Education improvements
+            if (analysis.education_improvements && analysis.education_improvements.length > 0) {
+                analysis.education_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "Education Improvement",
+                            icon: "🎓",
+                            advice: improvement,
+                            color: "#059669"
+                        });
+                    }
+                });
+            }
+            
+            // Professional improvements
+            if (analysis.professional_improvements && analysis.professional_improvements.length > 0) {
+                analysis.professional_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "Professional Improvement",
+                            icon: "💼",
+                            advice: improvement,
+                            color: "#7C3AED"
+                        });
+                    }
+                });
+            }
+            
+            // Technical skills improvements
+            if (analysis.technical_skills_improvements && analysis.technical_skills_improvements.length > 0) {
+                analysis.technical_skills_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "Technical Skills Improvement",
+                            icon: "⚡",
+                            advice: improvement,
+                            color: "#0891B2"
+                        });
+                    }
+                });
+            }
+            
+            // Teamwork improvements
+            if (analysis.teamwork_improvements && analysis.teamwork_improvements.length > 0) {
+                analysis.teamwork_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "Teamwork Improvement",
+                            icon: "🤝",
+                            advice: improvement,
+                            color: "#EA580C"
+                        });
+                    }
+                });
+            }
+            
+            // ATS improvements
+            if (analysis.ats_improvements && analysis.ats_improvements.length > 0) {
+                analysis.ats_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "ATS Improvement",
+                            icon: "📊",
+                            advice: improvement,
+                            color: "#D97706"
+                        });
+                    }
+                });
+            }
+            
+            // General improvements
+            if (analysis.general_improvements && analysis.general_improvements.length > 0) {
+                analysis.general_improvements.forEach((improvement: string) => {
+                    if (improvement && improvement.trim() && improvement !== "N/A") {
+                        suggestions.push({
+                            category: "General Improvement",
+                            icon: "🚀",
+                            advice: improvement,
+                            color: "#4F46E5"
+                        });
+                    }
+                });
+            }
+        }
+        
+        console.log(`Generated ${suggestions.length} resume analysis suggestions:`, suggestions);
+        return suggestions;
+    };
 
     // Sample improvement advice data (this would come from the backend API response)
     const improvementAdvice = [
@@ -2196,6 +2356,13 @@ export default function AlphaPage() {
                 const result = await response.json();
                 console.log('Ambit Alpha analysis successful:', result);
                 setAnalysisResult(result); // Store analysis result
+                
+                // Store resume analysis data if available
+                if (result.resume_analysis) {
+                    setResumeAnalysisData(result.resume_analysis);
+                    console.log('Resume analysis data stored:', result.resume_analysis);
+                }
+                
                 setCurrentStep(6); // Navigate to analysis results
             } else {
                 console.error('Ambit Alpha analysis failed:', response.statusText);
@@ -2390,7 +2557,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -2554,7 +2721,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -2710,7 +2877,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -2863,7 +3030,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -3115,7 +3282,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -3346,7 +3513,7 @@ export default function AlphaPage() {
                                                 fontWeight: '700',
                                                 color: '#2c2c2c',
                                                 letterSpacing: '0.5px'
-                                            }}>Self Potential</span>
+                                            }}>Personal Capability</span>
                                         </div>
                                         <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
                                             <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
@@ -3365,34 +3532,28 @@ export default function AlphaPage() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                                         <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Career Fit Analysis</h2>
                                         <div style={{
-                                            backgroundColor: '#f8f9fa',
-                                            border: '1px solid #e9ecef',
-                                            borderRadius: '12px',
-                                            padding: '16px 20px',
-                                            maxWidth: '350px',
-                                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
+                                            textAlign: 'right',
+                                            maxWidth: '350px'
                                         }}>
                                             <div style={{
-                                                fontSize: '16px',
-                                                fontWeight: '600',
+                                                fontSize: '20px',
+                                                fontWeight: '700',
                                                 color: '#2c2c2c',
-                                                marginBottom: '8px',
-                                                lineHeight: '1.4'
+                                                marginBottom: '4px',
+                                                lineHeight: '1.3',
+                                                letterSpacing: '-0.02em',
+                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                                             }}>
                                                 {analysisResult?.job_analysis?.analysis?.standardized_title || 'Job Title'}
                                             </div>
                                             <div style={{
-                                                fontSize: '14px',
+                                                fontSize: '16px',
                                                 color: '#6c757d',
                                                 fontWeight: '500',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px'
+                                                lineHeight: '1.4',
+                                                letterSpacing: '-0.01em',
+                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                                             }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                                    <circle cx="12" cy="7" r="4"></circle>
-                                                </svg>
                                                 {analysisResult?.job_analysis?.analysis?.company_name || 'Company Name'}
                                             </div>
                                         </div>
@@ -3546,7 +3707,7 @@ export default function AlphaPage() {
                                     </div>
                                     
                                     {/* Tab Content */}
-                                    <div style={{ minHeight: '500px', padding: '20px 0' }}>
+                                    <div style={{ minHeight: '500px', padding: '10px 0' }}>
                                         {activeTab === 'Personal Capability' ? (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
@@ -3616,36 +3777,130 @@ export default function AlphaPage() {
                                                         ))}
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Add buttons to Personal Capability */}
+                                                <div className={styles.navButtons} style={{ marginTop: '20px' }}>
+                                                    <button
+                                                        className={styles.submitButton}
+                                                        onClick={handleBack}
+                                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                                    >
+                                                        Back
+                                                    </button>
+                                                    <button
+                                                        className={styles.submitButton}
+                                                        onClick={() => alert('Analysis complete!')}
+                                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                                    >
+                                                        Complete
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div style={{
-                                                textAlign: 'center',
-                                                fontSize: '18px',
-                                                fontWeight: '600',
-                                                color: '#333',
-                                                padding: '40px 20px'
-                                            }}>
-                                                {activeTab}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                                {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
+                                                <div style={{
+                                                    height: '350px', // Fixed height for exactly 3 items
+                                                    overflowY: 'auto',
+                                                    paddingRight: '4px'
+                                                }}>
+                                                    {/* Custom scrollbar styling */}
+                                                    <style jsx>{`
+                                                        div::-webkit-scrollbar {
+                                                            width: 8px;
+                                                        }
+                                                        div::-webkit-scrollbar-track {
+                                                            background: #f1f3f4;
+                                                            border-radius: 4px;
+                                                        }
+                                                        div::-webkit-scrollbar-thumb {
+                                                            background: linear-gradient(180deg, #9B6A10 0%, #B8860B 100%);
+                                                            border-radius: 4px;
+                                                            border: 1px solid #f1f3f4;
+                                                        }
+                                                        div::-webkit-scrollbar-thumb:hover {
+                                                            background: linear-gradient(180deg, #8B5A0A 0%, #A67C0A 100%);
+                                                        }
+                                                    `}</style>
+                                                    
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: '16px'
+                                                    }}>
+                                                        {getResumeAnalysisSuggestions().length > 0 ? (
+                                                            getResumeAnalysisSuggestions().map((suggestion, index) => (
+                                                                <div
+                                                                    key={`resume-advice-${index}`}
+                                                                    style={{
+                                                                        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                                                        borderRadius: '20px',
+                                                                        padding: '20px 24px',
+                                                                        border: '1px solid #e2e8f0',
+                                                                        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        transition: 'all 0.2s ease'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                                                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08)';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(15, 23, 42, 0.04)';
+                                                                    }}
+                                                                >
+                                                                    <p style={{
+                                                                        fontSize: '18px',
+                                                                        lineHeight: '1.7',
+                                                                        color: '#2c2c2c',
+                                                                        margin: 0,
+                                                                        fontWeight: '600',
+                                                                        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                                                        letterSpacing: '-0.01em'
+                                                                    }}>
+                                                                        {suggestion.advice}
+                                                                    </p>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div style={{
+                                                                textAlign: 'center',
+                                                                fontSize: '18px',
+                                                                fontWeight: '600',
+                                                                color: '#666',
+                                                                padding: '40px 20px',
+                                                                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                                                borderRadius: '20px',
+                                                                border: '1px solid #e2e8f0'
+                                                            }}>
+                                                                No resume analysis available. Please upload a resume and run the analysis.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Move buttons closer to the suggestions */}
+                                                <div className={styles.navButtons} style={{ marginTop: '20px' }}>
+                                                    <button
+                                                        className={styles.submitButton}
+                                                        onClick={handleBack}
+                                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                                    >
+                                                        Back
+                                                    </button>
+                                                    <button
+                                                        className={styles.submitButton}
+                                                        onClick={() => alert('Analysis complete!')}
+                                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                                    >
+                                                        Complete
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
-                                </div>
-
-                                <div className={styles.navButtons}>
-                                    <button
-                                        className={styles.submitButton}
-                                        onClick={handleBack}
-                                        style={{ minWidth: 120, maxWidth: 140 }}
-                                    >
-                                        Back
-                                    </button>
-                                    <button
-                                        className={styles.submitButton}
-                                        onClick={() => alert('Analysis complete!')}
-                                        style={{ minWidth: 120, maxWidth: 140 }}
-                                    >
-                                        Complete
-                                    </button>
                                 </div>
                             </div>
                         ) : null}
