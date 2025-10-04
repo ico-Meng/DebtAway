@@ -1224,7 +1224,7 @@ async def ambit_alpha(
     resume_file: UploadFile = File(None)
 ):
     try:
-        logger.info("icoico: Received Ambit Alpha analysis request")
+        logger.info("Received Ambit Alpha analysis request")
         
         # Parse form data
         import json
@@ -1317,6 +1317,28 @@ async def ambit_alpha(
                 
                 # Combine parsing and analysis results
                 resume_analysis_result['parsed_data'] = resume_parsing_result.get('parsed_data', {})
+                
+                # Calculate overall score and rating as average of all individual scores
+                if resume_analysis_result.get('success') and resume_analysis_result.get('analysis'):
+                    analysis = resume_analysis_result['analysis']
+                    scores = [
+                        analysis.get('background_score', 1),
+                        analysis.get('education_score', 1),
+                        analysis.get('professional_score', 1),
+                        analysis.get('technical_skills_score', 1),
+                        analysis.get('teamwork_score', 1),
+                        analysis.get('ats_score', 1)
+                    ]
+                    
+                    # Calculate average score (1-10 scale)
+                    overall_score = round(sum(scores) / len(scores), 1)
+                    analysis['overall_score'] = overall_score
+                    
+                    # Calculate overall rating (1-10 scale, same as score)
+                    analysis['overall_resume_rating'] = overall_score
+                    
+                    logger.info(f"Calculated overall resume score: {overall_score} (average of: {scores})")
+                
                 logger.info("Resume parsing and analysis completed successfully")
                 
             except Exception as e:

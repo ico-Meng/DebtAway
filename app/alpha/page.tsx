@@ -159,6 +159,39 @@ export default function AlphaPage() {
     
     // Track active tab in Career Fit Analysis
     const [activeTab, setActiveTab] = useState('Personal Capability');
+    
+    // Function to control shape layering based on active tab
+    const updateShapeLayering = (tab: string) => {
+        const svgElement = svgRef.current;
+        if (!svgElement) return;
+
+        const svg = d3.select(svgElement);
+        const g = svg.select('.chart-group');
+        
+        if (tab === 'Personal Capability') {
+            // Bring progress triangle to front, send resume shape to back
+            const progressShape = g.select('.progress-triangle');
+            const resumeShape = g.select('.resume-power-shape');
+            
+            if (!progressShape.empty()) {
+                progressShape.raise(); // Move to front
+            }
+            if (!resumeShape.empty()) {
+                resumeShape.lower(); // Move to back
+            }
+        } else if (tab === 'Resume Power') {
+            // Bring resume shape to front, send progress triangle to back
+            const progressShape = g.select('.progress-triangle');
+            const resumeShape = g.select('.resume-power-shape');
+            
+            if (!resumeShape.empty()) {
+                resumeShape.raise(); // Move to front
+            }
+            if (!progressShape.empty()) {
+                progressShape.lower(); // Move to back
+            }
+        }
+    };
 
     // Removed automatic animation states - now using individual blocks
 
@@ -168,6 +201,16 @@ export default function AlphaPage() {
     
     // Resume analysis data
     const [resumeAnalysisData, setResumeAnalysisData] = useState<any>(null);
+    
+    // Effect to set initial shape layering when analysis data is available
+    useEffect(() => {
+        if (analysisResult && resumeAnalysisData) {
+            // Small delay to ensure chart is rendered
+            setTimeout(() => {
+                updateShapeLayering(activeTab);
+            }, 100);
+        }
+    }, [analysisResult, resumeAnalysisData, activeTab]);
     
     // Generate resume analysis suggestions from backend data
     const getResumeAnalysisSuggestions = () => {
@@ -520,7 +563,7 @@ export default function AlphaPage() {
                 clearTimeout(typingTimeoutRef.current);
             }
         };
-        }, [formData, basicInfoFocusCount, isTypingBasicInfo, educationFocusCount, isTypingEducation, jobMatchFocusCount, isTypingJobMatch, techSkillsFocusCount, isTypingTechSkills, professionalFocusCount, isTypingProfessional, teamworkFocusCount, isTypingTeamwork]);
+        }, [formData, basicInfoFocusCount, isTypingBasicInfo, educationFocusCount, isTypingEducation, jobMatchFocusCount, isTypingJobMatch, techSkillsFocusCount, isTypingTechSkills, professionalFocusCount, isTypingProfessional, teamworkFocusCount, isTypingTeamwork, resumeAnalysisData]);
 
     // Close years dropdowns when clicking outside
     useEffect(() => {
@@ -1843,14 +1886,14 @@ export default function AlphaPage() {
         }
 
         // Create comprehensive shape that uses exact dot positions from rendered dots
-        // Collect all visible dot positions with their proper hexagon indices
+        // Collect all visible dot positions by reading actual positions from DOM
         const dotPositions: { point: [number, number], index: number }[] = [];
-
+       
         // Include Background (index 0) only if it should be shown - use exact same position
         if (shouldShowBackground) {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
-        
+
         // Include Job Match (index 5) only if it should be shown - use exact same position
         if (shouldShowJobMatch) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
@@ -1924,6 +1967,7 @@ export default function AlphaPage() {
             ];
             dotPositions.push({ point: teamworkPoint, index: 4 });
         }
+
 
         // Sort dots by their hexagon index to maintain proper order
         dotPositions.sort((a, b) => a.index - b.index);
@@ -2020,6 +2064,95 @@ export default function AlphaPage() {
                         progressShape.remove();
                     });
             }
+        }
+
+        // Draw Resume Power shape if resume analysis data is available
+        if (resumeAnalysisData && resumeAnalysisData.analysis) {
+            const analysis = resumeAnalysisData.analysis;
+            
+            // Get scores for each axis (1-10 scale, convert to 0-1 for radius calculation)
+            const backgroundScore = (analysis.background_score || 1) / 10;
+            const educationScore = (analysis.education_score || 1) / 10;
+            const professionalScore = (analysis.professional_score || 1) / 10;
+            const techSkillsScore = (analysis.technical_skills_score || 1) / 10;
+            const teamworkScore = (analysis.teamwork_score || 1) / 10;
+            const overallScore = (analysis.overall_score || 1) / 10;
+            
+            // Calculate positions for each axis
+            const resumePowerPoints: [number, number][] = [];
+            
+            // Background (index 0)
+            const backgroundAngle = angleSlice * 0 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(backgroundAngle) * radius * backgroundScore,
+                Math.sin(backgroundAngle) * radius * backgroundScore
+            ]);
+            
+            // Education (index 1)
+            const educationAngle = angleSlice * 1 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(educationAngle) * radius * educationScore,
+                Math.sin(educationAngle) * radius * educationScore
+            ]);
+            
+            // Professional (index 2)
+            const professionalAngle = angleSlice * 2 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(professionalAngle) * radius * professionalScore,
+                Math.sin(professionalAngle) * radius * professionalScore
+            ]);
+            
+            // Tech Skills (index 3)
+            const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(techSkillsAngle) * radius * techSkillsScore,
+                Math.sin(techSkillsAngle) * radius * techSkillsScore
+            ]);
+            
+            // Teamwork (index 4)
+            const teamworkAngle = angleSlice * 4 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(teamworkAngle) * radius * teamworkScore,
+                Math.sin(teamworkAngle) * radius * teamworkScore
+            ]);
+            
+            // Job Match (index 5) - use overall score
+            const jobMatchAngle = angleSlice * 5 - Math.PI / 2;
+            resumePowerPoints.push([
+                Math.cos(jobMatchAngle) * radius * overallScore,
+                Math.sin(jobMatchAngle) * radius * overallScore
+            ]);
+            
+            // Create line generator for closed shape
+            const resumePowerLine = d3.line<[number, number]>()
+                .x(d => d[0])
+                .y(d => d[1])
+                .curve(d3.curveLinearClosed);
+            
+            // Remove existing resume power shape
+            g.selectAll('.resume-power-shape').remove();
+            
+            // Draw the resume power shape
+            g.append('path')
+                .attr('class', 'resume-power-shape')
+                .datum(resumePowerPoints)
+                .attr('d', resumePowerLine)
+                .attr('fill', 'rgba(255, 107, 107, 0.2)') // Light red fill
+                .attr('stroke', '#ff6b6b') // Red stroke
+                .attr('stroke-width', 2)
+                .attr('opacity', 0.8);
+                
+            console.log('Resume Power shape drawn with scores:', {
+                background: analysis.background_score,
+                education: analysis.education_score,
+                professional: analysis.professional_score,
+                techSkills: analysis.technical_skills_score,
+                teamwork: analysis.teamwork_score,
+                overall: analysis.overall_score
+            });
+        } else {
+            // Remove resume power shape if no data
+            g.selectAll('.resume-power-shape').remove();
         }
 
         // Static dots - no pulsing animation
@@ -2576,7 +2709,7 @@ export default function AlphaPage() {
 
                                 <div className={styles.inputGroup}>
                                     <label htmlFor="targetJob" className={styles.label}>
-                                        Target Job <span className={styles.required}>*</span>
+                                        Target Job Position <span className={styles.required}>*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -2585,7 +2718,7 @@ export default function AlphaPage() {
                                         onChange={(e) => setTargetJob(e.target.value)}
                                         onBlur={handleTargetJobBlur}
                                         className={styles.input}
-                                        placeholder="Enter your target job position"
+                                        placeholder="Enter the URL of your target job position <https://www...>"
                                     />
                                 </div>
 
@@ -2624,7 +2757,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formRowContainer} style={{ marginTop: '-1.4rem' }}>
+                                <div className={styles.formRowContainer} style={{ marginTop: '-2.0rem' }}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="email" className={styles.label}>
                                             Email Address <span className={styles.required}>*</span>
@@ -2659,7 +2792,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.navButtonsRight}>
+                                <div className={styles.navButtonsRight} style={{ marginTop: '-0.6rem' }}>
                                     <button 
                                         className={styles.submitButton}
                                         onClick={handleNext}
@@ -2928,7 +3061,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formRowContainer} style={{ marginTop: '-0.8rem' }}>
+                                <div className={styles.formRowContainer} style={{ marginTop: '-1.2rem' }}>
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="databases" className={styles.label}>
                                             Frameworks & Tools
@@ -2962,7 +3095,7 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.navButtons}>
+                                <div className={styles.navButtons} style={{ marginTop: '-0.4rem' }}>
                                     <button
                                         className={styles.submitButton}
                                         onClick={handleBack}
@@ -3425,35 +3558,41 @@ export default function AlphaPage() {
                                                     justifyContent: 'center',
                                                     gap: '8px'
                                                 }}>
-                                                    {/* Thinking animation dots */}
+                                                    {/* Three medium-sized animated dots */}
                                                     <div style={{
                                                         display: 'flex',
-                                                        gap: '4px',
+                                                        gap: '6px',
                                                         alignItems: 'center'
                                                     }}>
                                                         <div style={{
-                                                            width: '6px',
-                                                            height: '6px',
+                                                            width: '8px',
+                                                            height: '8px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
-                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite'
+                                                            animation: 'thinking-pulse 1.2s ease-in-out infinite',
+                                                            boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
                                                         }} />
                                                         <div style={{
-                                                            width: '6px',
-                                                            height: '6px',
+                                                            width: '8px',
+                                                            height: '8px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
-                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite 0.2s'
+                                                            animation: 'thinking-pulse 1.2s ease-in-out infinite 0.15s',
+                                                            boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
                                                         }} />
                                                         <div style={{
-                                                            width: '6px',
-                                                            height: '6px',
+                                                            width: '8px',
+                                                            height: '8px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
-                                                            animation: 'thinking-pulse 1.4s ease-in-out infinite 0.4s'
+                                                            animation: 'thinking-pulse 1.2s ease-in-out infinite 0.3s',
+                                                            boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
                                                         }} />
                                                     </div>
-                                                    <span style={{ fontSize: '14px' }}>Analyzing...</span>
+                                                    <span style={{ 
+                                                        fontSize: '14px',
+                                                        fontWeight: '500'
+                                                    }}>Analyzing</span>
                                                 </div>
                                             ) : (
                                                 'Analysis'
@@ -3527,7 +3666,7 @@ export default function AlphaPage() {
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <div className={styles.analysisContainer}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                                         <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Career Fit Analysis</h2>
@@ -3571,12 +3710,15 @@ export default function AlphaPage() {
                                     }}>
                                         <button
                                             className={styles.tabButton}
-                                            onClick={() => setActiveTab('Personal Capability')}
+                                            onClick={() => {
+                                                setActiveTab('Personal Capability');
+                                                updateShapeLayering('Personal Capability');
+                                            }}
                                             style={{
                                                 flex: 1,
                                                 padding: '12px 24px',
                                                 border: 'none',
-                                                borderRadius: '8px',
+                                        borderRadius: '8px', 
                                                 backgroundColor: activeTab === 'Personal Capability' 
                                                     ? 'linear-gradient(135deg, #9B6A10 0%, #B8860B 100%)' 
                                                     : 'transparent',
@@ -3639,7 +3781,10 @@ export default function AlphaPage() {
                                         </button>
                                         <button
                                             className={styles.tabButton}
-                                            onClick={() => setActiveTab('Resume Power')}
+                                            onClick={() => {
+                                                setActiveTab('Resume Power');
+                                                updateShapeLayering('Resume Power');
+                                            }}
                                             style={{
                                                 flex: 1,
                                                 padding: '12px 24px',
@@ -3775,25 +3920,25 @@ export default function AlphaPage() {
                                                                 </p>
                                                             </div>
                                                         ))}
-                                                    </div>
-                                                </div>
-                                                
+                                    </div>
+                                </div>
+
                                                 {/* Add buttons to Personal Capability */}
                                                 <div className={styles.navButtons} style={{ marginTop: '20px' }}>
-                                                    <button
-                                                        className={styles.submitButton}
-                                                        onClick={handleBack}
-                                                        style={{ minWidth: 120, maxWidth: 140 }}
-                                                    >
-                                                        Back
-                                                    </button>
-                                                    <button
-                                                        className={styles.submitButton}
-                                                        onClick={() => alert('Analysis complete!')}
-                                                        style={{ minWidth: 120, maxWidth: 140 }}
-                                                    >
-                                                        Complete
-                                                    </button>
+                                    <button
+                                        className={styles.submitButton}
+                                        onClick={handleBack}
+                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        className={styles.submitButton}
+                                        onClick={() => alert('Analysis complete!')}
+                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                    >
+                                        Complete
+                                    </button>
                                                 </div>
                                             </div>
                                         ) : (
