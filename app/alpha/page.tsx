@@ -930,6 +930,19 @@ export default function AlphaPage() {
         const svg = d3.select(svgElement);
         const g = svg.select('.chart-group');
 
+        // Hide dots on Analysis page after shapes are drawn
+        if (currentStep === 6) {
+            // Hide all dots when on Analysis page
+            g.selectAll('.progress-dot, .background-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot, .jobmatch-dot')
+                .style('opacity', 0)
+                .style('display', 'none');
+        } else {
+            // Show dots when not on Analysis page
+            g.selectAll('.progress-dot, .background-dot, .education-dot, .professional-dot, .tech-skills-dot, .teamwork-dot, .jobmatch-dot')
+                .style('display', 'block')
+                .style('opacity', 1);
+        }
+
         // Check if any education fields are filled
         const educationFields = ['collegeName', 'degree', 'major', 'graduationYear'];
         const filledEducationFields = educationFields.filter(field => {
@@ -2576,7 +2589,7 @@ export default function AlphaPage() {
         ];
         
         if (!allowedTypes.includes(file.type)) {
-            alert('Unsupported file type. Please upload PDF, Word document, or common image formats.');
+            alert('Unsupported file type. Please upload PDF formats.');
             return;
         }
         
@@ -3435,7 +3448,7 @@ export default function AlphaPage() {
                                     
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>
-                                            Resume or Screenshot (PDF, Word, or Images, max 2MB) <span style={{ color: '#ff4757' }}>*</span>
+                                            Resume or Screenshot (PDF format, max 2MB) <span style={{ color: '#ff4757' }}>*</span>
                                         </label>
                                         
                                         <div 
