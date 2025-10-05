@@ -8,9 +8,11 @@ from config import STRIPE_SECRET_KEY, OPENAI_APIKEY
 import openai
 import requests
 from bs4 import BeautifulSoup
+from boto3.dynamodb.conditions import Key
 import PyPDF2
 import io
 from aws_lambda_powertools import Logger
+from decimal import Decimal
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Form
 from mangum import Mangum  # type: ignore
@@ -93,6 +95,16 @@ class ResumeAnalysis(BaseModel):
     ats_improvements: List[str] = []
     general_improvements: List[str] = []
 
+class JobExtraction(BaseModel):
+    standardized_title: str
+    technical_skills: List[str]
+    soft_skills: List[str]
+    industry: str
+    experience_level: str
+    key_responsibilities: List[str]
+    salary_range: Optional[str]
+    company_name: Optional[str]
+
 class JobMatchAnalysis(BaseModel):
     standardized_title: str
     technical_skills: List[str]
@@ -113,7 +125,6 @@ class JobMatchAnalysis(BaseModel):
 
     overall_score: int  # 1-100
     analysis_confidence: str  # high/medium/low
-    resume_analysis: Optional[ResumeAnalysis] = None
 
 app = FastAPI()
 handler = Mangum(app, lifespan="off")
@@ -880,15 +891,31 @@ async def fetch_web_page_content(url: str):
         return f"Unexpected error parsing web page content: {str(e)}"
 
 
-async def analyze_target_job_with_openai(target_job: str, user_data: dict = None):
+async def analyze_target_job_with_openai(user_id: str, user_data: dict = None):
     """
-    Analyze target job using OpenAI GPT-4o-mini with web page content and compare with user data
+    Analyze target job using OpenAI GPT-4o-mini with stored job data and compare with user data
     """
     try:
-        logger.info(f"Analyzing target job with OpenAI: {target_job}")
+        logger.info(f"Analyzing target job with OpenAI for user_id: {user_id}")
         
-        # First, fetch the web page content
-        web_content = await fetch_web_page_content(target_job)
+        # Get stored latest analysis item from DynamoDB
+        stored_analysis = await get_saved_job_analysis(user_id)
+        if not stored_analysis:
+            raise Exception(f"No job analysis found for user_id: {user_id}")
+        
+        # Extract job requirements from stored data (career_analysis_data latest item)
+        analysis_data = stored_analysis.get('job_analysis', {})
+        job_requirements = f"""
+        JOB REQUIREMENTS:
+        Title: {analysis_data.get('standardized_title', 'Unknown')}
+        Company: {analysis_data.get('company_name', 'Unknown')}
+        Technical Skills: {', '.join(analysis_data.get('technical_skills', []))}
+        Soft Skills: {', '.join(analysis_data.get('soft_skills', []))}
+        Industry: {analysis_data.get('industry', 'Unknown')}
+        Experience Level: {analysis_data.get('experience_level', 'Unknown')}
+        Key Responsibilities: {', '.join(analysis_data.get('key_responsibilities', []))}
+        Salary Range: {analysis_data.get('salary_range', 'Not specified')}
+        """
         
         # Build user profile summary
         user_profile = ""
@@ -913,27 +940,15 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
                     user_profile += f"{i}. {exp.get('title', '')} at {exp.get('company', '')} ({exp.get('startDate', '')} - {exp.get('endDate', 'Present')})\n"
                     user_profile += f"   Description: {exp.get('description', '')}\n"
 
-        # Create the comprehensive prompt
+        # Create the comprehensive prompt for comparison and scoring
         prompt = f"""
-        Analyze the following job posting and compare it with the user's profile:
+        Compare the user's profile against the job requirements and provide detailed analysis:
 
-        JOB POSTING:
-        URL: "{target_job}"
-        Content: {web_content}
+        {job_requirements}
 
         {user_profile}
 
         ANALYSIS REQUIREMENTS:
-        1. Extract job details from the posting content:
-           - standardized_title: Clean, professional job title
-           - company_name: Extract the company/organization name from the job posting
-           - technical_skills: Required programming languages, frameworks, tools
-           - soft_skills: Communication, leadership, teamwork requirements
-           - industry: Business sector (e.g., Technology, Finance, Healthcare)
-           - experience_level: Entry, Mid, Senior level
-           - key_responsibilities: Main job duties and tasks
-           - salary_range: Compensation if mentioned
-
         2. Compare user profile against job requirements
         3. Score each aspect (1-10) with specific strengths and 2-5 improvement recommendations:
            - Background: Overall professional background alignment
@@ -946,8 +961,6 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
         4. Provide overall score (1-100) representing job match percentage
 
         For each improvement recommendation, be specific and actionable (e.g., "Learn React.js through online courses" instead of "Improve frontend skills").
-
-        IMPORTANT: Pay special attention to extracting the actual company name from the job posting content.
         """
         
         # Call OpenAI GPT-4o-mini with structured output using responses.parse
@@ -969,7 +982,7 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
         # Extract the parsed structured analysis
         analysis_data = response.output_parsed
 
-        logger.info(f"OpenAI analysis completed for job: {target_job}")
+        logger.info(f"OpenAI analysis completed for user_id: {user_id}")
         logger.info(f"Analysis result: {analysis_data}")
 
         return {
@@ -991,7 +1004,7 @@ async def analyze_target_job_with_openai(target_job: str, user_data: dict = None
             "success": False,
             "error": str(e),
             "analysis": {
-                "standardized_title": target_job,
+                "standardized_title": "Unknown",
                 "technical_skills": [],
                 "soft_skills": [],
                 "industry": "Unknown",
@@ -1217,11 +1230,466 @@ async def analyze_resume_with_openai(resume_parsed_data: dict, job_requirements:
         }
 
 
-@app.post("/ambit_alpha")
-async def ambit_alpha(
+# The 1st alph aAPI
+@app.post("/alpha_target_job_analysis")
+async def alpha_target_job_analysis(
     target_job: str = Form(...),
     form_data: str = Form(...),
-    resume_file: UploadFile = File(None)
+    user_id: str = Form(...)
+):
+    try:
+        logger.info("Received target job analysis request")
+        
+        # Parse form data
+        import json
+        form_data_parsed = json.loads(form_data) if form_data else {}
+        
+        # Check if target_job is a URL or direct job description
+        is_url = target_job.startswith(('http://', 'https://'))
+        
+        if is_url:
+            # Fetch web page content if it's a URL
+            logger.info(f"Detected URL, fetching web page content: {target_job}")
+            web_content = await fetch_web_page_content(target_job)
+            job_content = web_content
+        else:
+            # Use target_job as direct job description
+            logger.info("Detected direct job description")
+            job_content = target_job
+        
+        # Build user profile summary
+        user_profile = ""
+        if form_data_parsed:
+            user_profile = f"""
+            USER PROFILE:
+            Name: {form_data_parsed.get('firstName', '')} {form_data_parsed.get('lastName', '')}
+            Education: {form_data_parsed.get('degree', '')} in {form_data_parsed.get('major', '')} from {form_data_parsed.get('collegeName', '')} ({form_data_parsed.get('graduationYear', '')})
+            Technical Skills:
+            - Programming Languages: {form_data_parsed.get('programmingLanguages', '')}
+            - Frameworks: {form_data_parsed.get('frameworks', '')}
+            - Databases: {form_data_parsed.get('databases', '')}
+            - Tools: {form_data_parsed.get('tools', '')}
+            Work Experience: {len(form_data_parsed.get('workExperiences', []))} positions
+            """
+
+            # Add work experience details
+            work_experiences = form_data_parsed.get('workExperiences', [])
+            if work_experiences:
+                user_profile += "\nWork Experience Details:\n"
+                for i, exp in enumerate(work_experiences, 1):
+                    user_profile += f"{i}. {exp.get('title', '')} at {exp.get('company', '')} ({exp.get('startDate', '')} - {exp.get('endDate', 'Present')})\n"
+                    user_profile += f"   Description: {exp.get('description', '')}\n"
+
+        # Create the comprehensive prompt
+        prompt = f"""
+        Analyze the following job posting and extract key information:
+
+        JOB POSTING:
+        URL: "{target_job}"
+        Content: {job_content}
+
+        {user_profile}
+
+        ANALYSIS REQUIREMENTS:
+        Extract job details from the posting content:
+           - standardized_title: Clean, professional job title
+           - company_name: Extract the company/organization name from the job posting
+           - technical_skills: Required programming languages, frameworks, tools
+           - soft_skills: Communication, leadership, teamwork requirements
+           - industry: Business sector (e.g., Technology, Finance, Healthcare)
+           - experience_level: Entry, Mid, Senior level
+           - key_responsibilities: Main job duties and tasks
+           - salary_range: Compensation if mentioned
+
+        IMPORTANT: Pay special attention to extracting the actual company name from the job posting content.
+        """
+        
+        # Call OpenAI GPT-4o-mini with structured output
+        response = client.responses.parse(
+            model="gpt-4o-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": "You are a career analyst with access to current job market data. Analyze job positions and extract key information including company details, required skills, industry classification, and experience levels."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            text_format=JobExtraction
+        )
+        
+        # Extract the parsed structured analysis
+        analysis_data = response.output_parsed
+        
+        # Use the provided user_id from frontend
+        email = form_data_parsed.get('email', '')
+        first_name = form_data_parsed.get('firstName', '')
+        last_name = form_data_parsed.get('lastName', '')
+        
+        logger.info(f"Using provided user_id: {user_id}")
+        
+        # Save the analyzed data to DynamoDB (career_analysis_data)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.now().isoformat()
+        
+        async def save_job_analysis_to_career_table():
+            try:
+                dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+                table_name = 'career_analysis_data'
+                # Ensure table exists with composite key
+                try:
+                    table = dynamodb.Table(table_name)
+                    table.table_status
+                except dynamodb.meta.client.exceptions.ResourceNotFoundException:
+                    table = dynamodb.create_table(
+                        TableName=table_name,
+                        KeySchema=[
+                            {'AttributeName': 'user_id', 'KeyType': 'HASH'},
+                            {'AttributeName': 'timestamp', 'KeyType': 'RANGE'}
+                        ],
+                        AttributeDefinitions=[
+                            {'AttributeName': 'user_id', 'AttributeType': 'S'},
+                            {'AttributeName': 'timestamp', 'AttributeType': 'S'}
+                        ],
+                        BillingMode='PAY_PER_REQUEST'
+                    )
+                    table.wait_until_exists()
+                    logger.info(f"Table {table_name} created successfully")
+                # Insert a new item for each new job_analysis
+                item = {
+                    'user_id': user_id,
+                    'timestamp': timestamp,
+                    'date': current_date,
+                    'target_job': target_job,
+                    'is_url': is_url,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email_address': email,
+                    'phone_number': form_data_parsed.get('phoneNumber', ''),
+                    # store object fields
+                    'job_analysis': analysis_data.dict(),
+                    'capability_analysis': None,
+                    'resume_analysis': None
+                }
+                table.put_item(Item=item)
+                logger.info(f"Saved job_analysis item for user_id={user_id} ts={timestamp}")
+            except Exception as e:
+                logger.error(f"Error saving career_analysis_data job_analysis: {str(e)}")
+        
+        asyncio.create_task(save_job_analysis_to_career_table())
+        
+        logger.info(f"Target job analysis completed successfully: {user_id}")
+        
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "is_url": is_url,
+            "analysis_data": analysis_data.dict(),
+            "message": "Job analysis completed and saved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in alpha_target_job_analysis: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error analyzing target job: {str(e)}")
+
+
+# Helper to convert all floats in nested structures to Decimal for DynamoDB
+def convert_floats_to_decimal(value):
+    if isinstance(value, float):
+        # Convert Python float to Decimal via string to preserve precision
+        return Decimal(str(value))
+    if isinstance(value, list):
+        return [convert_floats_to_decimal(v) for v in value]
+    if isinstance(value, dict):
+        return {k: convert_floats_to_decimal(v) for k, v in value.items()}
+    return value
+
+
+async def get_saved_job_analysis(user_id: str):
+    """
+    Retrieve saved job analysis data from DynamoDB
+    """
+    try:
+        # Initialize DynamoDB client
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table_name = 'career_analysis_data'
+        table = dynamodb.Table(table_name)
+        # Query latest item for this user_id
+        response = table.query(
+            KeyConditionExpression=Key('user_id').eq(user_id),
+            ScanIndexForward=False,
+            Limit=1
+        )
+        items = response.get('Items', [])
+        if items:
+            logger.info(f"Retrieved latest analysis item for user_id: {user_id}")
+            return items[0]
+        logger.warning(f"No analysis items found for user_id: {user_id}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error retrieving saved job analysis {user_id}: {str(e)}")
+        return None
+
+
+@app.get("/get_job_analysis/{user_id}")
+async def get_job_analysis(user_id: str):
+    """
+    Retrieve saved job analysis data by user_id
+    """
+    try:
+        logger.info(f"Retrieving job analysis: {user_id}")
+        
+        saved_analysis = await get_saved_job_analysis(user_id)
+        
+        if saved_analysis:
+            return {
+                "status": "success",
+                "analysis_data": saved_analysis
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Analysis not found"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error retrieving job analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving job analysis: {str(e)}")
+
+
+# The 3rd alph aAPI
+@app.post("/alpha_resume_analysis")
+async def alpha_resume_analysis(
+    form_data: str = Form(...),
+    user_id: str = Form(...),
+    resume_file: UploadFile = File(...)
+):
+    """
+    Analyze resume against job requirements using stored job analysis data
+    """
+    try:
+        logger.info("Received Alpha Resume Analysis request")
+        
+        # Parse form data
+        import json
+        form_data_parsed = json.loads(form_data) if form_data else {}
+        
+        # Get stored job analysis data from DynamoDB
+        stored_analysis = await get_saved_job_analysis(user_id)
+        if not stored_analysis:
+            raise HTTPException(status_code=404, detail=f"No job analysis found for user_id: {user_id}")
+        
+        # Extract job requirements from stored data (career_analysis_data latest item)
+        analysis_data = stored_analysis.get('job_analysis', {})
+        job_requirements = f"""
+        Job Title: {analysis_data.get('standardized_title', 'Unknown')}
+        Technical Skills Required: {', '.join(analysis_data.get('technical_skills', []))}
+        Soft Skills Required: {', '.join(analysis_data.get('soft_skills', []))}
+        Industry: {analysis_data.get('industry', 'Unknown')}
+        Experience Level: {analysis_data.get('experience_level', 'Unknown')}
+        Key Responsibilities: {', '.join(analysis_data.get('key_responsibilities', []))}
+        """
+        
+        # Log resume file information
+        resume_info = f"Resume file: {resume_file.filename} ({resume_file.content_type}, {resume_file.size} bytes)"
+        logger.info(f"Resume file details: {resume_info}")
+        
+        # Analyze resume
+        try:
+            logger.info("Starting resume parsing and analysis...")
+            resume_content = await resume_file.read()
+            
+            # Check if it's a PDF file and extract text properly
+            if resume_file.content_type == 'application/pdf' or resume_file.filename.lower().endswith('.pdf'):
+                logger.info("Detected PDF file, extracting text...")
+                resume_text = await extract_text_from_pdf(resume_content)
+            else:
+                # For non-PDF files, try to decode as text
+                resume_text = resume_content.decode('utf-8', errors='ignore')
+            
+            logger.info("Step 0: Extracted resume text content (first 200 chars): %s", resume_text[:200] if resume_text else "No content")
+            
+            # Step 1: Parse resume content
+            logger.info("Step 1: Parsing resume content...")
+            resume_parsing_result = await parse_resume_with_openai(resume_text)
+            
+            if not resume_parsing_result.get("success"):
+                logger.error(f"Resume parsing failed: {resume_parsing_result.get('error')}")
+                raise Exception(f"Resume parsing failed: {resume_parsing_result.get('error')}")
+            
+            # Step 2: Analyze parsed resume data
+            logger.info("Step 2: Analyzing parsed resume data...")
+            
+            resume_analysis_result = await analyze_resume_with_openai(
+                resume_parsing_result.get('parsed_data', {}), 
+                job_requirements
+            )
+            
+            # Combine parsing and analysis results
+            resume_analysis_result['parsed_data'] = resume_parsing_result.get('parsed_data', {})
+            
+            # Calculate overall score and rating as average of all individual scores
+            if resume_analysis_result.get('success') and resume_analysis_result.get('analysis'):
+                analysis = resume_analysis_result['analysis']
+                scores = [
+                    analysis.get('background_score', 1),
+                    analysis.get('education_score', 1),
+                    analysis.get('professional_score', 1),
+                    analysis.get('technical_skills_score', 1),
+                    analysis.get('teamwork_score', 1),
+                    analysis.get('ats_score', 1)
+                ]
+                
+                # Calculate average score (1-10 scale)
+                overall_score = round(sum(scores) / len(scores), 1)
+                analysis['overall_score'] = overall_score
+                
+                # Calculate overall rating (1-10 scale, same as score)
+                analysis['overall_resume_rating'] = overall_score
+                
+                logger.info(f"Calculated overall resume score: {overall_score} (average of: {scores})")
+            
+            logger.info("Resume parsing and analysis completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Error in resume analysis: {str(e)}")
+            resume_analysis_result = {
+                "success": False,
+                "error": str(e),
+                "analysis": {
+                    "ats_score": 0,
+                    "resume_strengths": ["Resume analysis failed"],
+                    "resume_weaknesses": ["Unable to analyze resume"],
+                    "missing_keywords": ["Analysis error"],
+                    "formatting_issues": ["Unable to assess"],
+                    "improvement_suggestions": ["Please try again"],
+                    "overall_resume_rating": 1,
+                    "recruiter_feedback": "Resume analysis encountered an error. Please try again."
+                }
+            }
+        
+        # Update resume_analysis into career_analysis_data latest item (ensure non-null)
+        try:
+            async def update_resume_analysis_to_career_table():
+                try:
+                    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+                    table = dynamodb.Table('career_analysis_data')
+                    # Find latest item for user
+                    response = table.query(
+                        KeyConditionExpression=Key('user_id').eq(user_id),
+                        ScanIndexForward=False,
+                        Limit=1
+                    )
+                    items = response.get('Items', [])
+                    if not items:
+                        logger.warning(f"No base item to update resume_analysis for user_id={user_id}")
+                        return
+                    ts = items[0]['timestamp']
+                    # Convert floats to Decimal before saving to DynamoDB
+                    safe_resume = convert_floats_to_decimal(resume_analysis_result or {"success": False, "analysis": None})
+                    table.update_item(
+                        Key={'user_id': user_id, 'timestamp': ts},
+                        UpdateExpression='SET resume_analysis = :ra',
+                        ExpressionAttributeValues={':ra': safe_resume}
+                    )
+                    logger.info(f"Updated resume_analysis for user_id={user_id} ts={ts}")
+                except Exception as e:
+                    logger.error(f"Error updating resume_analysis in career_analysis_data: {str(e)}")
+            asyncio.create_task(update_resume_analysis_to_career_table())
+        except Exception as e:
+            logger.error(f"Error preparing resume analysis career update: {str(e)}")
+
+        # Query DynamoDB for latest job_analysis data with retry logic
+        job_analysis_data = None
+        max_retries = 10  # Maximum 20 seconds wait
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+                table = dynamodb.Table('career_analysis_data')
+                response = table.query(
+                    KeyConditionExpression=Key('user_id').eq(user_id),
+                    ScanIndexForward=False,
+                    Limit=1
+                )
+                items = response.get('Items', [])
+                if items and items[0].get('job_analysis'):
+                    job_analysis_data = items[0]
+                    logger.info(f"Found job analysis data for user_id: {user_id}")
+                    break
+                logger.info(f"No job analysis data found for user_id: {user_id}, retrying in 2 seconds...")
+            except Exception as e:
+                logger.error(f"Error querying job analysis data: {str(e)}")
+            retry_count += 1
+            if retry_count < max_retries:
+                await asyncio.sleep(2)
+        
+        if not job_analysis_data:
+            logger.warning(f"Could not retrieve job analysis data for user_id: {user_id} after {max_retries} retries")
+            # Create default job analysis data
+            job_analysis_data = {
+                "analysis_data": {
+                    "standardized_title": "Unknown",
+                    "company_name": "Unknown",
+                    "technical_skills": [],
+                    "soft_skills": [],
+                    "industry": "Unknown",
+                    "experience_level": "Unknown",
+                    "key_responsibilities": [],
+                    "salary_range": "Unknown"
+                }
+            }
+        
+        # Extract job analysis information
+        analysis_data = job_analysis_data.get('job_analysis', {})
+        job_title = analysis_data.get('standardized_title', 'Unknown')
+        company_name = analysis_data.get('company_name', 'Unknown')
+        
+        # Create job analysis result in the format expected by frontend
+        job_analysis_result = {
+            "success": True,
+            "analysis": analysis_data,
+            "structured_output": True
+        }
+        
+        # Add resume analysis to the job analysis result
+        if resume_analysis_result and resume_analysis_result.get('analysis'):
+            job_analysis_result["analysis"]["resume_analysis"] = resume_analysis_result.get('analysis')
+        
+        return {
+            "status": "success",
+            "message": "Resume analysis completed successfully",
+            "analysis_id": f"resume_analysis_{int(time.time())}",
+            "completion_percentage": 100.0,  # Resume analysis is complete
+            "resume_uploaded": True,
+            "job_analysis": job_analysis_result,
+            "resume_analysis": resume_analysis_result,
+            "data_summary": {
+                "target_job": job_title,
+                "job_title": job_title,
+                "company_name": company_name,
+                "resume_file": resume_info
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in alpha_resume_analysis: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error in resume analysis: {str(e)}")
+
+
+# The 2nd alph aAPI
+@app.post("/alpha_capability_analysis")
+async def alpha_capability_analysis(
+    target_job: str = Form(...),
+    form_data: str = Form(...),
+    user_id: str = Form(...)
 ):
     try:
         logger.info("Received Ambit Alpha analysis request")
@@ -1230,10 +1698,10 @@ async def ambit_alpha(
         import json
         form_data_parsed = json.loads(form_data) if form_data else {}
         
-        # Analyze target job with OpenAI using user data
-        logger.info("Starting OpenAI job analysis with user data comparison...")
+        # Analyze target job with OpenAI using stored job data and user data
+        logger.info("Starting OpenAI job analysis with stored job data and user data comparison...")
         try:
-            job_analysis_result = await analyze_target_job_with_openai(target_job, form_data_parsed)
+            job_analysis_result = await analyze_target_job_with_openai(user_id, form_data_parsed)
             logger.info("OpenAI analysis completed successfully")
         except Exception as e:
             logger.error(f"Error in OpenAI analysis: {str(e)}")
@@ -1241,13 +1709,13 @@ async def ambit_alpha(
             default_aspect = {
                 "score": 1,
                 "strengths": ["Analysis could not be completed"],
-                "improvements": ["Please try again later", "Ensure job URL is accessible"]
+                "improvements": ["Please try again later", "Ensure job analysis data is available"]
             }
             job_analysis_result = {
                 "success": False,
                 "error": str(e),
                 "analysis": {
-                    "standardized_title": target_job,
+                    "standardized_title": "Unknown",
                     "technical_skills": [],
                     "soft_skills": [],
                     "industry": "Unknown",
@@ -1266,97 +1734,7 @@ async def ambit_alpha(
                 }
             }
         
-        # Log resume file information
-        resume_info = "No resume file uploaded"
-        resume_analysis_result = None
-        
-        if resume_file and resume_file.filename:
-            resume_info = f"Resume file: {resume_file.filename} ({resume_file.content_type}, {resume_file.size} bytes)"
-            logger.info(f"Resume file details: {resume_info}")
-            
-            # Analyze resume if file is provided
-            try:
-                logger.info("Starting resume parsing and analysis...")
-                resume_content = await resume_file.read()
-                
-                # Check if it's a PDF file and extract text properly
-                if resume_file.content_type == 'application/pdf' or resume_file.filename.lower().endswith('.pdf'):
-                    logger.info("Detected PDF file, extracting text...")
-                    resume_text = await extract_text_from_pdf(resume_content)
-                else:
-                    # For non-PDF files, try to decode as text
-                    resume_text = resume_content.decode('utf-8', errors='ignore')
-                
-                logger.info("Step 0: Extracted resume text content (first 200 chars): %s", resume_text[:200] if resume_text else "No content")
-                
-                # Step 1: Parse resume content
-                logger.info("Step 1: Parsing resume content...")
-                resume_parsing_result = await parse_resume_with_openai(resume_text)
-                
-                if not resume_parsing_result.get("success"):
-                    logger.error(f"Resume parsing failed: {resume_parsing_result.get('error')}")
-                    raise Exception(f"Resume parsing failed: {resume_parsing_result.get('error')}")
-                
-                # Step 2: Analyze parsed resume data
-                logger.info("Step 2: Analyzing parsed resume data...")
-                
-                # Create job requirements summary for resume analysis
-                job_requirements = f"""
-                Job Title: {job_analysis_result.get('analysis', {}).get('standardized_title', target_job)}
-                Technical Skills Required: {', '.join(job_analysis_result.get('analysis', {}).get('technical_skills', []))}
-                Soft Skills Required: {', '.join(job_analysis_result.get('analysis', {}).get('soft_skills', []))}
-                Industry: {job_analysis_result.get('analysis', {}).get('industry', 'Unknown')}
-                Experience Level: {job_analysis_result.get('analysis', {}).get('experience_level', 'Unknown')}
-                Key Responsibilities: {', '.join(job_analysis_result.get('analysis', {}).get('key_responsibilities', []))}
-                """
-                
-                resume_analysis_result = await analyze_resume_with_openai(
-                    resume_parsing_result.get('parsed_data', {}), 
-                    job_requirements
-                )
-                
-                # Combine parsing and analysis results
-                resume_analysis_result['parsed_data'] = resume_parsing_result.get('parsed_data', {})
-                
-                # Calculate overall score and rating as average of all individual scores
-                if resume_analysis_result.get('success') and resume_analysis_result.get('analysis'):
-                    analysis = resume_analysis_result['analysis']
-                    scores = [
-                        analysis.get('background_score', 1),
-                        analysis.get('education_score', 1),
-                        analysis.get('professional_score', 1),
-                        analysis.get('technical_skills_score', 1),
-                        analysis.get('teamwork_score', 1),
-                        analysis.get('ats_score', 1)
-                    ]
-                    
-                    # Calculate average score (1-10 scale)
-                    overall_score = round(sum(scores) / len(scores), 1)
-                    analysis['overall_score'] = overall_score
-                    
-                    # Calculate overall rating (1-10 scale, same as score)
-                    analysis['overall_resume_rating'] = overall_score
-                    
-                    logger.info(f"Calculated overall resume score: {overall_score} (average of: {scores})")
-                
-                logger.info("Resume parsing and analysis completed successfully")
-                
-            except Exception as e:
-                logger.error(f"Error in resume analysis: {str(e)}")
-                resume_analysis_result = {
-                    "success": False,
-                    "error": str(e),
-                    "analysis": {
-                        "ats_score": 0,
-                        "resume_strengths": ["Resume analysis failed"],
-                        "resume_weaknesses": ["Unable to analyze resume"],
-                        "missing_keywords": ["Analysis error"],
-                        "formatting_issues": ["Unable to assess"],
-                        "improvement_suggestions": ["Please try again"],
-                        "overall_resume_rating": 1,
-                        "recruiter_feedback": "Resume analysis encountered an error. Please try again."
-                    }
-                }
+        # Resume analysis is now handled by the separate alpha_resume_analysis API
         
         # Log the complete user data
         #logger.info("=== AMBIT ALPHA USER DATA ===")
@@ -1427,31 +1805,57 @@ async def ambit_alpha(
         
         logger.info("=== AMBIT ALPHA ANALYSIS COMPLETE ===")
         
-        # Combine job analysis with resume analysis
-        combined_analysis = job_analysis_result.copy()
-        if resume_analysis_result:
-            combined_analysis["analysis"]["resume_analysis"] = resume_analysis_result.get("analysis")
-        
+        # Store capability_analysis in career_analysis_data (update latest item for this user_id)
+        if job_analysis_result.get("success") and job_analysis_result.get("analysis"):
+            try:
+                async def update_capability_analysis():
+                    try:
+                        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+                        table = dynamodb.Table('career_analysis_data')
+                        # Get latest item
+                        response = table.query(
+                            KeyConditionExpression=Key('user_id').eq(user_id),
+                            ScanIndexForward=False,
+                            Limit=1
+                        )
+                        items = response.get('Items', [])
+                        if not items:
+                            logger.warning(f"No base item to update capability_analysis for user_id={user_id}")
+                            return
+                        ts = items[0]['timestamp']
+                        # Update capability_analysis field only
+                        table.update_item(
+                            Key={'user_id': user_id, 'timestamp': ts},
+                            UpdateExpression='SET capability_analysis = :ca',
+                            ExpressionAttributeValues={
+                                ':ca': job_analysis_result.get('analysis')
+                            }
+                        )
+                        logger.info(f"Updated capability_analysis for user_id={user_id} ts={ts}")
+                    except Exception as e:
+                        logger.error(f"Error updating capability_analysis: {str(e)}")
+                asyncio.create_task(update_capability_analysis())
+                
+            except Exception as e:
+                logger.error(f"Error preparing improvement recommendations: {str(e)}")
+
         return {
             "status": "success",
             "message": "Ambit Alpha analysis data received and logged successfully",
             "analysis_id": f"ambit_alpha_{int(time.time())}",
             "completion_percentage": round(completion_percentage, 1),
-            "resume_uploaded": resume_file and resume_file.filename is not None,
-            "job_analysis": combined_analysis,
-            "resume_analysis": resume_analysis_result,
+            "job_analysis": job_analysis_result,
             "data_summary": {
                 "target_job": target_job,
                 "basic_info_complete": filled_basic_fields,
                 "education_complete": filled_education_fields,
                 "skills_complete": filled_skills_fields,
-                "work_experience_count": total_work_entries,
-                "resume_file": resume_info
+                "work_experience_count": total_work_entries
             }
         }
         
     except Exception as e:
-        logger.error(f"Error in ambit_alpha: {str(e)}")
+        logger.error(f"Error in alpha_capability_analysis: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error processing Ambit Alpha analysis: {str(e)}")

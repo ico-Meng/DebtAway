@@ -2452,6 +2452,7 @@ export default function AlphaPage() {
     };
 
 
+    //const handleNext = () => {icoico original
     const handleNext = () => {
         if (currentStep < 6) {
             // Interrupt transitions first so we don't cancel the movement we trigger below
@@ -2469,38 +2470,121 @@ export default function AlphaPage() {
                 });
             }
 
+            //icoico
+            // Call alpha_target_job_analysis API when moving from step 1 to step 2 (asynchronously)
+            if (currentStep === 1) {
+                // Calculate user_id based on email address
+                const email = formData.email || '';
+                const user_id = email.replace(/[^a-zA-Z0-9]/g, '_');
+                
+                // Cache the user_id for later use
+                localStorage.setItem('jobAnalysisUserId', user_id);
+                console.log('Generated and cached user_id:', user_id);
+                
+                // Start the API call but don't wait for it - let it run in the background
+                (async () => {
+                    try {
+                        console.log('Calling alpha_target_job_analysis API asynchronously...');
+                        
+                        const formDataToSend = new FormData();
+                        formDataToSend.append('target_job', targetJob);
+                        formDataToSend.append('form_data', JSON.stringify(formData));
+                        formDataToSend.append('user_id', user_id);
+                        
+                        const response = await fetch(`${API_ENDPOINT}/alpha_target_job_analysis`, {
+                            method: 'POST',
+                            body: formDataToSend,
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('Job analysis completed:', result);
+                        } else {
+                            console.error('Job analysis failed:', response.statusText);
+                        }
+                    } catch (error) {
+                        console.error('Error calling alpha_target_job_analysis API:', error);
+                    }
+                })(); // Immediately invoke the async function
+            }
+
+            // Call alpha_capability_analysis API when moving from step 4 (Work Experience) to step 5
+            if (currentStep === 4) {
+                // Get cached user_id
+                const user_id = localStorage.getItem('jobAnalysisUserId');
+                
+                if (user_id) {
+                    // Start the API call but don't wait for it - let it run in the background
+                    (async () => {
+                        try {
+                            console.log('Calling alpha_capability_analysis API asynchronously...');
+                            
+                            const formDataToSend = new FormData();
+                            formDataToSend.append('target_job', targetJob);
+                            formDataToSend.append('form_data', JSON.stringify(formData));
+                            formDataToSend.append('user_id', user_id);
+                            
+                            const response = await fetch(`${API_ENDPOINT}/alpha_capability_analysis`, {
+                                method: 'POST',
+                                body: formDataToSend,
+                            });
+                            
+                            if (response.ok) {
+                                const result = await response.json();
+                                console.log('Ambit Alpha analysis completed:', result);
+                            } else {
+                                console.error('Alpha Capability analysis failed:', response.statusText);
+                            }
+                        } catch (error) {
+                            console.error('Error calling alpha_capability_analysis API:', error);
+                        }
+                    })(); // Immediately invoke the async function
+                } else {
+                    console.warn('No user_id found in localStorage for alpha_capability_analysis call');
+                }
+            }
+            //icoico
+
             setCurrentStep(currentStep + 1);
         }
     };
 
-    // Handle Ambit Alpha analysis
-    const handleAmbitAlphaAnalysis = async () => {
+    // Handle Resume Analysis
+    const handleResumeAnalysis = async () => {
         try {
             setIsAnalyzing(true); // Start thinking animation
-            console.log('Sending data to Ambit Alpha API...');
+            console.log('Sending data to Resume Analysis API...');
+            
+            // Get cached user_id
+            const user_id = localStorage.getItem('jobAnalysisUserId');
+            if (!user_id) {
+                alert('No user ID found. Please complete the job analysis first.');
+                return;
+            }
             
             // Create FormData to handle file upload
             const formDataToSend = new FormData();
-            formDataToSend.append('target_job', targetJob);
             formDataToSend.append('form_data', JSON.stringify(formData));
+            formDataToSend.append('user_id', user_id);
             
-            // Add resume file if it exists
+            // Add resume file (required for resume analysis)
             if (resumeFile) {
                 formDataToSend.append('resume_file', resumeFile);
                 console.log('Including resume file:', resumeFile.name, resumeFile.size, 'bytes');
             } else {
-                console.log('No resume file to upload');
+                alert('Please upload a resume file to proceed with analysis.');
+                setIsAnalyzing(false);
+                return;
             }
 
-            const response = await fetch(`${API_ENDPOINT}/ambit_alpha`, {
+            const response = await fetch(`${API_ENDPOINT}/alpha_resume_analysis`, {
                 method: 'POST',
-                //headers: { 'Content-Type': 'application/json', },
                 body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
             });
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Ambit Alpha analysis successful:', result);
+                console.log('Resume analysis successful:', result);
                 setAnalysisResult(result); // Store analysis result
                 
                 // Store resume analysis data if available
@@ -2511,11 +2595,11 @@ export default function AlphaPage() {
                 
                 setCurrentStep(6); // Navigate to analysis results
             } else {
-                console.error('Ambit Alpha analysis failed:', response.statusText);
-                alert('Analysis failed. Please try again.');
+                console.error('Resume analysis failed:', response.statusText);
+                alert('Resume analysis failed. Please try again.');
             }
         } catch (error) {
-            console.error('Error calling Ambit Alpha API:', error);
+            console.error('Error calling Resume Analysis API:', error);
             alert('Error connecting to analysis service. Please try again.');
         } finally {
             setIsAnalyzing(false); // Stop thinking animation
@@ -3555,7 +3639,7 @@ export default function AlphaPage() {
                                         </button>
                                         <button
                                             className={styles.submitButton}
-                                            onClick={handleAmbitAlphaAnalysis}
+                                            onClick={handleResumeAnalysis}
                                             disabled={isAnalyzing}
                                             style={{ 
                                                 minWidth: 120, 
