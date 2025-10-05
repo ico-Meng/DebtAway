@@ -159,6 +159,32 @@ export default function AlphaPage() {
     
     // Track active tab in Career Fit Analysis
     const [activeTab, setActiveTab] = useState('Personal Capability');
+    // Background page validation errors
+    const [bgErrors, setBgErrors] = useState<{ [key: string]: boolean }>({});
+    const [bgErrorMessage, setBgErrorMessage] = useState<string>('');
+    const [bgErrorHints, setBgErrorHints] = useState<{ [key: string]: string }>({});
+    // Education page validation
+    const [eduErrors, setEduErrors] = useState<{ [key: string]: boolean }>({});
+    const [eduErrorMessage, setEduErrorMessage] = useState<string>('');
+    // Skills page validation
+    const [skillsErrors, setSkillsErrors] = useState<{ [key: string]: boolean }>({});
+    const [skillsErrorMessage, setSkillsErrorMessage] = useState<string>('');
+    // Work page validation
+    const [workErrors, setWorkErrors] = useState<{ [key: string]: boolean }>({});
+    const [workErrorMessage, setWorkErrorMessage] = useState<string>('');
+    // Resume page validation
+    const [resumeErrorMessage, setResumeErrorMessage] = useState<string>('');
+
+    // Simple validators
+    const isValidEmail = (value: string) => {
+        // RFC5322-lite
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    };
+    const isValidPhone = (value: string) => {
+        // Allow +, spaces, dashes, parentheses, and digits. Require 10+ digits overall
+        const digits = (value || '').replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 15;
+    };
     
     // Function to control shape layering based on active tab
     const updateShapeLayering = (tab: string) => {
@@ -1901,12 +1927,12 @@ export default function AlphaPage() {
         // Create comprehensive shape that uses exact dot positions from rendered dots
         // Collect all visible dot positions by reading actual positions from DOM
         const dotPositions: { point: [number, number], index: number }[] = [];
-       
+
         // Include Background (index 0) only if it should be shown - use exact same position
         if (shouldShowBackground) {
             dotPositions.push({ point: backgroundPoint, index: 0 });
         }
-
+        
         // Include Job Match (index 5) only if it should be shown - use exact same position
         if (shouldShowJobMatch) {
             dotPositions.push({ point: jobMatchPoint, index: 5 });
@@ -2470,9 +2496,46 @@ export default function AlphaPage() {
                 });
             }
 
-            //icoico
-            // Call alpha_target_job_analysis API when moving from step 1 to step 2 (asynchronously)
+            // Validate Background page required fields before leaving step 1
             if (currentStep === 1) {
+                const errors: { [key: string]: boolean } = {};
+                const errorHints: { [key: string]: string } = {};
+                const requiredFields: Array<{ key: string; value: string }> = [
+                    { key: 'targetJob', value: (targetJob || '').trim() },
+                    { key: 'firstName', value: (formData.firstName || '').trim() },
+                    { key: 'lastName', value: (formData.lastName || '').trim() },
+                    { key: 'email', value: (formData.email || '').trim() },
+                ];
+                requiredFields.forEach(({ key, value }) => {
+                    if (!value) errors[key] = true;
+                });
+                // Format checks
+                if (!errors['email'] && formData.email && !isValidEmail(formData.email.trim())) {
+                    errors['email'] = true;
+                    errorHints['email'] = 'Please enter a valid email address (e.g., name@example.com).';
+                }
+                // Phone number format check (only if provided)
+                if (formData.phoneNumber && !isValidPhone(formData.phoneNumber.trim())) {
+                    errors['phoneNumber'] = true;
+                    errorHints['phoneNumber'] = 'Please enter a valid phone number with at least 10 digits.';
+                }
+                if (Object.keys(errors).length > 0) {
+                    setBgErrors(errors);
+                    setBgErrorHints(errorHints);
+                    setBgErrorMessage('Please fix the highlighted fields before continuing.');
+                    // Do not proceed to next step
+                    return;
+                } else {
+                    // Clear previous errors
+                    if (Object.keys(bgErrors).length > 0) {
+                        setBgErrors({});
+                        setBgErrorMessage('');
+                        setBgErrorHints({});
+                    }
+                }
+
+                //icoico
+                // Call alpha_target_job_analysis API when moving from step 1 to step 2 (asynchronously)
                 // Calculate user_id based on email address
                 const email = formData.email || '';
                 const user_id = email.replace(/[^a-zA-Z0-9]/g, '_');
@@ -2507,6 +2570,29 @@ export default function AlphaPage() {
                     }
                 })(); // Immediately invoke the async function
             }
+
+            // Validate Education page required fields before leaving step 2
+            if (currentStep === 2) {
+                const errors: { [key: string]: boolean } = {};
+                const { collegeName, degree, major } = formData as any;
+                if (!String(collegeName || '').trim()) errors['collegeName'] = true;
+                if (!String(degree || '').trim()) errors['degree'] = true;
+                if (!String(major || '').trim()) errors['major'] = true;
+                if (Object.keys(errors).length > 0) {
+                    setEduErrors(errors);
+                    setEduErrorMessage('Please fill out all required Education fields.');
+                    return;
+                } else {
+                    if (Object.keys(eduErrors).length > 0) {
+                        setEduErrors({});
+                        setEduErrorMessage('');
+                    }
+                }
+            }
+
+            // Skills page has no required fields - no validation needed
+
+            // Work page has no required fields, so no validation needed for step 4
 
             // Call alpha_capability_analysis API when moving from step 4 (Work Experience) to step 5
             if (currentStep === 4) {
@@ -2551,6 +2637,18 @@ export default function AlphaPage() {
 
     // Handle Resume Analysis
     const handleResumeAnalysis = async () => {
+        // Validate resume page: require resume file and an email
+        if (!resumeFile) {
+            setResumeErrorMessage('Please upload a resume file (PDF preferred) before analysis.');
+            return;
+        }
+        if (!formData.email || !isValidEmail(formData.email.trim())) {
+            setBgErrors(prev => ({ ...prev, email: true }));
+            setBgErrorHints(prev => ({ ...prev, email: 'Please enter a valid email address before analysis.' }));
+            setBgErrorMessage('Please fix the highlighted fields before continuing.');
+            return;
+        }
+        setResumeErrorMessage('');
         try {
             setIsAnalyzing(true); // Start thinking animation
             console.log('Sending data to Resume Analysis API...');
@@ -2806,7 +2904,7 @@ export default function AlphaPage() {
 
                                 <div className={styles.inputGroup}>
                                     <label htmlFor="targetJob" className={styles.label}>
-                                        Target Job Position <span className={styles.required}>*</span>
+                                        Target Job Position(URL or JD) <span className={styles.required}>*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -2815,7 +2913,8 @@ export default function AlphaPage() {
                                         onChange={(e) => setTargetJob(e.target.value)}
                                         onBlur={handleTargetJobBlur}
                                         className={styles.input}
-                                        placeholder="Enter the URL of your target job position <https://www...>"
+                                        style={bgErrors['targetJob'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
+                                        placeholder="Enter the job URL <https://www...>, or paste the job description"
                                     />
                                 </div>
 
@@ -2833,6 +2932,7 @@ export default function AlphaPage() {
                                             onFocus={handleBasicInfoFocus}
                                             onBlur={handleBasicInfoBlur}
                                             className={styles.input}
+                                            style={bgErrors['firstName'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="Enter your first name"
                                         />
                                     </div>
@@ -2849,6 +2949,7 @@ export default function AlphaPage() {
                                             onFocus={handleBasicInfoFocus}
                                             onBlur={handleBasicInfoBlur}
                                             className={styles.input}
+                                            style={bgErrors['lastName'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="Enter your last name"
                                         />
                                     </div>
@@ -2867,8 +2968,12 @@ export default function AlphaPage() {
                                             onFocus={handleBasicInfoFocus}
                                             onBlur={handleBasicInfoBlur}
                                             className={styles.input}
+                                            style={bgErrors['email'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="Enter your email address"
                                         />
+                                        {bgErrors['email'] && bgErrorHints['email'] && (
+                                            <div style={{ color: '#DC2626', fontSize: '0.85rem', marginTop: '4px' }}>{bgErrorHints['email']}</div>
+                                        )}
                                     </div>
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
@@ -2883,12 +2988,21 @@ export default function AlphaPage() {
                                             onFocus={handleBasicInfoFocus}
                                             onBlur={handleBasicInfoBlur}
                                             className={styles.input}
+                                            style={bgErrors['phoneNumber'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="Enter your phone number"
                                         />
+                                        {bgErrors['phoneNumber'] && bgErrorHints['phoneNumber'] && (
+                                            <div style={{ color: '#DC2626', fontSize: '0.85rem', marginTop: '4px' }}>{bgErrorHints['phoneNumber']}</div>
+                                        )}
                                     </div>
                                     </div>
                                 </div>
 
+                                {bgErrorMessage && (
+                                    <div style={{ color: '#DC2626', marginTop: '8px', marginBottom: '-4px', fontSize: '0.9rem' }}>
+                                        {bgErrorMessage}
+                                    </div>
+                                )}
                                 <div className={styles.navButtonsRight} style={{ marginTop: '-0.6rem' }}>
                                     <button 
                                         className={styles.submitButton}
@@ -2981,6 +3095,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
+                                            style={eduErrors['collegeName'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="Enter your college/university name"
                                         />
                                     </div>
@@ -2997,6 +3112,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
+                                            style={eduErrors['degree'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="e.g., Bachelor's, Master's, PhD"
                                         />
                                     </div>
@@ -3015,13 +3131,14 @@ export default function AlphaPage() {
                                             onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
+                                            style={eduErrors['major'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
                                             placeholder="e.g., Computer Science, Business Administration"
                                         />
                                     </div>
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="graduationYear" className={styles.label}>
-                                            Graduation Year <span className={styles.required}>*</span>
+                                            Graduation Year
                                         </label>
                                         <input
                                             type="number"
@@ -3039,6 +3156,11 @@ export default function AlphaPage() {
                                     </div>
                                 </div>
                                 
+                                {eduErrorMessage && (
+                                    <div style={{ color: '#DC2626', marginTop: '8px', marginBottom: '-4px', fontSize: '0.9rem' }}>
+                                        {eduErrorMessage}
+                                    </div>
+                                )}
                                 <div className={styles.navButtons}>
                                     <button
                                         className={styles.submitButton}
@@ -3137,13 +3259,13 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., JavaScript, Python, Java"
+                                            placeholder="e.g., JavaScript, Python, Rust"
                                         />
                                     </div>
 
                                     <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                                         <label htmlFor="frameworks" className={styles.label}>
-                                            Technologies
+                                            Technology Domain
                                         </label>
                                         <input
                                             type="text"
@@ -3153,7 +3275,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., React, Node.js, Django"
+                                            placeholder="e.g., Cloud Computing, LLM, Blockchain"
                                         />
                                     </div>
                                 </div>
@@ -3171,7 +3293,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., React, Angular, Vue.js"
+                                            placeholder="e.g., React, FastApi, AWS, Docker"
                                         />
                                     </div>
 
@@ -3187,7 +3309,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., Awards, Certifications, Projects"
+                                            placeholder="e.g., Awards, Certifications, Paper"
                                         />
                                     </div>
                                 </div>
@@ -3625,6 +3747,11 @@ export default function AlphaPage() {
                                                         Remove
                                                     </button>
                                                 </div>
+                                            </div>
+                                        )}
+                                        {!resumeFile && resumeErrorMessage && (
+                                            <div style={{ color: '#DC2626', fontSize: '0.9rem', marginTop: '8px' }}>
+                                                {resumeErrorMessage}
                                             </div>
                                         )}
                                     </div>
