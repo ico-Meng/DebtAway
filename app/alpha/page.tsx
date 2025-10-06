@@ -810,6 +810,38 @@ export default function AlphaPage() {
                 .style('stop-color', '#4ecdc4')
                 .style('stop-opacity', 0.3);
 
+            // Gradient for Personal Capability shape (progress triangle)
+            const capabilityGradient = defs.append('linearGradient')
+                .attr('id', 'capabilityGradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            capabilityGradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#A874E6')
+                .style('stop-opacity', 0.85);
+            capabilityGradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#6E3FB8')
+                .style('stop-opacity', 0.9);
+
+            // Gradient for Resume Power shape
+            const resumeGradient = defs.append('linearGradient')
+                .attr('id', 'resumeGradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            resumeGradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', '#FF8A8A')
+                .style('stop-opacity', 0.35);
+            resumeGradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', '#FF5C5C')
+                .style('stop-opacity', 0.5);
+
             // Create main group
             const g = svg.append('g')
                 .attr('transform', `translate(${centerX}, ${centerY})`)
@@ -2149,11 +2181,11 @@ export default function AlphaPage() {
                     // Create shape for the first time - insert at beginning so it stays behind dots
                     progressShape = g.insert('path', ':first-child')
                 .attr('class', 'progress-triangle')
-                        .attr('fill', 'rgba(154, 74, 216, 0.9)') // Purple with less transparency
-                    .attr('stroke', '#9B7BB8')
+                        .attr('fill', 'url(#capabilityGradient)')
+                    .attr('stroke', '#7E59B3')
                         .attr('stroke-width', 2)
                         .attr('stroke-opacity', 1)
-                    .attr('opacity', 0.8)
+                    .attr('opacity', currentStep === 6 ? 0.6 : 0.8)
                 .style('transform', 'scale(0)')
                 .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
@@ -2165,7 +2197,7 @@ export default function AlphaPage() {
                         .duration(400)
                         .delay(100)
                 .ease(d3.easeBackOut.overshoot(1.1))
-                        .attr('opacity', 0.8)
+                        .attr('opacity', currentStep === 6 ? 0.6 : 0.8)
                 .style('transform', 'scale(1)');
         } else {
             // Smoothly transition existing shape to new configuration
@@ -2175,10 +2207,10 @@ export default function AlphaPage() {
                         .duration(400)
                 .ease(d3.easeQuadInOut)
                 .attr('d', line)
-                    .attr('stroke', '#9B7BB8')
+                    .attr('stroke', '#7E59B3')
                     .attr('stroke-width', 3)
                     .attr('stroke-opacity', 1)
-                    .attr('opacity', 0.8);
+                    .attr('opacity', currentStep === 6 ? 0.6 : 0.8);
                 }
         } else {
             // No dots visible, hide the progress shape
@@ -2266,10 +2298,11 @@ export default function AlphaPage() {
                 .attr('class', 'resume-power-shape')
                 .datum(resumePowerPoints)
                 .attr('d', resumePowerLine)
-                .attr('fill', 'rgba(205, 80, 61, 0.6)') // Light red fill
-                .attr('stroke', '#ff6b6b') // Red stroke
+                .attr('fill', 'url(#resumeGradient)')
+                .attr('stroke', '#D94A4A')
                 .attr('stroke-width', 2)
-                .attr('opacity', 0.8);
+                .attr('opacity', 0.9)
+                .style('filter', 'drop-shadow(0 6px 14px rgba(217,74,74,0.25))');
                 
             console.log('Resume Power shape drawn with scores:', {
                 background: analysis.background_score,
@@ -3195,7 +3228,7 @@ export default function AlphaPage() {
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             style={eduErrors['collegeName'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
-                                            placeholder="Enter your college/university name"
+                                            placeholder="Enter your most recent college name"
                                         />
                                     </div>
 
@@ -3374,7 +3407,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., Cloud Computing, LLM, Blockchain"
+                                            placeholder="e.g., Cloud, AI/LLM, Blockchain"
                                         />
                                     </div>
                                 </div>
@@ -4313,10 +4346,10 @@ export default function AlphaPage() {
                                     </button>
                                     <button
                                         className={styles.submitButton}
-                                        onClick={() => alert('Analysis complete!')}
+                                        onClick={() => window.open('https://www.careerlandinggroup.com/career-cruise/#flash-chat', '_blank')}
                                         style={{ minWidth: 120, maxWidth: 140 }}
                                     >
-                                        Complete
+                                        Coach
                                     </button>
                                                 </div>
                                             </div>
@@ -4416,10 +4449,10 @@ export default function AlphaPage() {
                                                     </button>
                                                     <button
                                                         className={styles.submitButton}
-                                                        onClick={() => alert('Analysis complete!')}
+                                                        onClick={() => window.open('https://www.careerlandinggroup.com/resume-design/#resume-analysis-lab', '_blank')}
                                                         style={{ minWidth: 120, maxWidth: 140 }}
                                                     >
-                                                        Complete
+                                                        Improve
                                                     </button>
                                                 </div>
                                             </div>
