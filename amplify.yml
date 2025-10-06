@@ -11,7 +11,7 @@ frontend:
     build:
       commands:
         - . $NVM_DIR/nvm.sh && nvm install 20 && nvm use 20 && node -v && npm -v || true
-        - : # install step already ran in backend; build next app
+        - echo "Frontend build starting" >/dev/null
         - npm run build
   artifacts:
     baseDirectory: .next
