@@ -225,8 +225,46 @@ export default function AlphaPage() {
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     
+    // Analysis tips state
+    const [currentTipIndex, setCurrentTipIndex] = useState(0);
+    const [analysisTips] = useState([
+        "Quantify results with metrics to prove impact.",
+        "Start bullet points with strong action verbs.",
+        "Highlight key technologies and programming languages clearly.",
+        "Tailor every résumé for the target role.",
+        "Keep layout clean and easy to scan.",
+        "Focus on achievements, not daily responsibilities.",
+        "Showcase open-source or personal technical projects.",
+        "Include links to GitHub or portfolio site.",
+        "Emphasize teamwork and cross-functional collaboration experience.",
+        "Mention performance improvements or efficiency gains.",
+        "Use consistent formatting for roles and dates.",
+        "Keep it one page if under 10 years experience.",
+        "Avoid buzzwords without measurable context.",
+        "Include internships or hackathon achievements if early career.",
+        "Demonstrate understanding of system design or scalability.",
+        "Add relevant certifications or continuous learning credentials.",
+        "Prioritize recent, relevant experience at the top.",
+        "Include brief summaries for complex projects.",
+        "Review for grammar and concise language.",
+        "Regularly update résumé as new skills develop."
+    ]);
+    
     // Resume analysis data
     const [resumeAnalysisData, setResumeAnalysisData] = useState<any>(null);
+    
+    // Effect to cycle through analysis tips while analyzing
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isAnalyzing) {
+            interval = setInterval(() => {
+                setCurrentTipIndex(prev => (prev + 1) % analysisTips.length);
+            }, 5000); // Change tip every 5 seconds
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isAnalyzing, analysisTips.length]);
     
     // Effect to set initial shape layering when analysis data is available
     useEffect(() => {
@@ -2052,44 +2090,44 @@ export default function AlphaPage() {
 
         // Always create/update the shape when there are dots to connect
         if (orderedDotPoints.length > 0) {
-        // Update existing shape or create new one
-        let progressShape = g.select<SVGPathElement>('.progress-triangle');
+            // Update existing shape or create new one
+            let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-        if (progressShape.empty()) {
-                // Create shape for the first time - insert at beginning so it stays behind dots
-                progressShape = g.insert('path', ':first-child')
-                .attr('class', 'progress-triangle')
-                    .attr('fill', 'rgba(154, 74, 216, 0.9)') // Purple with less transparency
-                .attr('stroke', '#9B7BB8')
-                    .attr('stroke-width', 2)
+            if (progressShape.empty()) {
+                    // Create shape for the first time - insert at beginning so it stays behind dots
+                    progressShape = g.insert('path', ':first-child')
+                    .attr('class', 'progress-triangle')
+                        .attr('fill', 'rgba(154, 74, 216, 0.9)') // Purple with less transparency
+                    .attr('stroke', '#9B7BB8')
+                        .attr('stroke-width', 2)
+                        .attr('stroke-opacity', 1)
+                    .attr('opacity', 0.8)
+                    .style('transform', 'scale(0)')
+                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+
+                    // Initial appearance animation - show immediately when dots appear
+                progressShape
+                    .datum(shapePoints)
+                    .attr('d', line)
+                    .transition()
+                        .duration(400)
+                        .delay(100)
+                    .ease(d3.easeBackOut.overshoot(1.1))
+                        .attr('opacity', 0.8)
+                    .style('transform', 'scale(1)');
+            } else {
+                // Smoothly transition existing shape to new configuration
+                progressShape
+                    .datum(shapePoints)
+                    .transition()
+                        .duration(400)
+                    .ease(d3.easeQuadInOut)
+                    .attr('d', line)
+                    .attr('stroke', '#9B7BB8')
+                    .attr('stroke-width', 3)
                     .attr('stroke-opacity', 1)
-                .attr('opacity', 0)
-                .style('transform', 'scale(0)')
-                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
-
-                // Initial appearance animation - show immediately when dots appear
-            progressShape
-                .datum(shapePoints)
-                .attr('d', line)
-                .transition()
-                    .duration(400)
-                    .delay(100)
-                .ease(d3.easeBackOut.overshoot(1.1))
-                    .attr('opacity', 0.9)
-                .style('transform', 'scale(1)');
-        } else {
-            // Smoothly transition existing shape to new configuration
-            progressShape
-                .datum(shapePoints)
-                .transition()
-                    .duration(400)
-                .ease(d3.easeQuadInOut)
-                .attr('d', line)
-                .attr('stroke', '#9B7BB8')
-                .attr('stroke-width', 3)
-                .attr('stroke-opacity', 1)
-                .attr('opacity', 0.9);
-            }
+                    .attr('opacity', 0.8);
+                }
         } else {
             // No dots visible, hide the progress shape
             const progressShape = g.select<SVGPathElement>('.progress-triangle');
@@ -2097,7 +2135,7 @@ export default function AlphaPage() {
                 progressShape
                     .transition()
                     .duration(400)
-                    .attr('opacity', 0)
+                    .attr('opacity', 0.8)
                     .style('transform', 'scale(0)')
                     .on('end', function() {
                         progressShape.remove();
@@ -2176,7 +2214,7 @@ export default function AlphaPage() {
                 .attr('class', 'resume-power-shape')
                 .datum(resumePowerPoints)
                 .attr('d', resumePowerLine)
-                .attr('fill', 'rgba(255, 107, 107, 0.2)') // Light red fill
+                .attr('fill', 'rgba(205, 80, 61, 0.6)') // Light red fill
                 .attr('stroke', '#ff6b6b') // Red stroke
                 .attr('stroke-width', 2)
                 .attr('opacity', 0.8);
@@ -2556,6 +2594,9 @@ export default function AlphaPage() {
                         
                         const response = await fetch(`${API_ENDPOINT}/alpha_target_job_analysis`, {
                             method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
                             body: formDataToSend,
                         });
                         
@@ -2612,6 +2653,9 @@ export default function AlphaPage() {
                             
                             const response = await fetch(`${API_ENDPOINT}/alpha_capability_analysis`, {
                                 method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
                                 body: formDataToSend,
                             });
                             
@@ -2645,7 +2689,7 @@ export default function AlphaPage() {
         if (!formData.email || !isValidEmail(formData.email.trim())) {
             setBgErrors(prev => ({ ...prev, email: true }));
             setBgErrorHints(prev => ({ ...prev, email: 'Please enter a valid email address before analysis.' }));
-            setBgErrorMessage('Please fix the highlighted fields before continuing.');
+            //setBgErrorMessage('Please fix the highlighted fields before continuing.');
             return;
         }
         setResumeErrorMessage('');
@@ -2677,6 +2721,9 @@ export default function AlphaPage() {
 
             const response = await fetch(`${API_ENDPOINT}/alpha_resume_analysis`, {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
             });
 
@@ -3651,6 +3698,35 @@ export default function AlphaPage() {
 
                                 <div className={styles.resumeAnalysisContainer}>
                                     <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>Resume Analysis</h2>
+                                    
+                                    {/* Analysis Tips Display */}
+                                    {isAnalyzing && (
+                                        <div style={{
+                                            position: 'fixed',
+                                            bottom: '20px',
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            backdropFilter: 'blur(10px)',
+                                            padding: '12px 24px',
+                                            borderRadius: '25px',
+                                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                            zIndex: 1000,
+                                            maxWidth: '80%',
+                                            textAlign: 'center'
+                                        }}>
+                                            <div style={{
+                                                fontSize: '16px',
+                                                fontWeight: '500',
+                                                color: '#2d3748',
+                                                lineHeight: '1.4',
+                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+                                            }}>
+                                                Tip {currentTipIndex + 1}: {analysisTips[currentTipIndex]}
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>
