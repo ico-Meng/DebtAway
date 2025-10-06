@@ -87,6 +87,35 @@ const globalStyles = `
       transform: scale(1);
     }
   }
+  
+  @keyframes spinner-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes progress-ring-fill {
+    0% {
+      stroke-dashoffset: 100;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes tip-fancy-in {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96) rotate(-1.5deg);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-2px) scale(1.02) rotate(0.4deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotate(0deg);
+    }
+  }
 `;
 
 export default function AlphaPage() {
@@ -224,6 +253,7 @@ export default function AlphaPage() {
     // Analysis results state
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [ringProgress, setRingProgress] = useState<number>(0);
     
     // Analysis tips state
     const [currentTipIndex, setCurrentTipIndex] = useState(0);
@@ -265,6 +295,28 @@ export default function AlphaPage() {
             if (interval) clearInterval(interval);
         };
     }, [isAnalyzing, analysisTips.length]);
+
+    // Effect: smooth stepwise loader ring from 45% to 100% in ~20s (2s per step)
+    useEffect(() => {
+        if (!isAnalyzing) {
+            setRingProgress(0);
+            return;
+        }
+        setRingProgress(45);
+        const stepMs = 2000;
+        const totalSteps = 10; // 10 * 2s = 20s
+        const stepSize = 55 / totalSteps; // 45 -> 100
+        let steps = 0;
+        const id = setInterval(() => {
+            steps += 1;
+            setRingProgress(prev => {
+                const next = prev + stepSize;
+                return next >= 100 ? 100 : parseFloat(next.toFixed(2));
+            });
+            if (steps >= totalSteps) clearInterval(id);
+        }, stepMs);
+        return () => clearInterval(id);
+    }, [isAnalyzing]);
     
     // Effect to set initial shape layering when analysis data is available
     useEffect(() => {
@@ -2090,39 +2142,39 @@ export default function AlphaPage() {
 
         // Always create/update the shape when there are dots to connect
         if (orderedDotPoints.length > 0) {
-            // Update existing shape or create new one
-            let progressShape = g.select<SVGPathElement>('.progress-triangle');
+        // Update existing shape or create new one
+        let progressShape = g.select<SVGPathElement>('.progress-triangle');
 
-            if (progressShape.empty()) {
+        if (progressShape.empty()) {
                     // Create shape for the first time - insert at beginning so it stays behind dots
                     progressShape = g.insert('path', ':first-child')
-                    .attr('class', 'progress-triangle')
+                .attr('class', 'progress-triangle')
                         .attr('fill', 'rgba(154, 74, 216, 0.9)') // Purple with less transparency
                     .attr('stroke', '#9B7BB8')
                         .attr('stroke-width', 2)
                         .attr('stroke-opacity', 1)
                     .attr('opacity', 0.8)
-                    .style('transform', 'scale(0)')
-                    .style('transform-origin', '0px 0px'); // Center at origin since g is translated
+                .style('transform', 'scale(0)')
+                .style('transform-origin', '0px 0px'); // Center at origin since g is translated
 
                     // Initial appearance animation - show immediately when dots appear
-                progressShape
-                    .datum(shapePoints)
-                    .attr('d', line)
-                    .transition()
+            progressShape
+                .datum(shapePoints)
+                .attr('d', line)
+                .transition()
                         .duration(400)
                         .delay(100)
-                    .ease(d3.easeBackOut.overshoot(1.1))
+                .ease(d3.easeBackOut.overshoot(1.1))
                         .attr('opacity', 0.8)
-                    .style('transform', 'scale(1)');
-            } else {
-                // Smoothly transition existing shape to new configuration
-                progressShape
-                    .datum(shapePoints)
-                    .transition()
+                .style('transform', 'scale(1)');
+        } else {
+            // Smoothly transition existing shape to new configuration
+            progressShape
+                .datum(shapePoints)
+                .transition()
                         .duration(400)
-                    .ease(d3.easeQuadInOut)
-                    .attr('d', line)
+                .ease(d3.easeQuadInOut)
+                .attr('d', line)
                     .attr('stroke', '#9B7BB8')
                     .attr('stroke-width', 3)
                     .attr('stroke-opacity', 1)
@@ -3699,31 +3751,58 @@ export default function AlphaPage() {
                                 <div className={styles.resumeAnalysisContainer}>
                                     <h2 className={styles.sectionTitle} style={{ marginBottom: 24 }}>Resume Analysis</h2>
                                     
-                                    {/* Analysis Tips Display */}
+                                    {/* Full-page loading overlay while analyzing */}
                                     {isAnalyzing && (
                                         <div style={{
-                                            position: 'fixed',
-                                            bottom: '20px',
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                            backdropFilter: 'blur(10px)',
-                                            padding: '12px 24px',
-                                            borderRadius: '25px',
-                                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                                            zIndex: 1000,
-                                            maxWidth: '80%',
-                                            textAlign: 'center'
+                                            position: 'fixed', inset: 0,
+                                            background: 'rgba(237, 236, 227, 0.75)',
+                                            backdropFilter: 'blur(2px)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            zIndex: 999
                                         }}>
                                             <div style={{
-                                                fontSize: '16px',
-                                                fontWeight: '500',
-                                                color: '#2d3748',
-                                                lineHeight: '1.4',
-                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+                                                background: 'white',
+                                                borderRadius: 16,
+                                                border: '1px solid #e5e7eb',
+                                                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                                                padding: '20px 28px',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                                                maxWidth: 560,
                                             }}>
-                                                Tip {currentTipIndex + 1}: {analysisTips[currentTipIndex]}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    {/* 20s smooth filling ring using pathLength for simple CSS control */}
+                                                    <svg width="28" height="28" viewBox="0 0 36 36" aria-label="loading progress" role="img">
+                                                        {/* Track */}
+                                                        <circle cx="18" cy="18" r="16" fill="none" stroke="#f3f4f6" strokeWidth="3" />
+                                                        {/* Progress - uses pathLength=100 so dash values are percentage based */}
+                                                        <circle
+                                                          cx="18" cy="18" r="16" fill="none"
+                                                          stroke="#9B6A10" strokeWidth="3" strokeLinecap="round"
+                                                          pathLength="100"
+                                                          style={{
+                                                            strokeDasharray: 100,
+                                                            strokeDashoffset: Math.max(0, 100 - ringProgress),
+                                                            transform: 'rotate(-90deg)',
+                                                            transformOrigin: '50% 50%',
+                                                            transition: 'stroke-dashoffset 600ms ease'
+                                                          }}
+                                                        />
+                                                    </svg>
+                                                    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 12 }}>
+                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite' }} />
+                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#B8860B', animation: 'dot-bounce 0.9s ease-in-out infinite 0.15s' }} />
+                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite 0.3s' }} />
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 16, fontWeight: 600, color: '#374151',
+                                                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+                                                }}>Analyzing your resume and job match…</div>
+                                                <div style={{
+                                                    fontSize: 14, color: '#6b7280', textAlign: 'center',
+                                                    maxWidth: 520, lineHeight: 1.5,
+                                                    animation: 'tip-fancy-in 600ms ease'
+                                                }}>Tip {currentTipIndex + 1}: {analysisTips[currentTipIndex]}</div>
                                             </div>
                                         </div>
                                     )}
