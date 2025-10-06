@@ -2059,7 +2059,7 @@ export default function AlphaPage() {
                 // Create shape for the first time - insert at beginning so it stays behind dots
                 progressShape = g.insert('path', ':first-child')
                 .attr('class', 'progress-triangle')
-                    .attr('fill', 'rgba(192, 147, 226, 0.6)') // Purple with good opacity
+                    .attr('fill', 'rgba(154, 74, 216, 0.9)') // Purple with less transparency
                 .attr('stroke', '#9B7BB8')
                     .attr('stroke-width', 2)
                     .attr('stroke-opacity', 1)
