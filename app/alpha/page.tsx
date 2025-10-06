@@ -1225,7 +1225,7 @@ export default function AlphaPage() {
                     .attr('cy', startPosition[1] - (actualJobMatchValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#4794ED')
-                    .attr('stroke', '#2f3542')
+                    .attr('stroke', '#3960BD')
                     .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
@@ -1396,7 +1396,7 @@ export default function AlphaPage() {
                     .attr('cy', startPosition[1] - (educationValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
                     .attr('fill', '#4ecdc4')
-                    .attr('stroke', '#2c3e50')
+                    .attr('stroke', '#38ABAB')
                     .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
@@ -1824,8 +1824,8 @@ export default function AlphaPage() {
                     .attr('cx', startPosition[0])
                     .attr('cy', startPosition[1] - (teamworkValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
-                    .attr('fill', '#8e44ad')
-                    .attr('stroke', '#9b59b6')
+                    .attr('fill', '#BF60DB')
+                    .attr('stroke', '#9645AD')
                     .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
 
@@ -2522,7 +2522,7 @@ export default function AlphaPage() {
                 if (Object.keys(errors).length > 0) {
                     setBgErrors(errors);
                     setBgErrorHints(errorHints);
-                    setBgErrorMessage('Please fix the highlighted fields before continuing.');
+                    //setBgErrorMessage('Please fix the highlighted fields before continuing.');
                     // Do not proceed to next step
                     return;
                 } else {
