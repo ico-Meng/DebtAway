@@ -1224,7 +1224,7 @@ export default function AlphaPage() {
                     .attr('cx', startPosition[0])
                     .attr('cy', startPosition[1] - (actualJobMatchValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
-                    .attr('fill', '#3742fa')
+                    .attr('fill', '#4794ED')
                     .attr('stroke', '#2f3542')
                     .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
@@ -1278,7 +1278,7 @@ export default function AlphaPage() {
                             .attr('cy', currentY)
                             .attr('r', 6)
                             .attr('fill', 'none')
-                            .attr('stroke', '#3742fa')
+                            .attr('stroke', '#4794ED')
                             .attr('stroke-width', 2)
                             .attr('opacity', 0.8);
 
@@ -1538,7 +1538,7 @@ export default function AlphaPage() {
                     .attr('cx', startPosition[0])
                     .attr('cy', startPosition[1] - (professionalValue === 0 ? 0 : 50)) // No drop if at center
                     .attr('r', 0)
-                    .attr('fill', '#e74c3c')
+                    .attr('fill', '#F0611A')
                     .attr('stroke', '#c0392b')
                     .attr('stroke-width', 3)
                     .attr('opacity', 0) as d3.Selection<SVGCircleElement, unknown, null, undefined>;
@@ -1592,7 +1592,7 @@ export default function AlphaPage() {
                             .attr('cy', currentY)
                             .attr('r', 6)
                             .attr('fill', 'none')
-                            .attr('stroke', '#e74c3c')
+                            .attr('stroke', '#F0611A')
                             .attr('stroke-width', 2)
                             .attr('opacity', 0.8);
 
