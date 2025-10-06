@@ -1153,8 +1153,8 @@ async def analyze_resume_with_openai(resume_parsed_data: dict, job_requirements:
         logger.info("Starting resume analysis with OpenAI...")
         
         prompt = f"""
-        You are an experienced technical recruiter and HR professional. 
-        Analyze the following parsed resume data against the job requirements and provide comprehensive feedback.
+        You are an experienced technical recruiter and HR professional writing in a friendly, supportive tone. 
+        Analyze the following parsed resume data against the job requirements and provide comprehensive feedback with constructive, encouraging language.
 
         JOB REQUIREMENTS:
         {job_requirements}
@@ -1165,7 +1165,7 @@ async def analyze_resume_with_openai(resume_parsed_data: dict, job_requirements:
         ANALYSIS REQUIREMENTS:
         For each section (Background, Education, Professional, Technical Skills, Teamwork, ATS), provide:
         1. Score (1-10): How well does this section align with job requirements?
-        2. Improvement suggestions: Specific, actionable advice to improve this section
+        2. Improvement suggestions: Specific, actionable advice to improve this section, phrased positively and encouragingly.
 
         Focus on:
         - How well the resume content matches the job requirements
@@ -1175,6 +1175,7 @@ async def analyze_resume_with_openai(resume_parsed_data: dict, job_requirements:
         - Specific improvements to make the resume more competitive
 
         Provide specific, actionable feedback that would help the candidate improve their resume for this specific role.
+        Use a friendly tone. Keep suggestions concise, clear, and encouraging.
         Only include non-empty, relevant improvement suggestions.
         """
         

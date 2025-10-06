@@ -301,7 +301,7 @@ export default function AlphaPage() {
                 atsReview.formatting_issues.forEach((issue: string) => {
                     if (issue && issue.trim() && issue !== "N/A") {
                         suggestions.push({
-                            category: "ATS Formatting Issue",
+                            category: "ATS Format",
                             icon: "📝",
                             advice: issue,
                             color: "#EA580C"
@@ -315,7 +315,7 @@ export default function AlphaPage() {
                 atsReview.syntax_issues.forEach((issue: string) => {
                     if (issue && issue.trim() && issue !== "N/A") {
                         suggestions.push({
-                            category: "ATS Syntax Issue",
+                            category: "ATS Syntax",
                             icon: "⚠️",
                             advice: issue,
                             color: "#DC2626"
@@ -335,7 +335,7 @@ export default function AlphaPage() {
                 analysis.background_improvements.forEach((improvement: string) => {
                     if (improvement && improvement.trim() && improvement !== "N/A") {
                         suggestions.push({
-                            category: "Background Improvement",
+                            category: "Background",
                             icon: "👤",
                             advice: improvement,
                             color: "#4F46E5"
@@ -349,7 +349,7 @@ export default function AlphaPage() {
                 analysis.education_improvements.forEach((improvement: string) => {
                     if (improvement && improvement.trim() && improvement !== "N/A") {
                         suggestions.push({
-                            category: "Education Improvement",
+                            category: "Education",
                             icon: "🎓",
                             advice: improvement,
                             color: "#059669"
@@ -363,7 +363,7 @@ export default function AlphaPage() {
                 analysis.professional_improvements.forEach((improvement: string) => {
                     if (improvement && improvement.trim() && improvement !== "N/A") {
                         suggestions.push({
-                            category: "Professional Improvement",
+                            category: "Professional",
                             icon: "💼",
                             advice: improvement,
                             color: "#7C3AED"
@@ -377,7 +377,7 @@ export default function AlphaPage() {
                 analysis.technical_skills_improvements.forEach((improvement: string) => {
                     if (improvement && improvement.trim() && improvement !== "N/A") {
                         suggestions.push({
-                            category: "Technical Skills Improvement",
+                            category: "Tech Skills",
                             icon: "⚡",
                             advice: improvement,
                             color: "#0891B2"
@@ -391,7 +391,7 @@ export default function AlphaPage() {
                 analysis.teamwork_improvements.forEach((improvement: string) => {
                     if (improvement && improvement.trim() && improvement !== "N/A") {
                         suggestions.push({
-                            category: "Teamwork Improvement",
+                            category: "Teamwork",
                             icon: "🤝",
                             advice: improvement,
                             color: "#EA580C"
@@ -415,18 +415,18 @@ export default function AlphaPage() {
             }
             
             // General improvements
-            if (analysis.general_improvements && analysis.general_improvements.length > 0) {
-                analysis.general_improvements.forEach((improvement: string) => {
-                    if (improvement && improvement.trim() && improvement !== "N/A") {
-                        suggestions.push({
-                            category: "General Improvement",
-                            icon: "🚀",
-                            advice: improvement,
-                            color: "#4F46E5"
-                        });
-                    }
-                });
-            }
+            //if (analysis.general_improvements && analysis.general_improvements.length > 0) {
+            //    analysis.general_improvements.forEach((improvement: string) => {
+            //        if (improvement && improvement.trim() && improvement !== "N/A") {
+            //            suggestions.push({
+            //                category: "General Improvement",
+            //                icon: "🚀",
+            //                advice: improvement,
+            //                color: "#4F46E5"
+            //            });
+            //        }
+            //    });
+            //}
         }
         
         console.log(`Generated ${suggestions.length} resume analysis suggestions:`, suggestions);
@@ -436,13 +436,13 @@ export default function AlphaPage() {
     // Sample improvement advice data (this would come from the backend API response)
     const improvementAdvice = [
         {
-            category: "Technical Skills",
+            category: "Tech Skills",
             icon: "⚡",
             advice: "Learn React.js and Next.js frameworks through online courses and build 2-3 portfolio projects",
             color: "#4F46E5"
         },
         {
-            category: "Professional Experience",
+            category: "Professional",
             icon: "🚀",
             advice: "Gain experience with microservices architecture by contributing to open-source projects",
             color: "#059669"
@@ -2594,9 +2594,9 @@ export default function AlphaPage() {
                         
                         const response = await fetch(`${API_ENDPOINT}/alpha_target_job_analysis`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            //headers: {
+                            //    'Content-Type': 'application/json',
+                            //},
                             body: formDataToSend,
                         });
                         
@@ -2653,9 +2653,9 @@ export default function AlphaPage() {
                             
                             const response = await fetch(`${API_ENDPOINT}/alpha_capability_analysis`, {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
+                                //headers: {
+                                //    'Content-Type': 'application/json',
+                                //},
                                 body: formDataToSend,
                             });
                             
@@ -2721,9 +2721,9 @@ export default function AlphaPage() {
 
             const response = await fetch(`${API_ENDPOINT}/alpha_resume_analysis`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                //headers: {
+                //    'Content-Type': 'application/json',
+                //},
                 body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
             });
 
@@ -4216,7 +4216,7 @@ export default function AlphaPage() {
                                                                     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                                                                     letterSpacing: '-0.01em'
                                                                 }}>
-                                                                    {advice.advice}
+                                                                    <span style={{ fontWeight: 800, fontStyle: 'italic' }}><strong>{advice.category}:</strong></span> {advice.advice}
                                                                 </p>
                                                             </div>
                                                         ))}
@@ -4305,7 +4305,7 @@ export default function AlphaPage() {
                                                                         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                                                                         letterSpacing: '-0.01em'
                                                                     }}>
-                                                                        {suggestion.advice}
+                                                                        <span style={{ fontWeight: 800, fontStyle: 'italic' }}><strong>{suggestion.category}:</strong></span> {suggestion.advice}
                                                                     </p>
                                                                 </div>
                                                             ))
