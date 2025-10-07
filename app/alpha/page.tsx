@@ -2679,9 +2679,9 @@ export default function AlphaPage() {
                         
                         const response = await fetch(`${API_ENDPOINT}/alpha_target_job_analysis`, {
                             method: 'POST',
-                            //headers: {
-                            //    'Content-Type': 'application/json',
-                            //},
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
                             body: formDataToSend,
                         });
                         
@@ -2738,9 +2738,9 @@ export default function AlphaPage() {
                             
                             const response = await fetch(`${API_ENDPOINT}/alpha_capability_analysis`, {
                                 method: 'POST',
-                                //headers: {
-                                //    'Content-Type': 'application/json',
-                                //},
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
                                 body: formDataToSend,
                             });
                             
@@ -2806,9 +2806,9 @@ export default function AlphaPage() {
 
             const response = await fetch(`${API_ENDPOINT}/alpha_resume_analysis`, {
                 method: 'POST',
-                //headers: {
-                //    'Content-Type': 'application/json',
-                //},
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
             });
 
