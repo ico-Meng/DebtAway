@@ -21,6 +21,18 @@ const globalStyles = `
     margin: 0;
   }
   
+  @media (max-width: 768px) {
+    html, body {
+      font-size: 14px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    html, body {
+      font-size: 13px;
+    }
+  }
+  
   body {
     overflow: auto;
     overflow-x: hidden;
@@ -2976,8 +2988,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">
@@ -3156,8 +3172,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">
@@ -3320,8 +3340,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">
@@ -3473,8 +3497,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">
@@ -3725,8 +3753,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">
@@ -4023,8 +4055,12 @@ export default function AlphaPage() {
                                             height="500"
                                             className={styles.radarChart}
                                             style={{
-                                                display: 'block'
+                                                display: 'block',
+                                                maxWidth: '100%',
+                                                height: 'auto'
                                             }}
+                                            viewBox="0 0 500 500"
+                                            preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
                                             <g className="dots-loading-animation">

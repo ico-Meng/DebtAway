@@ -517,8 +517,8 @@ async def lead_sign_up(request: Request):
         table_name = 'lead_email'
         try:
             table = dynamodb.Table(table_name)
-            # Try to describe the table to check if it exists
-            table.table_status
+            # Try to load the table to see if it exists
+            table.load()
             logger.info(f"Table {table_name} exists")
         except dynamodb.meta.client.exceptions.ResourceNotFoundException:
             logger.info(f"Table {table_name} does not exist, creating it...")
@@ -543,8 +543,9 @@ async def lead_sign_up(request: Request):
             table.wait_until_exists()
             logger.info(f"Table {table_name} created successfully")
         except Exception as table_check_error:
-            logger.error(f"Error checking/creating table: {str(table_check_error)}")
-            raise
+            # If we can't describe the table due to permissions, assume it exists and try to use it
+            logger.warning(f"Could not check table status (permissions issue): {str(table_check_error)}")
+            table = dynamodb.Table(table_name)
         
         # Generate unique ID and timestamp
         lead_id = str(uuid.uuid4())
@@ -1339,11 +1340,14 @@ async def alpha_target_job_analysis(
             try:
                 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
                 table_name = 'career_analysis_data'
-                # Ensure table exists with composite key
+                
+                # Try to get the table - if it doesn't exist, create it
                 try:
                     table = dynamodb.Table(table_name)
-                    table.table_status
+                    # Try to describe the table to see if it exists
+                    table.load()
                 except dynamodb.meta.client.exceptions.ResourceNotFoundException:
+                    logger.info(f"Table {table_name} does not exist, creating it...")
                     table = dynamodb.create_table(
                         TableName=table_name,
                         KeySchema=[
@@ -1358,6 +1362,10 @@ async def alpha_target_job_analysis(
                     )
                     table.wait_until_exists()
                     logger.info(f"Table {table_name} created successfully")
+                except Exception as table_error:
+                    # If we can't describe the table due to permissions, assume it exists and try to use it
+                    logger.warning(f"Could not check table status (permissions issue): {str(table_error)}")
+                    table = dynamodb.Table(table_name)
                 # Insert a new item for each new job_analysis
                 item = {
                     'user_id': user_id,

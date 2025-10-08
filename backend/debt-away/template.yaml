@@ -65,22 +65,6 @@ Resources:
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}"
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}/*"
 
-  #LeadEmailTable:
-  #  Type: AWS::DynamoDB::Table
-  #  Properties:
-  #    TableName: lead_email
-  #    BillingMode: PAY_PER_REQUEST
-  #    AttributeDefinitions:
-  #      - AttributeName: id
-  #        AttributeType: S
-  #    KeySchema:
-  #      - AttributeName: id
-  #        KeyType: HASH
-  #    SSESpecification:
-  #      SSEEnabled: true
-  #    PointInTimeRecoverySpecification:
-  #      PointInTimeRecoveryEnabled: true
- 
   ApiGatewayApi:
       Type: AWS::Serverless::Api
       Properties:
@@ -129,6 +113,8 @@ Resources:
               Resource: 
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email/*"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/career_analysis_data"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/career_analysis_data/*"
         - AWSLambdaBasicExecutionRole
       Environment:
         Variables:
