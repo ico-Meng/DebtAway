@@ -4425,7 +4425,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '220px', // Fixed height for exactly 3 items
+                                                    height: '280px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4513,7 +4513,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '220px', // Fixed height for exactly 3 items
+                                                    height: '280px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
