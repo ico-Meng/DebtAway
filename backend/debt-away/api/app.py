@@ -1659,6 +1659,9 @@ async def alpha_resume_analysis(
         job_title = analysis_data.get('standardized_title', 'Unknown')
         company_name = analysis_data.get('company_name', 'Unknown')
         
+        # Extract capability analysis information
+        capability_analysis_data = job_analysis_data.get('capability_analysis', {})
+        
         # Create job analysis result in the format expected by frontend
         job_analysis_result = {
             "success": True,
@@ -1678,6 +1681,7 @@ async def alpha_resume_analysis(
             "resume_uploaded": True,
             "job_analysis": job_analysis_result,
             "resume_analysis": resume_analysis_result,
+            "capability_analysis": capability_analysis_data,
             "data_summary": {
                 "target_job": job_title,
                 "job_title": job_title,

@@ -2332,6 +2332,101 @@ export default function AlphaPage() {
         // Static dots - no pulsing animation
     };
 
+    const repaintProgressShapeWithCapabilityScores = (scores: {
+        background: number;
+        education: number;
+        professional: number;
+        techSkills: number;
+        teamwork: number;
+        jobMatch: number;
+    }) => {
+        const svgElement = svgRef.current;
+        if (!svgElement) return;
+
+        const svg = d3.select(svgElement);
+        const g = svg.select('.chart-group');
+
+        // Use the same coordinate system as the existing chart
+        const labels = ['Background', 'Education', 'Professional', 'Tech Skills', 'Teamwork', 'Job Match'];
+        const maxValue = 10;
+        const radius = 180;
+        const angleSlice = (Math.PI * 2) / labels.length;
+
+        // Calculate positions for each axis using the same system as existing chart
+        const backgroundAngle = angleSlice * 0 - Math.PI / 2;
+        const educationAngle = angleSlice * 1 - Math.PI / 2;
+        const professionalAngle = angleSlice * 2 - Math.PI / 2;
+        const techSkillsAngle = angleSlice * 3 - Math.PI / 2;
+        const teamworkAngle = angleSlice * 4 - Math.PI / 2;
+        const jobMatchAngle = angleSlice * 5 - Math.PI / 2;
+
+        // Convert scores to radius values (scores are 1-10, map to 0-180 radius)
+        const backgroundRadius = (scores.background / maxValue) * radius;
+        const educationRadius = (scores.education / maxValue) * radius;
+        const professionalRadius = (scores.professional / maxValue) * radius;
+        const techSkillsRadius = (scores.techSkills / maxValue) * radius;
+        const teamworkRadius = (scores.teamwork / maxValue) * radius;
+        const jobMatchRadius = (scores.jobMatch / maxValue) * radius;
+
+        // Calculate positions for each point
+        const backgroundPoint: [number, number] = [
+            Math.cos(backgroundAngle) * backgroundRadius,
+            Math.sin(backgroundAngle) * backgroundRadius
+        ];
+        const educationPoint: [number, number] = [
+            Math.cos(educationAngle) * educationRadius,
+            Math.sin(educationAngle) * educationRadius
+        ];
+        const professionalPoint: [number, number] = [
+            Math.cos(professionalAngle) * professionalRadius,
+            Math.sin(professionalAngle) * professionalRadius
+        ];
+        const techSkillsPoint: [number, number] = [
+            Math.cos(techSkillsAngle) * techSkillsRadius,
+            Math.sin(techSkillsAngle) * techSkillsRadius
+        ];
+        const teamworkPoint: [number, number] = [
+            Math.cos(teamworkAngle) * teamworkRadius,
+            Math.sin(teamworkAngle) * teamworkRadius
+        ];
+        const jobMatchPoint: [number, number] = [
+            Math.cos(jobMatchAngle) * jobMatchRadius,
+            Math.sin(jobMatchAngle) * jobMatchRadius
+        ];
+
+        // Create progress shape points in the correct order
+        const progressPoints = [
+            backgroundPoint,
+            educationPoint,
+            professionalPoint,
+            techSkillsPoint,
+            teamworkPoint,
+            jobMatchPoint
+        ];
+
+        // Remove existing progress shape
+        g.selectAll('.progress-triangle').remove();
+
+        // Create the progress shape line generator
+        const progressLine = d3.line<[number, number]>()
+            .x(d => d[0])
+            .y(d => d[1])
+            .curve(d3.curveLinearClosed);
+
+        // Draw the new progress shape with capability scores using exact same styling as existing progress shape
+        g.append('path')
+            .attr('class', 'progress-triangle')
+            .datum(progressPoints)
+            .attr('d', progressLine as any)
+            .attr('fill', 'url(#capabilityGradient)')
+            .attr('stroke', '#7E59B3')
+            .attr('stroke-width', 3)
+            .attr('stroke-opacity', 1)
+            .attr('opacity', 0.6);
+
+        console.log('Progress shape repainted with capability scores:', scores);
+        console.log('Progress points:', progressPoints);
+    };
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({
@@ -2833,6 +2928,31 @@ export default function AlphaPage() {
                 if (result.resume_analysis) {
                     setResumeAnalysisData(result.resume_analysis);
                     console.log('Resume analysis data stored:', result.resume_analysis);
+                }
+                
+                // Handle capability analysis data and repaint progress shape
+                if (result.capability_analysis) {
+                    console.log('Capability analysis data received:', result.capability_analysis);
+                    
+                    // Extract scores from capability analysis
+                    const capabilityData = result.capability_analysis;
+                    const scores = {
+                        background: capabilityData.background_score?.score || 0,
+                        education: capabilityData.education_score?.score || 0,
+                        professional: capabilityData.professional_score?.score || 0,
+                        techSkills: capabilityData.tech_skills_score?.score || 0,
+                        teamwork: capabilityData.teamwork_score?.score || 0,
+                        jobMatch: capabilityData.job_match_score?.score || 0
+                    };
+                    
+                    console.log('Capability scores extracted:', scores);
+                    
+                    // Repaint progress shape with capability analysis scores
+                    setTimeout(() => {
+                        if (svgRef.current) {
+                            repaintProgressShapeWithCapabilityScores(scores);
+                        }
+                    }, 200);
                 }
                 
                 setCurrentStep(6); // Navigate to analysis results
@@ -3827,22 +3947,22 @@ export default function AlphaPage() {
                                         }}>
                                             <div style={{
                                                 background: 'white',
-                                                borderRadius: 16,
+                                                borderRadius: 20,
                                                 border: '1px solid #e5e7eb',
-                                                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-                                                padding: '20px 28px',
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                                                maxWidth: 560,
+                                                boxShadow: '0 16px 50px rgba(0,0,0,0.15)',
+                                                padding: '32px 36px',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                                                maxWidth: 640,
                                             }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                    {/* 20s smooth filling ring using pathLength for simple CSS control */}
-                                                    <svg width="28" height="28" viewBox="0 0 36 36" aria-label="loading progress" role="img">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                    {/* Larger 20s smooth filling ring using pathLength for simple CSS control */}
+                                                    <svg width="40" height="40" viewBox="0 0 36 36" aria-label="loading progress" role="img">
                                                         {/* Track */}
-                                                        <circle cx="18" cy="18" r="16" fill="none" stroke="#f3f4f6" strokeWidth="3" />
+                                                        <circle cx="18" cy="18" r="16" fill="none" stroke="#f3f4f6" strokeWidth="4" />
                                                         {/* Progress - uses pathLength=100 so dash values are percentage based */}
                                                         <circle
                                                           cx="18" cy="18" r="16" fill="none"
-                                                          stroke="#9B6A10" strokeWidth="3" strokeLinecap="round"
+                                                          stroke="#9B6A10" strokeWidth="4" strokeLinecap="round"
                                                           pathLength="100"
                                                           style={{
                                                             strokeDasharray: 100,
@@ -3853,19 +3973,22 @@ export default function AlphaPage() {
                                                           }}
                                                         />
                                                     </svg>
-                                                    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 12 }}>
-                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite' }} />
-                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#B8860B', animation: 'dot-bounce 0.9s ease-in-out infinite 0.15s' }} />
-                                                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite 0.3s' }} />
+                                                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 16 }}>
+                                                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite' }} />
+                                                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#B8860B', animation: 'dot-bounce 0.9s ease-in-out infinite 0.15s' }} />
+                                                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#9B6A10', animation: 'dot-bounce 0.9s ease-in-out infinite 0.3s' }} />
                                                     </div>
                                                 </div>
                                                 <div style={{
-                                                    fontSize: 16, fontWeight: 600, color: '#374151',
-                                                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+                                                    fontSize: 20, fontWeight: 600, color: '#2d3748',
+                                                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                                                    letterSpacing: '-0.01em'
                                                 }}>Analyzing your resume and job match…</div>
                                                 <div style={{
-                                                    fontSize: 14, color: '#6b7280', textAlign: 'center',
-                                                    maxWidth: 520, lineHeight: 1.5,
+                                                    fontSize: 16, color: '#4a5568', textAlign: 'center',
+                                                    maxWidth: 580, lineHeight: 1.6,
+                                                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                                                    fontWeight: 500,
                                                     animation: 'tip-fancy-in 600ms ease'
                                                 }}>Tip {currentTipIndex + 1}: {analysisTips[currentTipIndex]}</div>
                                             </div>
@@ -4116,33 +4239,30 @@ export default function AlphaPage() {
                                 </div>
                                 
                                 <div className={styles.analysisContainer}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                         <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Career Fit Analysis</h2>
                                         <div style={{
-                                            textAlign: 'right',
-                                            maxWidth: '350px'
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '16px',
+                                            color: '#6c757d',
+                                            fontWeight: '500',
+                                            lineHeight: '1.4',
+                                            letterSpacing: '-0.01em',
+                                            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                                         }}>
-                                            <div style={{
-                                                fontSize: '20px',
+                                            <span style={{
+                                                fontSize: '18px',
                                                 fontWeight: '700',
-                                                color: '#2c2c2c',
-                                                marginBottom: '4px',
-                                                lineHeight: '1.3',
-                                                letterSpacing: '-0.02em',
-                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                                color: '#2c2c2c'
                                             }}>
                                                 {analysisResult?.job_analysis?.analysis?.standardized_title || 'Job Title'}
-                                            </div>
-                                            <div style={{
-                                                fontSize: '16px',
-                                                color: '#6c757d',
-                                                fontWeight: '500',
-                                                lineHeight: '1.4',
-                                                letterSpacing: '-0.01em',
-                                                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-                                            }}>
+                                            </span>
+                                            <span style={{ color: '#9ca3af' }}>at</span>
+                                            <span style={{ fontStyle: 'italic' }}>
                                                 {analysisResult?.job_analysis?.analysis?.company_name || 'Company Name'}
-                                            </div>
+                                            </span>
                                         </div>
                                     </div>
                                     
@@ -4152,7 +4272,7 @@ export default function AlphaPage() {
                                         backgroundColor: '#f8f9fa',
                                         borderRadius: '12px',
                                         padding: '6px',
-                                        marginBottom: '32px',
+                                        marginBottom: '16px',
                                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
                                         border: '1px solid #e9ecef'
                                     }}>
@@ -4300,12 +4420,12 @@ export default function AlphaPage() {
                                     </div>
                                     
                                     {/* Tab Content */}
-                                    <div style={{ minHeight: '500px', padding: '10px 0' }}>
+                                    <div style={{ minHeight: '400px', padding: '10px 0' }}>
                                         {activeTab === 'Personal Capability' ? (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '350px', // Fixed height for exactly 3 items
+                                                    height: '220px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4393,7 +4513,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '350px', // Fixed height for exactly 3 items
+                                                    height: '220px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>

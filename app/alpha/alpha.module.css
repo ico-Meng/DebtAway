@@ -844,8 +844,8 @@
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    margin-bottom: 2rem;
-    padding: 2.5rem;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
 }
 
 /* Responsive Design */
@@ -1057,7 +1057,7 @@
     }
     
     .suggestionsContainer {
-        height: 250px !important;
+        height: 220px !important;
         padding: 0.5rem;
     }
     
@@ -1074,16 +1074,18 @@
     
     .loadingCard {
         max-width: 90%;
-        padding: 1rem;
+        padding: 1.5rem;
     }
     
     .loadingText {
-        font-size: 14px;
+        font-size: 18px;
+        font-weight: 600;
     }
     
     .loadingTip {
-        font-size: 12px;
-        line-height: 1.3;
+        font-size: 14px;
+        line-height: 1.5;
+        font-weight: 500;
     }
     
     .chartContainer {
@@ -1153,11 +1155,28 @@
     }
     
     .suggestionsContainer {
-        height: 200px !important;
+        height: 180px !important;
     }
     
     .suggestionItem {
         padding: 0.5rem 0.75rem;
         font-size: 12px;
+    }
+    
+    /* Loading overlay for very small screens */
+    .loadingCard {
+        max-width: 95%;
+        padding: 1rem;
+    }
+    
+    .loadingText {
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .loadingTip {
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 500;
     }
 }
