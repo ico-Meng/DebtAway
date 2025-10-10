@@ -2885,14 +2885,19 @@ export default function AlphaPage() {
             return;
         }
         setResumeErrorMessage('');
+        // Initialize variables outside try block
+        let postSucceeded = false;
+        let user_id = '';
+        
         try {
             setIsAnalyzing(true); // Start thinking animation
             console.log('Sending data to Resume Analysis API...');
             
             // Get cached user_id
-            const user_id = localStorage.getItem('jobAnalysisUserId');
+            user_id = localStorage.getItem('jobAnalysisUserId') || '';
             if (!user_id) {
                 alert('No user ID found. Please complete the job analysis first.');
+                setIsAnalyzing(false);
                 return;
             }
             
@@ -2911,60 +2916,128 @@ export default function AlphaPage() {
                 return;
             }
 
-            const response = await fetch(`${API_ENDPOINT}/alpha_resume_analysis`, {
-                method: 'POST',
-                //headers: {
-                //    'Content-Type': 'application/json',
-                //},
-                body: formDataToSend // Don't set Content-Type header, let browser set it for FormData
-            });
+            // Helper: fetch with timeout
+            const fetchWithTimeout = async (resource: RequestInfo, options: RequestInit & { timeout?: number }) => {
+                const { timeout = 35000, ...rest } = options || {} as any;
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const res = await fetch(resource as any, { ...rest, signal: controller.signal });
+                    return res;
+                } finally {
+                    clearTimeout(id);
+                }
+            };
 
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Resume analysis successful:', result);
-                setAnalysisResult(result); // Store analysis result
-                
-                // Store resume analysis data if available
-                if (result.resume_analysis) {
-                    setResumeAnalysisData(result.resume_analysis);
-                    console.log('Resume analysis data stored:', result.resume_analysis);
+            // Try POST with a 25s timeout to avoid API Gateway 29s cutoff
+            try {
+                const response = await fetchWithTimeout(`${API_ENDPOINT}/alpha_resume_analysis`, {
+                    method: 'POST',
+                    body: formDataToSend,
+                    timeout: 25000
+                } as any);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Resume analysis successful:', result);
+                    setAnalysisResult(result);
+                    if (result.resume_analysis) {
+                        setResumeAnalysisData(result.resume_analysis);
+                        console.log('Resume analysis data stored:', result.resume_analysis);
+                    }
+                    if (result.capability_analysis) {
+                        console.log('Capability analysis data received:', result.capability_analysis);
+                        const capabilityData = result.capability_analysis;
+                        const scores = {
+                            background: capabilityData.background_score?.score || 0,
+                            education: capabilityData.education_score?.score || 0,
+                            professional: capabilityData.professional_score?.score || 0,
+                            techSkills: capabilityData.tech_skills_score?.score || 0,
+                            teamwork: capabilityData.teamwork_score?.score || 0,
+                            jobMatch: capabilityData.job_match_score?.score || 0
+                        };
+                        console.log('Capability scores extracted:', scores);
+                        setTimeout(() => {
+                            if (svgRef.current) {
+                                repaintProgressShapeWithCapabilityScores(scores);
+                            }
+                        }, 200);
+                    }
+                    setCurrentStep(6);
+                    postSucceeded = true;
+                } else {
+                    console.error('Resume analysis request returned non-OK:', response.status, response.statusText);
                 }
-                
-                // Handle capability analysis data and repaint progress shape
-                if (result.capability_analysis) {
-                    console.log('Capability analysis data received:', result.capability_analysis);
-                    
-                    // Extract scores from capability analysis
-                    const capabilityData = result.capability_analysis;
-                    const scores = {
-                        background: capabilityData.background_score?.score || 0,
-                        education: capabilityData.education_score?.score || 0,
-                        professional: capabilityData.professional_score?.score || 0,
-                        techSkills: capabilityData.tech_skills_score?.score || 0,
-                        teamwork: capabilityData.teamwork_score?.score || 0,
-                        jobMatch: capabilityData.job_match_score?.score || 0
-                    };
-                    
-                    console.log('Capability scores extracted:', scores);
-                    
-                    // Repaint progress shape with capability analysis scores
-                    setTimeout(() => {
-                        if (svgRef.current) {
-                            repaintProgressShapeWithCapabilityScores(scores);
+            } catch (err) {
+                console.warn('POST alpha_resume_analysis timed out or failed, switching to polling...', err);
+            }
+
+            // If POST didn't succeed (likely API GW timeout), poll for results saved by the backend
+            if (!postSucceeded) {
+                const maxPolls = 40; // ~2 minutes at 3s interval
+                const intervalMs = 3000;
+                let attempt = 0;
+                while (attempt < maxPolls) {
+                    attempt += 1;
+                    try {
+                        const res = await fetch(`${API_ENDPOINT}/get_job_analysis/${encodeURIComponent(user_id)}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            const item = data && (data.analysis_data || data);
+                            const hasResume = item && item.resume_analysis && item.resume_analysis.analysis;
+                            if (hasResume) {
+                                // Construct a result compatible with existing UI expectations
+                                const constructedResult: any = {
+                                    resume_analysis: item.resume_analysis,
+                                    capability_analysis: item.capability_analysis || null,
+                                    job_analysis: { analysis: item.job_analysis || {} }
+                                };
+                                console.log('Polled analysis ready:', constructedResult);
+                                setAnalysisResult(constructedResult);
+                                if (constructedResult.resume_analysis) {
+                                    setResumeAnalysisData(constructedResult.resume_analysis);
+                                }
+                                if (constructedResult.capability_analysis) {
+                                    const capabilityData = constructedResult.capability_analysis;
+                                    const scores = {
+                                        background: capabilityData.background_score?.score || 0,
+                                        education: capabilityData.education_score?.score || 0,
+                                        professional: capabilityData.professional_score?.score || 0,
+                                        techSkills: capabilityData.tech_skills_score?.score || 0,
+                                        teamwork: capabilityData.teamwork_score?.score || 0,
+                                        jobMatch: capabilityData.job_match_score?.score || 0
+                                    };
+                                    setTimeout(() => {
+                                        if (svgRef.current) {
+                                            repaintProgressShapeWithCapabilityScores(scores);
+                                        }
+                                    }, 200);
+                                }
+                                setCurrentStep(6);
+                                setIsAnalyzing(false); // Stop analyzing when results are found
+                                break;
+                            }
                         }
-                    }, 200);
+                    } catch (pollErr) {
+                        console.warn('Polling attempt failed:', pollErr);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, intervalMs));
                 }
-                
-                setCurrentStep(6); // Navigate to analysis results
-            } else {
-                console.error('Resume analysis failed:', response.statusText);
-                alert('Resume analysis failed. Please try again.');
+                // If we exhausted polling without success, show a friendly message and stop analyzing
+                if (attempt >= maxPolls) {
+                    alert('The analysis is taking longer than usual. Please keep this page open and try again in a moment.');
+                    setIsAnalyzing(false);
+                }
             }
         } catch (error) {
             console.error('Error calling Resume Analysis API:', error);
-            alert('Error connecting to analysis service. Please try again.');
+            // Don't show error popup - let the polling handle it gracefully
+            // The analyzing state will continue until polling succeeds or times out
         } finally {
-            setIsAnalyzing(false); // Stop thinking animation
+            // Only stop analyzing if POST succeeded or if we're not in polling mode
+            if (postSucceeded) {
+                setIsAnalyzing(false);
+            }
+            // If postSucceeded is false, keep analyzing state active for polling
         }
     };
 
@@ -4207,7 +4280,7 @@ export default function AlphaPage() {
                                         {resumeFile && (
                                             <div style={{ 
                                                 marginTop: '16px', 
-                                                padding: '20px', 
+                                                padding: '16px 20px', 
                                                 border: '2px solid rgba(102, 126, 234, 0.2)', 
                                                 borderRadius: '16px',
                                                 background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
@@ -4216,37 +4289,45 @@ export default function AlphaPage() {
                                                 boxShadow: '0 8px 25px rgba(102, 126, 234, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)',
                                                 transition: 'all 0.4s ease',
                                                 position: 'relative',
-                                                overflow: 'hidden'
+                                                overflow: 'hidden',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '12px'
                                             }}>
                                                 {isImageFile(resumeFile.type) ? (
                                                     <div style={{ 
-                                                        marginBottom: '12px',
                                                         display: 'flex',
-                                                        justifyContent: 'center'
+                                                        alignItems: 'center',
+                                                        gap: '12px',
+                                                        marginBottom: 0,
+                                                        flex: 1
                                                     }}>
                                                         <img 
                                                             src={URL.createObjectURL(resumeFile)} 
                                                             alt="Resume Preview" 
                                                             style={{ 
-                                                                maxWidth: '180px', 
-                                                                maxHeight: '180px', 
+                                                                maxWidth: '120px', 
+                                                                maxHeight: '120px', 
                                                                 objectFit: 'contain',
                                                                 border: '2px solid #e5e7eb',
                                                                 borderRadius: '8px',
                                                                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
                                                             }} 
                                                         />
+                                                        <div style={{ color: '#374151', fontWeight: 500, fontSize: '14px' }}>{resumeFile.name}</div>
                                                     </div>
                                                 ) : (
                                                     <div style={{ 
                                                         display: 'flex', 
                                                         alignItems: 'center', 
-                                                        marginBottom: '12px',
+                                                        marginBottom: 0,
                                                         padding: '12px',
                                                         backgroundColor: 'white',
                                                         borderRadius: '8px',
                                                         border: '1px solid #e5e7eb',
-                                                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                                                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                                                        flex: 1
                                                     }}>
                                                         <div style={{
                                                             padding: '8px',
@@ -4277,8 +4358,7 @@ export default function AlphaPage() {
                                                 <div style={{ 
                                                     display: 'flex', 
                                                     justifyContent: 'flex-end', 
-                                                    alignItems: 'center',
-                                                    marginTop: '8px'
+                                                    alignItems: 'center'
                                                 }}>
                                                     <button
                                                         type="button"
