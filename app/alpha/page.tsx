@@ -3059,6 +3059,89 @@ export default function AlphaPage() {
         return mimeType.startsWith('image/');
     };
 
+    // Function to calculate and send page height to parent window (for iframe resizing)
+    const sendHeightToParent = () => {
+        if (typeof window !== 'undefined' && window.parent !== window) {
+            // Calculate the total height of the page content
+            const bodyHeight = document.body.scrollHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const windowHeight = window.innerHeight;
+            
+            // Use the maximum of these values to ensure we capture all content
+            const totalHeight = Math.max(bodyHeight, documentHeight, windowHeight);
+            
+            // Add some padding to prevent content cutoff
+            const heightWithPadding = totalHeight + 50;
+            
+            // Send height to parent window
+            window.parent.postMessage({
+                type: 'setHeight',
+                height: heightWithPadding
+            }, '*');
+        }
+    };
+
+    // Send height on component mount and when content changes
+    useEffect(() => {
+        // Initial height calculation
+        const timer = setTimeout(() => {
+            sendHeightToParent();
+        }, 100);
+
+        // Send height when currentStep changes (page transitions)
+        sendHeightToParent();
+
+        return () => clearTimeout(timer);
+    }, [currentStep, resumeFile, formData]);
+
+    // Send height when window is resized
+    useEffect(() => {
+        const handleResize = () => {
+            sendHeightToParent();
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Send height when analysis completes (content changes)
+    useEffect(() => {
+        if (analysisResult) {
+            const timer = setTimeout(() => {
+                sendHeightToParent();
+            }, 500); // Delay to allow content to render
+            return () => clearTimeout(timer);
+        }
+    }, [analysisResult]);
+
+    // Send height when analysis starts (loading state changes)
+    useEffect(() => {
+        if (isAnalyzing) {
+            const timer = setTimeout(() => {
+                sendHeightToParent();
+            }, 200); // Delay to allow loading content to render
+            return () => clearTimeout(timer);
+        }
+    }, [isAnalyzing]);
+
+    // Send height when tips change (loading animation content changes)
+    useEffect(() => {
+        if (isAnalyzing && currentTipIndex !== undefined) {
+            const timer = setTimeout(() => {
+                sendHeightToParent();
+            }, 100); // Small delay for tip animation
+            return () => clearTimeout(timer);
+        }
+    }, [isAnalyzing, currentTipIndex]);
+
+    // Send height when work experiences change (dynamic content)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            sendHeightToParent();
+        }, 100); // Small delay for DOM updates
+        return () => clearTimeout(timer);
+    }, [formData.workExperiences.length]);
+
     const progressBarElement = useMemo(() => <ProgressBar step={currentStep} />, [currentStep]);
 
     return (
@@ -3074,6 +3157,30 @@ export default function AlphaPage() {
                         background-color: #edece3 !important;
                         background-image: none !important;
                     }
+                    
+                    @keyframes gradientShift {
+                        0% {
+                            background-position: 0% 50%;
+                        }
+                        50% {
+                            background-position: 100% 50%;
+                        }
+                        100% {
+                            background-position: 0% 50%;
+                        }
+                    }
+                    
+                    @keyframes pulse {
+                        0% {
+                            transform: scale(1);
+                        }
+                        50% {
+                            transform: scale(1.05);
+                        }
+                        100% {
+                            transform: scale(1);
+                        }
+                    }
                 `}</style>
             </Head>
 
@@ -3081,7 +3188,7 @@ export default function AlphaPage() {
                 <div className={styles.formContainer}>
                     <h1 className={styles.title} style={{ 
                         backgroundColor: '#ffffff', 
-                        marginBottom: 12, 
+                        marginBottom: 4, 
                         paddingBottom: 0,
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         WebkitBackgroundClip: 'text',
@@ -3089,7 +3196,7 @@ export default function AlphaPage() {
                         backgroundClip: 'text',
                         fontFamily: '"Playfair Display", "Georgia", serif',
                         fontWeight: 700,
-                        fontSize: '2.5rem',
+                        fontSize: '2rem',
                         letterSpacing: '0.05em',
                         textShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}>
@@ -3100,19 +3207,19 @@ export default function AlphaPage() {
                     <div className={styles.form}>
                         {currentStep === 1 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -3146,7 +3253,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3155,8 +3262,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3284,19 +3391,19 @@ export default function AlphaPage() {
                             </div>
                         ) : currentStep === 2 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -3330,7 +3437,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3339,8 +3446,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3452,19 +3559,19 @@ export default function AlphaPage() {
                             </div>
                         ) : currentStep === 3 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -3498,7 +3605,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3507,8 +3614,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3609,19 +3716,19 @@ export default function AlphaPage() {
                             </div>
                         ) : currentStep === 4 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -3655,7 +3762,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3664,8 +3771,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3789,13 +3896,13 @@ export default function AlphaPage() {
                                                     onClick={() => removeWorkExperience(index)}
                                                     style={{
                                                         marginLeft: '10px',
-                                                        marginTop: '30px',
+                                                        marginTop: '20px',
                                                         background: '#ffcccb',
                                                         color: '#d63031',
                                                         border: 'none',
                                                         borderRadius: '4px',
                                                         width: '32px',
-                                                        height: '32px',
+                                                        height: '24px',
                                                         fontSize: '20px',
                                                         fontWeight: '300',
                                                         cursor: 'pointer',
@@ -3832,7 +3939,7 @@ export default function AlphaPage() {
                                             style={{
                                                 minWidth: '32px',
                                                 maxWidth: '32px',
-                                                height: '32px',
+                                                height: '24px',
                                                 padding: '0',
                                                 fontSize: '16px',
                                                 fontWeight: '600',
@@ -3865,19 +3972,19 @@ export default function AlphaPage() {
                             </div>
                         ) : currentStep === 5 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -3911,7 +4018,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3920,8 +4027,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -3950,11 +4057,11 @@ export default function AlphaPage() {
                                                 borderRadius: 20,
                                                 border: '1px solid #e5e7eb',
                                                 boxShadow: '0 16px 50px rgba(0,0,0,0.15)',
-                                                padding: '32px 36px',
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                                                padding: '20px 24px',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
                                                 maxWidth: 640,
                                             }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                     {/* Larger 20s smooth filling ring using pathLength for simple CSS control */}
                                                     <svg width="40" height="40" viewBox="0 0 36 36" aria-label="loading progress" role="img">
                                                         {/* Track */}
@@ -4003,16 +4110,42 @@ export default function AlphaPage() {
                                         <div 
                                             className={`${styles.input} ${isDragging ? styles.dropzoneActive : ''}`}
                                             style={{
-                                                height: '200px',
-                                                border: '2px dashed #ccc',
-                                                borderRadius: '8px',
+                                                height: '140px',
+                                                border: `3px dashed ${isDragging ? '#667eea' : '#cbd5e1'}`,
+                                                borderRadius: '20px',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 cursor: 'pointer',
-                                                backgroundColor: isDragging ? '#f0f8ff' : '#fafafa',
-                                                transition: 'all 0.2s ease'
+                                                background: isDragging 
+                                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)'
+                                                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                backgroundSize: isDragging ? '400% 400%' : '100% 100%',
+                                                animation: isDragging ? 'gradientShift 3s ease infinite' : 'none',
+                                                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                position: 'relative',
+                                                overflow: 'hidden',
+                                                boxShadow: isDragging 
+                                                    ? '0 20px 40px rgba(102, 126, 234, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                                                    : '0 8px 25px rgba(102, 126, 234, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                                                transform: isDragging ? 'scale(1.03) translateY(-2px)' : 'scale(1)',
+                                                backdropFilter: 'blur(10px)',
+                                                WebkitBackdropFilter: 'blur(10px)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!isDragging) {
+                                                    e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)';
+                                                    e.currentTarget.style.transform = 'scale(1.02) translateY(-1px)';
+                                                    e.currentTarget.style.boxShadow = '0 12px 30px rgba(102, 126, 234, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!isDragging) {
+                                                    e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05)';
+                                                }
                                             }}
                                             onDragEnter={handleDrag}
                                             onDragOver={handleDrag}
@@ -4020,14 +4153,47 @@ export default function AlphaPage() {
                                             onDrop={handleDrop}
                                             onClick={() => fileInputRef.current?.click()}
                                         >
-                                            <div style={{ marginBottom: '16px' }}>
-                                                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#666' }}>
-                                                    <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                    <path d="M3 15V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <div style={{ 
+                                                marginBottom: '16px',
+                                                padding: '16px',
+                                                borderRadius: '50%',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                                backdropFilter: 'blur(10px)',
+                                                WebkitBackdropFilter: 'blur(10px)',
+                                                border: '2px solid rgba(255, 255, 255, 0.3)',
+                                                transition: 'all 0.4s ease',
+                                                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)'
+                                            }}>
+                                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ 
+                                                    color: '#ffffff',
+                                                    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
+                                                    transition: 'all 0.4s ease'
+                                                }}>
+                                                    <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    <path d="M3 15V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V15" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </div>
-                                            <p style={{ margin: 0, color: '#666', textAlign: 'center', fontSize: '16px' }}>
-                                                Drag and drop your resume or screenshot here, or click to select a file
+                                            <p style={{ 
+                                                margin: 0, 
+                                                color: '#ffffff', 
+                                                textAlign: 'center', 
+                                                fontSize: '16px',
+                                                fontWeight: '600',
+                                                transition: 'all 0.4s ease',
+                                                textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                                                letterSpacing: '0.025em'
+                                            }}>
+                                                <span style={{ fontWeight: '700' }}>Drop your resume here</span> or click to browse
+                                            </p>
+                                            <p style={{ 
+                                                margin: '6px 0 0 0', 
+                                                color: 'rgba(255, 255, 255, 0.8)', 
+                                                textAlign: 'center', 
+                                                fontSize: '13px',
+                                                fontWeight: '500',
+                                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
+                                            }}>
+                                                PDF (max 2MB)
                                             </p>
                                             <input
                                                 type="file"
@@ -4041,59 +4207,135 @@ export default function AlphaPage() {
                                         {resumeFile && (
                                             <div style={{ 
                                                 marginTop: '16px', 
-                                                padding: '16px', 
-                                                border: '1px solid #ddd', 
-                                                borderRadius: '8px',
-                                                backgroundColor: '#f9f9f9'
+                                                padding: '20px', 
+                                                border: '2px solid rgba(102, 126, 234, 0.2)', 
+                                                borderRadius: '16px',
+                                                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+                                                backdropFilter: 'blur(10px)',
+                                                WebkitBackdropFilter: 'blur(10px)',
+                                                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                                                transition: 'all 0.4s ease',
+                                                position: 'relative',
+                                                overflow: 'hidden'
                                             }}>
                                                 {isImageFile(resumeFile.type) ? (
-                                                    <div style={{ marginBottom: '12px' }}>
+                                                    <div style={{ 
+                                                        marginBottom: '12px',
+                                                        display: 'flex',
+                                                        justifyContent: 'center'
+                                                    }}>
                                                         <img 
                                                             src={URL.createObjectURL(resumeFile)} 
                                                             alt="Resume Preview" 
                                                             style={{ 
-                                                                maxWidth: '200px', 
-                                                                maxHeight: '200px', 
+                                                                maxWidth: '180px', 
+                                                                maxHeight: '180px', 
                                                                 objectFit: 'contain',
-                                                                border: '1px solid #ddd',
-                                                                borderRadius: '4px'
+                                                                border: '2px solid #e5e7eb',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
                                                             }} 
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px', color: '#666' }}>
-                                                            <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                            <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        </svg>
-                                                        <span style={{ color: '#333' }}>{resumeFile.name}</span>
+                                                    <div style={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        marginBottom: '12px',
+                                                        padding: '12px',
+                                                        backgroundColor: 'white',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid #e5e7eb',
+                                                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                                                    }}>
+                                                        <div style={{
+                                                            padding: '8px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: '#f3f4f6',
+                                                            marginRight: '12px'
+                                                        }}>
+                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#6b7280' }}>
+                                                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <span style={{ 
+                                                                color: '#374151', 
+                                                                fontWeight: '500',
+                                                                fontSize: '14px'
+                                                            }}>{resumeFile.name}</span>
+                                                            <div style={{ 
+                                                                color: '#6b7280', 
+                                                                fontSize: '12px',
+                                                                marginTop: '2px'
+                                                            }}>{formatFileSize(resumeFile.size)}</div>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ color: '#666', fontSize: '14px' }}>
-                                                        {formatFileSize(resumeFile.size)}
-                                                    </span>
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    justifyContent: 'flex-end', 
+                                                    alignItems: 'center',
+                                                    marginTop: '8px'
+                                                }}>
                                                     <button
                                                         type="button"
                                                         onClick={removeFile}
                                                         style={{
-                                                            background: '#ff4757',
+                                                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                                                             color: 'white',
                                                             border: 'none',
-                                                            borderRadius: '4px',
-                                                            padding: '4px 8px',
-                                                            fontSize: '12px',
-                                                            cursor: 'pointer'
+                                                            borderRadius: '12px',
+                                                            padding: '10px 18px',
+                                                            fontSize: '13px',
+                                                            fontWeight: '600',
+                                                            cursor: 'pointer',
+                                                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
+                                                            backdropFilter: 'blur(10px)',
+                                                            WebkitBackdropFilter: 'blur(10px)',
+                                                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+                                                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)';
+                                                            e.currentTarget.style.background = 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)';
+                                                            e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
                                                         }}
                                                     >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
                                                         Remove
                                                     </button>
                                                 </div>
                                             </div>
                                         )}
                                         {!resumeFile && resumeErrorMessage && (
-                                            <div style={{ color: '#DC2626', fontSize: '0.9rem', marginTop: '8px' }}>
+                                            <div style={{ 
+                                                color: '#DC2626', 
+                                                fontSize: '13px', 
+                                                marginTop: '8px',
+                                                padding: '8px 12px',
+                                                backgroundColor: '#fef2f2',
+                                                border: '1px solid #fecaca',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
                                                 {resumeErrorMessage}
                                             </div>
                                         )}
@@ -4133,7 +4375,7 @@ export default function AlphaPage() {
                                                     }}>
                                                         <div style={{
                                                             width: '8px',
-                                                            height: '8px',
+                                                            height: '4px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
                                                             animation: 'thinking-pulse 1.2s ease-in-out infinite',
@@ -4141,7 +4383,7 @@ export default function AlphaPage() {
                                                         }} />
                                                         <div style={{
                                                             width: '8px',
-                                                            height: '8px',
+                                                            height: '4px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
                                                             animation: 'thinking-pulse 1.2s ease-in-out infinite 0.15s',
@@ -4149,7 +4391,7 @@ export default function AlphaPage() {
                                                         }} />
                                                         <div style={{
                                                             width: '8px',
-                                                            height: '8px',
+                                                            height: '4px',
                                                             borderRadius: '50%',
                                                             backgroundColor: 'white',
                                                             animation: 'thinking-pulse 1.2s ease-in-out infinite 0.3s',
@@ -4170,19 +4412,19 @@ export default function AlphaPage() {
                             </div>
                         ) : currentStep === 6 ? (
                             <div className={styles.formSection}>
-                                <div className={styles.chartContainer} style={{ marginTop: '-3rem' }}>
+                                <div className={styles.chartContainer} style={{ marginTop: '-1rem' }}>
                                     <div className={styles.chartWrapper}>
                                         <svg
                                             ref={svgRef}
-                                            width="500"
-                                            height="500"
+                                            width="400"
+                                            height="400"
                                             className={styles.radarChart}
                                             style={{
                                                 display: 'block',
                                                 maxWidth: '100%',
                                                 height: 'auto'
                                             }}
-                                            viewBox="0 0 500 500"
+                                            viewBox="0 0 400 400"
                                             preserveAspectRatio="xMidYMid meet"
                                         >
                                             {/* Fancy dots loading animation */}
@@ -4216,7 +4458,7 @@ export default function AlphaPage() {
 
                                     <div className={styles.legend}>
                                         <div className={styles.legendItem}>
-                                            <div className={styles.legendColor} style={{ background: '#CFAEE8' }}></div>
+                                            <div className={styles.legendColor} style={{ background: '#CFAEE8', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -4225,8 +4467,8 @@ export default function AlphaPage() {
                                                 letterSpacing: '0.5px'
                                             }}>Personal Capability</span>
                                         </div>
-                                        <div className={styles.legendItem} style={{ marginLeft: '30px' }}>
-                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '20px', height: '3px' }}></div>
+                                        <div className={styles.legendItem} style={{ marginLeft: '20px' }}>
+                                            <div className={styles.legendColor} style={{ background: '#ff6b6b', width: '16px', height: '2px' }}></div>
                                             <span style={{ 
                                                 fontFamily: "'Playfair Display', 'Georgia', serif",
                                                 fontSize: '14px',
@@ -4271,8 +4513,8 @@ export default function AlphaPage() {
                                         display: 'flex', 
                                         backgroundColor: '#f8f9fa',
                                         borderRadius: '12px',
-                                        padding: '6px',
-                                        marginBottom: '16px',
+                                        padding: '3px',
+                                        marginBottom: '8px',
                                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
                                         border: '1px solid #e9ecef'
                                     }}>
@@ -4284,7 +4526,7 @@ export default function AlphaPage() {
                                             }}
                                             style={{
                                                 flex: 1,
-                                                padding: '12px 24px',
+                                                padding: '8px 16px',
                                                 border: 'none',
                                         borderRadius: '8px', 
                                                 backgroundColor: activeTab === 'Personal Capability' 
@@ -4355,7 +4597,7 @@ export default function AlphaPage() {
                                             }}
                                             style={{
                                                 flex: 1,
-                                                padding: '12px 24px',
+                                                padding: '8px 16px',
                                                 border: 'none',
                                                 borderRadius: '8px',
                                                 backgroundColor: activeTab === 'Resume Power' 
@@ -4420,12 +4662,12 @@ export default function AlphaPage() {
                                     </div>
                                     
                                     {/* Tab Content */}
-                                    <div style={{ minHeight: '400px', padding: '10px 0' }}>
+                                    <div style={{ minHeight: '280px', padding: '6px 0' }}>
                                         {activeTab === 'Personal Capability' ? (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '280px', // Fixed height for exactly 3 items
+                                                    height: '150px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4459,7 +4701,7 @@ export default function AlphaPage() {
                                                                 style={{
                                                                     backgroundColor: 'rgba(255, 255, 255, 0.6)',
                                                                     borderRadius: '20px',
-                                                                    padding: '20px 24px',
+                                                                    padding: '12px 16px',
                                                                     border: '1px solid #e2e8f0',
                                                                     boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
                                                                     display: 'flex',
@@ -4492,7 +4734,7 @@ export default function AlphaPage() {
                                 </div>
 
                                                 {/* Add buttons to Personal Capability */}
-                                                <div className={styles.navButtons} style={{ marginTop: '20px' }}>
+                                                <div className={styles.navButtons} style={{ marginTop: '12px' }}>
                                     <button
                                         className={styles.submitButton}
                                         onClick={handleBack}
@@ -4513,7 +4755,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '280px', // Fixed height for exactly 3 items
+                                                    height: '150px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4548,7 +4790,7 @@ export default function AlphaPage() {
                                                                     style={{
                                                                         backgroundColor: 'rgba(255, 255, 255, 0.6)',
                                                                         borderRadius: '20px',
-                                                                        padding: '20px 24px',
+                                                                        padding: '12px 16px',
                                                                         border: '1px solid #e2e8f0',
                                                                         boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
                                                                         display: 'flex',
@@ -4583,7 +4825,7 @@ export default function AlphaPage() {
                                                                 fontSize: '18px',
                                                                 fontWeight: '600',
                                                                 color: '#666',
-                                                                padding: '40px 20px',
+                                                                padding: '24px 12px',
                                                                 backgroundColor: 'rgba(255, 255, 255, 0.6)',
                                                                 borderRadius: '20px',
                                                                 border: '1px solid #e2e8f0'
@@ -4595,7 +4837,7 @@ export default function AlphaPage() {
                                                 </div>
                                                 
                                                 {/* Move buttons closer to the suggestions */}
-                                                <div className={styles.navButtons} style={{ marginTop: '20px' }}>
+                                                <div className={styles.navButtons} style={{ marginTop: '12px' }}>
                                                     <button
                                                         className={styles.submitButton}
                                                         onClick={handleBack}
