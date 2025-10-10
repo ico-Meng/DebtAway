@@ -1091,6 +1091,13 @@
     .chartContainer {
         padding: 0.5rem;
     }
+    
+    /* Fix dropdown height to match other input fields on mobile */
+    .dropdownSelected {
+        height: auto !important;
+        padding: 0.5rem !important;
+        min-height: auto !important;
+    }
 }
 
 /* Extra small screens */

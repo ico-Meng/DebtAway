@@ -3113,6 +3113,11 @@ export default function AlphaPage() {
         }
         
         setResumeFile(file);
+        
+        // Trigger immediate height update for file upload
+        setTimeout(() => {
+            sendHeightToParent(true);
+        }, 100);
     };
 
     const removeFile = () => {
@@ -3120,6 +3125,11 @@ export default function AlphaPage() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+        
+        // Trigger immediate height update for file removal
+        setTimeout(() => {
+            sendHeightToParent(true);
+        }, 100);
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -3132,88 +3142,117 @@ export default function AlphaPage() {
         return mimeType.startsWith('image/');
     };
 
+    // Stable height tracking to prevent update loops
+    const heightTracker = useRef({
+        lastSentHeight: 0,
+        lastCalculatedHeight: 0,
+        updateCount: 0,
+        isUpdating: false
+    });
+
     // Function to calculate and send page height to parent window (for iframe resizing)
-    const sendHeightToParent = () => {
-        if (typeof window !== 'undefined' && window.parent !== window) {
-            // Calculate the total height of the page content
+    const sendHeightToParent = useCallback((forceUpdate = false) => {
+        if (typeof window !== 'undefined' && window.parent !== window && !heightTracker.current.isUpdating) {
+            heightTracker.current.isUpdating = true;
+            
+            // Calculate the actual content height more conservatively
             const bodyHeight = document.body.scrollHeight;
             const documentHeight = document.documentElement.scrollHeight;
-            const windowHeight = window.innerHeight;
             
-            // Use the maximum of these values to ensure we capture all content
-            const totalHeight = Math.max(bodyHeight, documentHeight, windowHeight);
+            // Use the smaller of the two to avoid unnecessary growth
+            const contentHeight = Math.min(bodyHeight, documentHeight);
             
-            // Add some padding to prevent content cutoff
-            const heightWithPadding = totalHeight + 50;
+            // Add minimal padding only when needed
+            const heightWithPadding = contentHeight + 30;
             
-            // Send height to parent window
-            window.parent.postMessage({
-                type: 'setHeight',
-                height: heightWithPadding
-            }, '*');
+            // For file uploads, use a lower threshold and allow more updates
+            const heightDifference = Math.abs(heightWithPadding - heightTracker.current.lastSentHeight);
+            const isSignificantChange = forceUpdate ? heightDifference > 20 : heightDifference > 50;
+            const hasNotExceededLimit = forceUpdate ? heightTracker.current.updateCount < 15 : heightTracker.current.updateCount < 10;
+            
+            if (isSignificantChange && hasNotExceededLimit) {
+                heightTracker.current.lastSentHeight = heightWithPadding;
+                heightTracker.current.updateCount++;
+                
+                // Send height to parent window
+                window.parent.postMessage({
+                    type: 'setHeight',
+                    height: heightWithPadding
+                }, '*');
+            }
+            
+            // Reset update flag after a delay
+            setTimeout(() => {
+                heightTracker.current.isUpdating = false;
+            }, forceUpdate ? 500 : 1000);
         }
-    };
+    }, []);
 
-    // Send height on component mount and when content changes
+    // Send height on component mount and when content changes (much more conservative)
     useEffect(() => {
-        // Initial height calculation
+        // Only send height on major step changes, not on every form data change
         const timer = setTimeout(() => {
             sendHeightToParent();
-        }, 100);
-
-        // Send height when currentStep changes (page transitions)
-        sendHeightToParent();
+        }, 500); // Longer delay to ensure content is fully rendered
 
         return () => clearTimeout(timer);
-    }, [currentStep, resumeFile, formData]);
+    }, [currentStep, sendHeightToParent]); // Removed resumeFile and formData to reduce updates
 
-    // Send height when window is resized
+    // Send height when window is resized (very conservative to prevent loops)
     useEffect(() => {
+        let resizeTimeout: NodeJS.Timeout;
+        let lastResizeTime = 0;
+        
         const handleResize = () => {
-            sendHeightToParent();
+            const now = Date.now();
+            // Only handle resize if it's been more than 2 seconds since last resize
+            if (now - lastResizeTime > 2000) {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    sendHeightToParent();
+                    lastResizeTime = now;
+                }, 1000); // Long delay to prevent rapid updates
+            }
         };
 
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+        };
+    }, [sendHeightToParent]);
 
-    // Send height when analysis completes (content changes)
+    // Send height when analysis completes (content changes) - very conservative
     useEffect(() => {
         if (analysisResult) {
             const timer = setTimeout(() => {
                 sendHeightToParent();
-            }, 500); // Delay to allow content to render
+            }, 1000); // Longer delay to allow content to fully render
             return () => clearTimeout(timer);
         }
-    }, [analysisResult]);
+    }, [analysisResult, sendHeightToParent]);
 
-    // Send height when analysis starts (loading state changes)
+    // Send height when analysis starts (loading state changes) - very conservative
     useEffect(() => {
         if (isAnalyzing) {
             const timer = setTimeout(() => {
                 sendHeightToParent();
-            }, 200); // Delay to allow loading content to render
+            }, 500); // Longer delay to allow loading content to render
             return () => clearTimeout(timer);
         }
-    }, [isAnalyzing]);
+    }, [isAnalyzing, sendHeightToParent]);
 
-    // Send height when tips change (loading animation content changes)
+    // Removed tips height updates to prevent excessive height changes during loading
+
+    // Send height when resume file is uploaded or removed (important for mobile iframe)
     useEffect(() => {
-        if (isAnalyzing && currentTipIndex !== undefined) {
+        if (resumeFile !== null) { // This triggers for both upload and removal
             const timer = setTimeout(() => {
-                sendHeightToParent();
-            }, 100); // Small delay for tip animation
+                sendHeightToParent(true); // Force update for file uploads
+            }, 300); // Shorter delay for file uploads since they're important
             return () => clearTimeout(timer);
         }
-    }, [isAnalyzing, currentTipIndex]);
-
-    // Send height when work experiences change (dynamic content)
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            sendHeightToParent();
-        }, 100); // Small delay for DOM updates
-        return () => clearTimeout(timer);
-    }, [formData.workExperiences.length]);
+    }, [resumeFile, sendHeightToParent]);
 
     const progressBarElement = useMemo(() => <ProgressBar step={currentStep} />, [currentStep]);
 
@@ -3600,9 +3639,9 @@ export default function AlphaPage() {
                                             onFocus={() => { handleEducationFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., 2020"
-                                            min="1950"
-                                            max="2030"
+                                            placeholder="e.g., 2025"
+                                            min="2010"
+                                            max="2035"
                                             step="1"
                                         />
                                     </div>
@@ -4256,7 +4295,7 @@ export default function AlphaPage() {
                                                 textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
                                                 letterSpacing: '0.025em'
                                             }}>
-                                                <span style={{ fontWeight: '700' }}>Drop your resume here</span> or click to browse
+                                                <span style={{ fontWeight: '700' }}>Drop your resume here</span>
                                             </p>
                                             <p style={{ 
                                                 margin: '6px 0 0 0', 
@@ -4561,12 +4600,21 @@ export default function AlphaPage() {
                                 </div>
                                 
                                 <div className={styles.analysisContainer}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                        <h2 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Career Fit Analysis</h2>
+                                    <div style={{ marginBottom: 16 }}>
+                                        <h2 className={styles.sectionTitle} style={{ 
+                                            marginBottom: 8,
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                            fontFamily: '"Playfair Display", "Georgia", serif',
+                                            fontWeight: 700,
+                                            borderBottom: 'none'
+                                        }}>Career Fit Analysis</h2>
                                         <div style={{
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '8px',
+                                            gap: '4px',
                                             fontSize: '16px',
                                             color: '#6c757d',
                                             fontWeight: '500',
@@ -4747,7 +4795,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '150px', // Fixed height for exactly 3 items
+                                                    height: '220px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4835,7 +4883,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '150px', // Fixed height for exactly 3 items
+                                                    height: '220px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
