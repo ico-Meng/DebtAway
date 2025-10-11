@@ -2694,6 +2694,11 @@ export default function AlphaPage() {
                     }
                 ]
             }));
+            
+            // Trigger height update after adding work experience row
+            setTimeout(() => {
+                sendHeightToParent(true);
+            }, 200);
         }
     };
 
@@ -2704,6 +2709,11 @@ export default function AlphaPage() {
                 ...prev,
                 workExperiences: prev.workExperiences.filter((_, i) => i !== index)
             }));
+            
+            // Trigger height update after removing work experience row
+            setTimeout(() => {
+                sendHeightToParent(true);
+            }, 200);
         }
     };
 
@@ -3147,20 +3157,22 @@ export default function AlphaPage() {
         lastSentHeight: 0,
         lastCalculatedHeight: 0,
         updateCount: 0,
-        isUpdating: false
+        isUpdating: false,
+        isScrolling: false,
+        scrollTimeout: null as NodeJS.Timeout | null
     });
 
     // Function to calculate and send page height to parent window (for iframe resizing)
     const sendHeightToParent = useCallback((forceUpdate = false) => {
-        if (typeof window !== 'undefined' && window.parent !== window && !heightTracker.current.isUpdating) {
+        if (typeof window !== 'undefined' && window.parent !== window && !heightTracker.current.isUpdating && !heightTracker.current.isScrolling) {
             heightTracker.current.isUpdating = true;
             
-            // Calculate the actual content height more conservatively
-            const bodyHeight = document.body.scrollHeight;
-            const documentHeight = document.documentElement.scrollHeight;
+            // Use a more stable height calculation that doesn't change during scrolling
+            const bodyHeight = document.body.offsetHeight; // Use offsetHeight instead of scrollHeight
+            const documentHeight = document.documentElement.offsetHeight;
             
-            // Use the smaller of the two to avoid unnecessary growth
-            const contentHeight = Math.min(bodyHeight, documentHeight);
+            // Use the larger of the two to ensure we capture all content
+            const contentHeight = Math.max(bodyHeight, documentHeight);
             
             // Add minimal padding only when needed
             const heightWithPadding = contentHeight + 30;
@@ -3202,16 +3214,23 @@ export default function AlphaPage() {
     useEffect(() => {
         let resizeTimeout: NodeJS.Timeout;
         let lastResizeTime = 0;
+        let lastWindowSize = { width: window.innerWidth, height: window.innerHeight };
         
         const handleResize = () => {
             const now = Date.now();
-            // Only handle resize if it's been more than 2 seconds since last resize
-            if (now - lastResizeTime > 2000) {
+            const currentSize = { width: window.innerWidth, height: window.innerHeight };
+            
+            // Only handle resize if it's been more than 3 seconds since last resize
+            // AND the size actually changed (not just iframe resizing)
+            const sizeChanged = currentSize.width !== lastWindowSize.width || currentSize.height !== lastWindowSize.height;
+            
+            if (now - lastResizeTime > 3000 && sizeChanged) {
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
                     sendHeightToParent();
                     lastResizeTime = now;
-                }, 1000); // Long delay to prevent rapid updates
+                    lastWindowSize = currentSize;
+                }, 1500); // Longer delay to prevent rapid updates
             }
         };
 
@@ -3221,6 +3240,31 @@ export default function AlphaPage() {
             clearTimeout(resizeTimeout);
         };
     }, [sendHeightToParent]);
+
+    // Track scrolling to prevent height updates during scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            heightTracker.current.isScrolling = true;
+            
+            // Clear existing timeout
+            if (heightTracker.current.scrollTimeout) {
+                clearTimeout(heightTracker.current.scrollTimeout);
+            }
+            
+            // Set scrolling to false after scroll ends
+            heightTracker.current.scrollTimeout = setTimeout(() => {
+                heightTracker.current.isScrolling = false;
+            }, 150); // 150ms after scroll ends
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            if (heightTracker.current.scrollTimeout) {
+                clearTimeout(heightTracker.current.scrollTimeout);
+            }
+        };
+    }, []);
 
     // Send height when analysis completes (content changes) - very conservative
     useEffect(() => {
@@ -3253,6 +3297,14 @@ export default function AlphaPage() {
             return () => clearTimeout(timer);
         }
     }, [resumeFile, sendHeightToParent]);
+
+    // Send height when work experience entries are added or removed
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            sendHeightToParent(true); // Force update for work experience changes
+        }, 300); // Delay to allow DOM to update
+        return () => clearTimeout(timer);
+    }, [formData.workExperiences.length, sendHeightToParent]);
 
     const progressBarElement = useMemo(() => <ProgressBar step={currentStep} />, [currentStep]);
 
@@ -3604,7 +3656,7 @@ export default function AlphaPage() {
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             style={eduErrors['degree'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
-                                            placeholder="e.g., Bachelor's, Master's, PhD"
+                                            placeholder="Bachelor's, Master's, PhD"
                                         />
                                     </div>
                                 </div>
@@ -3623,7 +3675,7 @@ export default function AlphaPage() {
                                             onBlur={() => { handleEducationBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
                                             style={eduErrors['major'] ? { borderColor: '#DC2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.2)' } : undefined}
-                                            placeholder="e.g., Computer Science, Business Administration"
+                                            placeholder="Computer Science, Business Administration"
                                         />
                                     </div>
 
@@ -3754,7 +3806,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., JavaScript, Python, Rust"
+                                            placeholder="Python, JS, Rust, Golang, SQL"
                                         />
                                     </div>
 
@@ -3770,7 +3822,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., Cloud, AI/LLM, Blockchain"
+                                            placeholder="Cloud, AI/LLM, Crypto, Fintech"
                                         />
                                     </div>
                                 </div>
@@ -3788,7 +3840,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., React, FastApi, AWS, Docker"
+                                            placeholder="React, FastApi, AWS, Docker"
                                         />
                                     </div>
 
@@ -3804,7 +3856,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="e.g., Awards, Certifications, Paper"
+                                            placeholder="Awards, Certifications, Paper"
                                         />
                                     </div>
                                 </div>
@@ -4795,7 +4847,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Individual Suggestion Blocks - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '220px', // Fixed height for exactly 3 items
+                                                    height: '300px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
@@ -4883,7 +4935,7 @@ export default function AlphaPage() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                                 {/* Resume Analysis Suggestions - Show 3 at a time with scroll */}
                                                 <div style={{
-                                                    height: '220px', // Fixed height for exactly 3 items
+                                                    height: '300px', // Fixed height for exactly 3 items
                                                     overflowY: 'auto',
                                                     paddingRight: '4px'
                                                 }}>
