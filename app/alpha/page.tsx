@@ -4683,7 +4683,7 @@ export default function AlphaPage() {
                                             </span>
                                             <span style={{ color: '#9ca3af' }}>at</span>
                                             <span style={{ fontStyle: 'italic' }}>
-                                                {analysisResult?.job_analysis?.analysis?.company_name || 'Company Name'}
+                                                {analysisResult?.job_analysis?.analysis?.company_name || 'companies in general'}
                                             </span>
                                         </div>
                                     </div>
@@ -4924,10 +4924,10 @@ export default function AlphaPage() {
                                     </button>
                                     <button
                                         className={styles.submitButton}
-                                        onClick={() => window.open('https://www.careerlandinggroup.com/career-cruise/#flash-chat', '_blank')}
-                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                        onClick={() => window.open('https://calendar.app.google/gE2pcatrA4j83c547', '_blank')}
+                                        style={{ minWidth: 150, maxWidth: 150 }}
                                     >
-                                        Coach
+                                        Free Session
                                     </button>
                                                 </div>
                                             </div>
