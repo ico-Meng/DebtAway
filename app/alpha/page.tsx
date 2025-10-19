@@ -3822,7 +3822,7 @@ export default function AlphaPage() {
                                             onFocus={() => { handleTechSkillsFocus(); handleJobMatchFocus(); }}
                                             onBlur={() => { handleTechSkillsBlur(); handleJobMatchBlur(); }}
                                             className={styles.input}
-                                            placeholder="Cloud, AI/LLM, Crypto, Fintech"
+                                            placeholder="AI, Cloud, Blockchain, Fintech"
                                         />
                                     </div>
                                 </div>
@@ -4109,7 +4109,9 @@ export default function AlphaPage() {
                                                 fontWeight: '600',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center'
+                                                justifyContent: 'center',
+                                                lineHeight: '1',
+                                                verticalAlign: 'middle'
                                             }}
                                         >
                                             +
@@ -5028,7 +5030,7 @@ export default function AlphaPage() {
                                                     <button
                                                         className={styles.submitButton}
                                                         onClick={() => window.open('https://www.careerlandinggroup.com/resume-design/#resume-analysis-lab', '_blank')}
-                                                        style={{ minWidth: 120, maxWidth: 140 }}
+                                                        style={{ minWidth: 150, maxWidth: 150 }}
                                                     >
                                                         Improve
                                                     </button>

@@ -767,7 +767,7 @@
 /* Button Styles */
 .submitButton {
     padding: 0.75rem 1.5rem;
-    background-color: #9B6A10;
+    background-color: #D6BF9A !important; /* #9B6A10; */
     color: white;
     border: none;
     border-radius: 8px;
@@ -779,7 +779,7 @@
 }
 
 .submitButton:hover:not(:disabled) {
-    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1);
+    box-shadow: 0 0 8px 2px rgba(227, 197, 124, 1);
 }
 
 .submitButton:focus,
@@ -787,11 +787,11 @@
 .submitButton:active {
     outline: none !important;
     border: none !important;
-    box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+    box-shadow: none !important;
 }
 
 .submitButton:disabled {
-    background-color: #ccc;
+    background-color: #E3D9CF;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
