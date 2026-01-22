@@ -1,0 +1,101 @@
+:root {
+  --max-width: 1100px;
+  --border-radius: 12px;
+  --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono',
+    'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro',
+    'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+
+  --callout-rgb: 238, 240, 241;
+  --callout-border-rgb: 172, 175, 176;
+  --card-rgb: 180, 185, 188;
+  --card-border-rgb: 131, 134, 135;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
+
+    --callout-rgb: 238, 240, 241;
+    --callout-border-rgb: 172, 175, 176;
+    --card-rgb: 180, 185, 188;
+    --card-border-rgb: 131, 134, 135;
+  }
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh;
+  scroll-behavior: smooth;
+  color: #333;
+  background-color: #f5f7fa;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: #f5f7fa;
+}
+
+/* Form-specific overrides */
+input, select, textarea, button:not(.submitButton):not(.resumeAddJobButton):not(.analysisSwitchButton):not([class*="projectTag"]) {
+  background-color: #ffffff;
+  color: #333;
+}
+
+/* Radio buttons and labels */
+input[type="radio"] + label,
+input[type="checkbox"] + label {
+  color: #333;
+}
+
+/* Ensure content is visible */
+main, div, form, section {
+  overflow: visible;
+}
+
+/* Reset max-height to avoid content clipping */
+form, div, section {
+  max-height: none;
+}
+
+/* Improve form scrolling */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow: visible;
+  background-color: #ffffff;
+  color: #333;
+}
+
+/* Ensure form sections don't disappear */
+.formSection {
+  position: static !important;
+  visibility: visible !important;
+  display: block !important;
+  background-color: #ffffff;
+  color: #333;
+}
+
+/* Ensure project tags are not affected by global button styles */
+button[class*="projectTag"] {
+  background-color: initial !important;
+  color: initial !important;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transform: initial !important;
+  will-change: transform, box-shadow !important;
+}

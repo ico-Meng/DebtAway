@@ -1,0 +1,164 @@
+/* Global override for flash-chat page */
+:root {
+  --global-bg-color: #edece3;
+}
+
+/* Override the background from app.css with extreme specificity */
+html body,
+body,
+body[class],
+body[class*="inter"] {
+  background: var(--global-bg-color) !important;
+  background-color: var(--global-bg-color) !important;
+  background-image: none !important;
+  margin: 0 !important;
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+/* Fixed background for the entire viewport */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--global-bg-color) !important;
+  z-index: -9999;
+}
+
+/* Next.js specific elements */
+#__next,
+[data-nextjs-root],
+[data-nextjs-page],
+[id^="__next"] {
+  background-color: var(--global-bg-color) !important;
+  min-height: 100%;
+  height: auto !important;
+  overflow: auto !important;
+}
+
+/* Prevent scrollbar when not needed */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Main container and layout elements */
+main,
+.container,
+div[class*="container"]:not([class*="formContainer"]),
+div[class*="layout"],
+div[class*="page"],
+div[class*="wrapper"] {
+  background-color: var(--global-bg-color) !important;
+}
+
+/* IMPORTANT: Remove the style overrides for form elements */
+/* This ensures form elements keep their original styling */
+.formContainer,
+.formSection,
+input, 
+select, 
+textarea, 
+button:not(.submitButton),
+label,
+[class*="formContainer"],
+[class*="form-"] {
+  background-color: initial;  /* Remove our override */
+}
+
+/* Ensure submit buttons keep their proper color */
+.submitButton,
+button.submitButton,
+[class*="submitButton"] {
+  background-color: #9B6A10 !important;
+  color: white !important;
+}
+
+.submitButton:hover,
+button.submitButton:hover,
+[class*="submitButton"]:hover {
+  background-color: #9B6A10 !important;
+  box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+}
+
+.submitButton:disabled,
+button.submitButton:disabled,
+[class*="submitButton"]:disabled {
+  background-color: #ccc !important;
+  color: white !important;
+}
+
+/* Ensure form container and title have white backgrounds */
+.formContainer,
+[class*="formContainer"],
+.title,
+[class*="title"],
+h1[class*="title"] {
+  background-color: #ffffff !important;
+}
+
+/* Override for specific body class to ensure proper styling */
+body.flash-chat-page {
+  background-color: #edece3 !important;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Ensure form fields and styles work correctly */
+body.flash-chat-page * {
+  box-sizing: border-box;
+}
+
+/* Override any inherited styles from global CSS */
+body.flash-chat-page main.main-content {
+  padding: 0 !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Remove any margins that might interfere with layout */
+body.flash-chat-page .container {
+  margin: 0 auto !important;
+}
+
+/* Keep proper focus outlines for accessibility */
+body.flash-chat-page :focus {
+  outline: none;
+}
+
+body.flash-chat-page :focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Ensure form inputs have proper spacing */
+body.flash-chat-page input,
+body.flash-chat-page textarea,
+body.flash-chat-page select,
+body.flash-chat-page button {
+  font-family: inherit;
+}
+
+/* Ensure scrollbars are styled appropriately */
+body.flash-chat-page ::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.flash-chat-page ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+body.flash-chat-page ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+body.flash-chat-page ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+} 

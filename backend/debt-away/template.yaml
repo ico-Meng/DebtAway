@@ -1,0 +1,173 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  debt-away
+
+  Sample SAM Template for debt-away
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 120  # Increased for container cold starts
+    MemorySize: 1024
+    LoggingConfig:
+      LogFormat: JSON
+
+Parameters:
+  ImageRepository:
+    Type: String
+    Default: ambitologies-repo
+    Description: "ECR repository name for Lambda container images"
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: "Container image tag"
+  PlaidClientId:
+    Type: String
+  PlaidSecret:
+    Type: String
+  PlaidEnv:
+    Type: String
+  ExprianUsername:
+    Type: String
+  ExperianPassword:
+    Type: String
+  ExperianClientId:
+    Type: String
+  ExperianSecret:
+    Type: String
+  OpenRouterApiKey:
+    Type: String
+  StripeSecretKey:
+    Type: String
+  OpenaiApiKey:
+    Type: String
+
+
+Resources:
+  ChatAiS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: chat-ai-s3-bucket
+      #AccessControl: Private  # Change to PublicRead if needed
+      VersioningConfiguration:
+        Status: Enabled  # Enables versioning
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  ChatAiS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ChatAiS3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:ListBucket"
+            Resource:
+              - !Sub "arn:aws:s3:::${ChatAiS3Bucket}"
+              - !Sub "arn:aws:s3:::${ChatAiS3Bucket}/*"
+
+  ApiGatewayApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: prod
+        Cors:
+          AllowOrigin: "'*'"
+          AllowMethods: "'OPTIONS,POST,GET'"
+          #AllowHeaders: "'Content-Type,Authorization'"
+          AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
+          AllowCredentials: "'true'"
+        BinaryMediaTypes:  # ✅ Add binary media types
+          - "audio/wav"
+          - "audio/mpeg"
+          - "multipart/form-data"
+          - "application/pdf"
+  UnifiedApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DockerContext: ./api
+      Dockerfile: Dockerfile
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ImageRepository}:${ImageTag}"
+      Architectures:
+        - x86_64
+      Events:
+        UnifiedApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /{proxy+} # Match all routes
+            Method: ANY
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ChatAiS3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref ChatAiS3Bucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:CreateTable
+                - dynamodb:DescribeTable
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: 
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lead_email/*"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/career_analysis_data"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/career_analysis_data/*"
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          PLAID_CLIENT_ID: !Ref PlaidClientId
+          PLAID_SECRET: !Ref PlaidSecret
+          PLAID_ENV: !Ref PlaidEnv
+          EXPERIAN_USERNAME: !Ref ExprianUsername
+          EXPERIAN_PASSWORD: !Ref ExperianPassword
+          EXPERIAN_CLIENT_ID: !Ref ExperianClientId
+          EXPERIAN_SECRET: !Ref ExperianSecret
+          S3_BUCKET_NAME: !Ref ChatAiS3Bucket
+          STRIPE_SECRET_KEY: !Ref StripeSecretKey
+          OPENROUTER_APIKEY: !Ref OpenRouterApiKey
+          OPENAI_APIKEY: !Ref OpenaiApiKey
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  UnifiedApiFunctionApi:
+    Description: API Gateway endpoint URL for Prod stage for Unified API
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
+  UnifiedApiFunction:
+    Description: Unified Lambda Function ARN
+    Value: !GetAtt UnifiedApiFunctionRole.Arn
+  UnifiedApiFunctionRole:
+    Description: Implicit IAM Role created for Unified function
+    Value: !GetAtt UnifiedApiFunctionRole.Arn
+  ChatAiS3BucketName:
+    Value: !Ref ChatAiS3Bucket
+    Export:
+      Name: ChatAiS3BucketName

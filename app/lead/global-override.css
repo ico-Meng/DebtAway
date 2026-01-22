@@ -1,0 +1,142 @@
+/* Global override for lead page */
+:root {
+  --global-bg-color: #edece3;
+}
+
+/* Override the background from app.css with extreme specificity */
+html body,
+body,
+body[class],
+body[class*="inter"] {
+  background: var(--global-bg-color) !important;
+  background-color: var(--global-bg-color) !important;
+  background-image: none !important;
+  margin: 0 !important;
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+/* Fixed background for the entire viewport */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--global-bg-color) !important;
+  z-index: -9999;
+}
+
+/* Next.js specific elements */
+#__next,
+[data-nextjs-root],
+[data-nextjs-page],
+[id^="__next"] {
+  background-color: var(--global-bg-color) !important;
+  min-height: 100%;
+  height: auto !important;
+  overflow: auto !important;
+}
+
+/* Prevent scrollbar when not needed */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Main container and layout elements */
+main,
+.container,
+div[class*="container"]:not([class*="formContainer"]),
+div[class*="layout"],
+div[class*="page"],
+div[class*="wrapper"] {
+  background-color: var(--global-bg-color) !important;
+}
+
+/* IMPORTANT: Remove the style overrides for form elements */
+/* This ensures form elements keep their original styling */
+.formContainer,
+.formSection,
+input, 
+select, 
+textarea, 
+button,
+label,
+[class*="formContainer"],
+[class*="form-"] {
+  background-color: initial;  /* Remove our override */
+}
+
+/* Ensure form container and title have white backgrounds */
+.formContainer,
+[class*="formContainer"],
+.title,
+[class*="title"],
+h1[class*="title"] {
+  background-color: #ffffff !important;
+}
+
+/* Override for specific body class to ensure proper styling */
+body.lead-page {
+  background-color: #edece3 !important;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Ensure form fields and styles work correctly */
+body.lead-page * {
+  box-sizing: border-box;
+}
+
+/* Override any inherited styles from global CSS */
+body.lead-page main.main-content {
+  padding: 0 !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Remove any margins that might interfere with layout */
+body.lead-page .container {
+  margin: 0 auto !important;
+}
+
+/* Keep proper focus outlines for accessibility */
+body.lead-page :focus {
+  outline: none;
+}
+
+body.lead-page :focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Ensure form inputs have proper spacing */
+body.lead-page input,
+body.lead-page textarea,
+body.lead-page select,
+body.lead-page button {
+  font-family: inherit;
+}
+
+/* Ensure scrollbars are styled appropriately */
+body.lead-page ::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.lead-page ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+body.lead-page ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+body.lead-page ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

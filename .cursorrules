@@ -1,0 +1,271 @@
+# Alphora Project - Cursor AI Rules
+
+## Project Overview
+Alphora is a career development and learning platform built with Next.js (App Router), TypeScript, AWS Amplify, and a Python backend. It empowers users to manage their knowledge assets, strengthen key skills, and generate job-ready documents to secure more interviews and offers.
+
+## Core Technology Stack
+
+### Frontend
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS (latest version)
+- **UI Components**: Build custom components with Tailwind
+- **State Management**: React hooks and Server Components where appropriate
+- **Authentication**: AWS Amplify Auth
+- **Data Fetching**: Server Actions and API routes
+
+### Backend
+- **AWS Amplify**: For authentication and data layer
+- **Python/SAM**: Lambda functions for external integrations (Plaid, Experian)
+- **API**: RESTful endpoints via AWS API Gateway
+
+## Design System & UX Guidelines
+
+### Layout Structure
+1. **Landing Page** (`/`)
+   - Clean, modern hero section
+   - Clear call-to-action for login/signup
+   - Feature highlights
+   - Responsive design (mobile-first)
+
+2. **Dashboard Layout** (authenticated users)
+   - **Left Sidebar Navigation**: Fixed, collapsible on mobile
+   - **Main Content Area**: Center, scrollable
+   - **Top Bar**: User profile, notifications, logout
+   - Consistent spacing and padding across all views
+
+### Design Principles
+- **Consistency**: All pages must follow the same design language
+- **Color Palette**: Define and reuse via Tailwind config
+  - Primary: Financial trust colors (blues, greens)
+  - Secondary: Accent colors for CTAs
+  - Neutral: Grays for backgrounds and text
+  - Status colors: Success (green), Warning (yellow), Error (red)
+- **Typography**: Consistent font hierarchy
+  - Use `font-sans` for body text
+  - Clear size scale: text-xs, text-sm, text-base, text-lg, text-xl, text-2xl, text-3xl
+- **Spacing**: Use Tailwind's spacing scale consistently (4, 8, 12, 16, 24, 32, 48, 64)
+- **Shadows**: Subtle shadows for depth (shadow-sm, shadow-md, shadow-lg)
+- **Animations**: Smooth transitions (transition-all duration-200)
+
+### Component Patterns
+- **Buttons**: Consistent sizing, hover states, loading states
+- **Forms**: Clear labels, validation feedback, accessible
+- **Cards**: Rounded corners (rounded-lg), subtle shadows
+- **Navigation**: Active state indicators, smooth transitions
+- **Modals**: Center-aligned, backdrop blur, escape to close
+- **Loading States**: Skeletons or spinners, never blank content
+
+## SEO Optimization Requirements
+
+### Metadata (Every Page)
+```typescript
+export const metadata: Metadata = {
+  title: 'Page Title | Alphora',
+  description: 'Clear, concise description (150-160 chars)',
+  keywords: ['relevant', 'keywords'],
+  openGraph: {
+    title: 'Page Title',
+    description: 'Description for social sharing',
+    images: ['/images/og-image.jpg'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Page Title',
+    description: 'Description',
+    images: ['/images/twitter-image.jpg'],
+  },
+}
+```
+
+### SEO Best Practices
+- Use semantic HTML (`<header>`, `<main>`, `<nav>`, `<article>`, `<section>`)
+- Include proper heading hierarchy (h1 → h2 → h3)
+- Add alt text to all images
+- Use Next.js `<Image>` component for optimization
+- Implement structured data (JSON-LD) where appropriate
+- Create dynamic sitemap.xml and robots.txt
+- Ensure mobile responsiveness
+- Optimize Core Web Vitals (LCP, FID, CLS)
+
+## Code Style & Standards
+
+### TypeScript
+- Use strict mode
+- Define interfaces for all props and data structures
+- Avoid `any` type - use `unknown` if truly needed
+- Use type inference where obvious
+- Export types alongside components
+
+### File Naming
+- Components: PascalCase (e.g., `DashboardLayout.tsx`)
+- Utilities: camelCase (e.g., `formatCurrency.ts`)
+- Pages: lowercase with hyphens (Next.js convention)
+- CSS Modules: `ComponentName.module.css`
+
+### Component Structure
+```typescript
+'use client' // Only if needed (client interactivity)
+
+import { ComponentProps } from './types'
+
+interface Props extends ComponentProps {
+  // Define props
+}
+
+export default function ComponentName({ prop1, prop2 }: Props) {
+  // 1. Hooks
+  // 2. Derived state
+  // 3. Event handlers
+  // 4. Effects
+  
+  return (
+    // JSX
+  )
+}
+```
+
+### Tailwind CSS
+- Use Tailwind utility classes (no custom CSS unless absolutely necessary)
+- Group classes logically: layout → spacing → typography → colors → effects
+- Use `clsx` or `cn` utility for conditional classes
+- Define custom values in `tailwind.config.ts` (colors, spacing, etc.)
+- Use responsive prefixes: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Prefer Tailwind over inline styles
+
+### Code Organization
+```
+app/
+├── (auth)/           # Route group for authenticated pages
+│   ├── dashboard/
+│   ├── balance/
+│   └── debtstatus/
+├── (public)/         # Route group for public pages
+│   ├── page.tsx      # Landing page
+│   └── login/
+├── components/       # Shared components
+│   ├── ui/          # Reusable UI components
+│   ├── dashboard/   # Dashboard-specific components
+│   └── layouts/     # Layout components
+├── lib/             # Utilities and helpers
+├── hooks/           # Custom React hooks
+├── types/           # TypeScript type definitions
+└── layout.tsx       # Root layout
+```
+
+## Development Workflow
+
+### When Creating New Features
+1. **Plan**: Break down into components and data requirements
+2. **Types First**: Define TypeScript interfaces
+3. **Component Structure**: Create layout and component hierarchy
+4. **Styling**: Apply Tailwind classes consistently
+5. **Functionality**: Add interactivity and data fetching
+6. **SEO**: Add metadata and semantic HTML
+7. **Test**: Verify responsive design and accessibility
+
+### Performance Considerations
+- Use Server Components by default
+- Add 'use client' only when needed (interactivity, hooks)
+- Implement proper loading and error states
+- Use dynamic imports for heavy components
+- Optimize images with Next.js Image component
+- Implement proper caching strategies
+
+### Accessibility (a11y)
+- Keyboard navigation support
+- ARIA labels where needed
+- Color contrast compliance (WCAG AA)
+- Screen reader friendly
+- Focus indicators visible
+
+## Code Quality
+
+### Linting & Formatting
+- Run ESLint before committing
+- Fix all errors and warnings
+- Use Prettier for consistent formatting
+
+### Comments
+- Add JSDoc comments for complex functions
+- Explain "why" not "what" in inline comments
+- Document component props with TSDoc
+
+### Error Handling
+- Use error boundaries for React errors
+- Display user-friendly error messages
+- Log errors appropriately (don't expose sensitive data)
+- Provide recovery actions when possible
+
+## Common Commands
+```bash
+# Development
+npm run dev
+
+# Build
+npm run build
+
+# Type check
+npm run type-check
+
+# Lint
+npm run lint
+
+# Backend (Python/SAM)
+cd backend/debt-away
+sam build
+sam local start-api
+```
+
+## Working with AI Agent (Instructions for Agent)
+
+### When Implementing Features
+1. **Read existing code** first to understand patterns
+2. **Maintain consistency** with existing components
+3. **Ask clarifying questions** if requirements are unclear
+4. **Create reusable components** instead of duplicating code
+5. **Update related files** (types, utils, etc.) when needed
+6. **Test the implementation** mentally for edge cases
+
+### Code Generation Priorities
+1. TypeScript correctness
+2. Design system consistency
+3. SEO optimization
+4. Accessibility
+5. Performance
+6. Code readability
+
+### Don't
+- Don't create components that break existing design patterns
+- Don't use JavaScript instead of TypeScript
+- Don't ignore SEO requirements
+- Don't use inline styles when Tailwind classes exist
+- Don't create pages without proper metadata
+- Don't skip accessibility features
+- Don't use any type without justification
+
+## Authentication Flow
+- Use AWS Amplify Auth for user management
+- Protected routes should check authentication status
+- Redirect unauthenticated users to landing page
+- Store minimal user data client-side
+- Use secure token management
+
+## API Integration
+- Backend APIs return JSON
+- Use proper error handling for API calls
+- Show loading states during API calls
+- Cache responses when appropriate
+- Handle rate limiting and retries
+
+## Environment Variables
+- Store sensitive data in environment variables
+- Never commit secrets to repository
+- Use `.env.local` for local development
+- Document required environment variables
+
+---
+
+**Note to AI Agent**: Always refer to these rules when writing code for this project. If you encounter conflicts between these rules and user requests, ask for clarification. Prioritize consistency and maintainability.
+

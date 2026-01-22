@@ -1,0 +1,1189 @@
+/* Container and Main Layout */
+.container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background-color: #F5F5F5;
+}
+
+.main {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: transparent;
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.chartContainer {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+}
+
+/* Form Title and Headers */
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    padding: 1.5rem;
+    padding-bottom: 0;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    background-color: #ffffff;
+}
+
+.sectionTitle {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 0.5rem 0;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #eee;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.chartWrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.radarChart {
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
+    min-height: 500px;
+    min-width: 500px;
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legendColor {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+/* Form Layout */
+.form {
+    width: 100%;
+    max-width: 1200px;
+    padding: 2.5rem;
+    padding-top: 0rem;
+}
+
+.formSection {
+    width: 100%;
+    max-width: 1200px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1 1 0%;
+    position: relative;
+    background: #faf8f4;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(227,197,124,0.07);
+    padding: 2.5rem 2rem 2rem 2rem;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+    flex: 1 1 auto;
+}
+
+.formSection .navButtons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 2rem;
+}
+
+.navButtonsRight {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 2rem;
+}
+
+.formRowContainer {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 2.2rem;
+}
+
+.halfWidth {
+    flex: 1;
+}
+
+/* Form Input Styles */
+.inputGroup {
+    margin-bottom: 1.5rem;
+    flex: 1 1 auto;
+}
+
+.label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.required {
+    color: #e53e3e;
+    margin-left: 0.25rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #edece3;
+    color: #333;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #9B6A10;
+    box-shadow: 0 0 0 3px rgba(155, 106, 16, 0.1);
+}
+
+.input::placeholder {
+    color: #a0aec0;
+}
+
+/* Custom styling for the select dropdown */
+.select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.8em;
+    padding-right: 2.5rem;
+    cursor: pointer;
+    width: 100%;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background-color: #edece3; /* match Job Title field */
+    color: #333;
+}
+
+.select:focus {
+    outline: none;
+    border-color: #9B6A10;
+    box-shadow: 0 0 0 3px rgba(155, 106, 16, 0.1);
+}
+
+.select:hover:not(:focus) {
+    border-color: #0066cc88;
+}
+
+/* Style dropdown options */
+.select optgroup {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    padding: 8px;
+}
+
+.select option {
+    padding: 10px 15px;
+    background-color: #edece3; /* match Job Title field */
+    color: #333;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.select option:hover,
+.select option:focus {
+    background-color: #f0f7ff !important;
+}
+
+.select option:checked {
+    background-color: #e6f2ff;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.select:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.select option[value=""] {
+    color: #6c757d;
+}
+
+/* Custom Dropdown Styles (from flash-chat) */
+.customDropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdownSelected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 48px; /* Fixed height to prevent vertical expansion */
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #edece3;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box; /* Ensure padding is included in height calculation */
+}
+
+.dropdownSelected:hover {
+    border-color: #3B82F6;
+}
+
+.dropdownSelected:focus {
+    outline: none;
+    border-color: #9B6A10;
+    box-shadow: 0 0 0 3px rgba(155, 106, 16, 0.1);
+}
+
+.dropdownArrow {
+    transition: transform 0.2s ease;
+    min-width: 16px;
+    margin-left: 8px;
+    color: #666;
+}
+
+.dropdownArrowUp {
+    transform: rotate(180deg);
+}
+
+.dropdownOptions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #edece3;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    z-index: 10;
+    margin: 0.25rem 0 0 0;
+    padding: 0.5rem;
+    list-style: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dropdownOption {
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-radius: 4px;
+    margin: 0.125rem 0;
+    background-color: #edece3;
+    color: #333;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.dropdownOption:hover {
+    background-color: #e6e4d9;
+}
+
+.dropdownOptionSelected {
+    background-color: #d9d6c7;
+    font-weight: 500;
+}
+
+.dropdownOptionSelected:hover {
+    background-color: #cfc8b7;
+}
+
+.hiddenSelect {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.dropdownError .dropdownSelected {
+    border-color: #EF4444;
+}
+
+.placeholderText {
+    color: #999;
+}
+
+/* Progress Bar Styles */
+.progressBarContainer {
+    width: 100%;
+    padding: 1rem 2.5rem;
+    padding-bottom: 0rem;
+    background-color: white;
+}
+
+/* Step Indicators */
+.stepIndicators {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.stepIndicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    flex: 1;
+    z-index: 2;
+}
+
+.stepCircle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 3;
+}
+
+.stepCompleted .stepCircle {
+    background-color: #9B6A10;
+    color: white;
+    box-shadow: 0 2px 8px rgba(155, 106, 16, 0.3);
+    animation: stepPulse 0.6s ease-out;
+}
+
+.stepCurrent .stepCircle {
+    background-color: #fcdbb6;
+    color: #333;
+    box-shadow: 0 0 12px rgba(252, 219, 182, 0.5);
+    /* Remove continuous glow; animation will be added via .stepCircleFlash */
+}
+
+.stepUpcoming .stepCircle {
+    background-color: #f0f0f0;
+    color: #999;
+    border: 2px solid #e0e0e0;
+}
+
+.stepCheckmark {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.stepNumber {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.stepName {
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.2;
+    transition: all 0.3s ease;
+}
+
+.stepCompleted .stepName {
+    color: #9B6A10;
+    font-weight: 600;
+}
+
+.stepCurrent .stepName {
+    color: #333;
+    font-weight: 600;
+    /* Disable name animation to limit motion */
+}
+
+.stepUpcoming .stepName {
+    color: #999;
+}
+
+/* One-off flash animation for the active step circle when step changes */
+.stepCircleFlash {
+    animation: stepPulse 0.6s ease-out;
+}
+
+.stepConnector {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: calc(100% - 40px);
+    height: 2px;
+    z-index: 1;
+    transition: all 0.5s ease;
+}
+
+.connectorCompleted {
+    background: linear-gradient(90deg, #9B6A10 0%, #e3c57c 100%);
+    /* Disable connector animation to limit motion */
+}
+
+.connectorIncomplete {
+    background-color: #e0e0e0;
+}
+
+/* Step Animation Keyframes */
+@keyframes stepPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(155, 106, 16, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 16px rgba(155, 106, 16, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(155, 106, 16, 0.3);
+    }
+}
+
+@keyframes currentStepGlow {
+    0% {
+        box-shadow: 0 0 15px rgba(252, 219, 182, 0.4);
+        transform: scale(1);
+    }
+    100% {
+        box-shadow: 0 0 25px rgba(252, 219, 182, 0.8);
+        transform: scale(1.05);
+    }
+}
+
+@keyframes nameHighlight {
+    0% {
+        transform: translateY(0);
+        color: #999;
+    }
+    50% {
+        transform: translateY(-2px);
+        color: #fcdbb6;
+    }
+    100% {
+        transform: translateY(0);
+        color: #333;
+    }
+}
+
+@keyframes connectorFill {
+    0% {
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    100% {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+}
+
+.progressBarTrack {
+    width: 100%;
+    height: 8px;
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progressBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #9B6A10 0%, #e3c57c 100%);
+    border-radius: 4px;
+    transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                background 0.3s ease,
+                box-shadow 0.3s ease;
+    transform-origin: left center;
+}
+
+.progressBarLabel {
+    font-size: 0.875rem;
+    color: #666;
+    text-align: center;
+    font-weight: 500;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Fancy Animation Styles */
+.progressBarAnimating {
+    animation: progressGlow 0.6s ease-in-out;
+}
+
+.progressLabelAnimating {
+    color: #9B6A10;
+    font-weight: 600;
+    transform: scale(1.05);
+}
+
+.progressSparkles {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    pointer-events: none;
+}
+
+.sparkle {
+    position: absolute;
+    font-size: 12px;
+    animation: sparkleFloat 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+.progressPulse {
+    margin-left: 8px;
+    animation: pulseRocket 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes progressGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(155, 106, 16, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(155, 106, 16, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(155, 106, 16, 0.4);
+    }
+}
+
+@keyframes sparkleFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(0px) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-15px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-25px) scale(0.8);
+    }
+}
+
+@keyframes pulseRocket {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.2);
+    }
+}
+
+/* Ultra Enhanced Animation Styles */
+.progressBounce {
+    animation: containerBounce 0.5s ease-out;
+}
+
+.progressWave {
+    animation: waveEffect 0.6s ease-in-out;
+}
+
+.progressFillBounce {
+    animation: fillBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.progressLabelBounce {
+    animation: labelBounce 0.5s ease-out;
+}
+
+.progressFireworks {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    pointer-events: none;
+}
+
+.firework {
+    position: absolute;
+    font-size: 16px;
+    animation: fireworkExplode 1s ease-out forwards;
+    opacity: 0;
+}
+
+.progressDot {
+    position: absolute;
+    top: -2px;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, #FFD700 0%, #9B6A10 100%);
+    border-radius: 50%;
+    transform: translateX(-50%);
+    animation: dotPulse 0.6s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.progressText {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.celebrationText {
+    margin-left: 10px;
+    color: #FFD700;
+    font-weight: bold;
+    animation: celebrationGlow 1s ease-in-out infinite alternate;
+}
+
+/* Enhanced Keyframe Animations */
+@keyframes containerBounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes waveEffect {
+    0% { 
+        background: linear-gradient(90deg, transparent 0%, rgba(155, 106, 16, 0.1) 50%, transparent 100%);
+        background-size: 200% 100%;
+        background-position: -100% 0;
+    }
+    100% { 
+        background-position: 100% 0;
+    }
+}
+
+@keyframes fillBounce {
+    0% { transform: scaleX(0.98); }
+    50% { transform: scaleX(1.02); }
+    100% { transform: scaleX(1); }
+}
+
+@keyframes labelBounce {
+    0% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-5px) scale(1.1); }
+    100% { transform: translateY(0px) scale(1); }
+}
+
+@keyframes fireworkExplode {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(0px);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.2) translateY(-10px);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.5) translateY(-20px) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2) translateY(-40px) rotate(360deg);
+    }
+}
+
+@keyframes dotPulse {
+    0% { 
+        transform: translateX(-50%) scale(1);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    50% { 
+        transform: translateX(-50%) scale(1.3);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 1);
+    }
+    100% { 
+        transform: translateX(-50%) scale(1);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+}
+
+@keyframes celebrationGlow {
+    0% {
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 15px rgba(255, 215, 0, 1);
+        transform: scale(1.05);
+    }
+}
+
+/* Button Styles */
+.submitButton {
+    padding: 0.75rem 1.5rem;
+    background-color: #D6BF9A !important; /* #9B6A10; */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.submitButton:hover:not(:disabled) {
+    box-shadow: 0 0 8px 2px rgba(227, 197, 124, 1);
+}
+
+.submitButton:focus,
+.submitButton:focus-visible,
+.submitButton:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.submitButton:disabled {
+    background-color: #E3D9CF;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* SVG Styles */
+.gridLine {
+    stroke: #f0f0f0;
+    stroke-width: 1;
+    fill: none;
+}
+
+.axisLine {
+    stroke: #e0e0e0;
+    stroke-width: 1;
+}
+
+.radarLabel {
+    font-size: 12px;
+    font-weight: bold;
+    fill: #333;
+}
+
+.valueLabel {
+    font-size: 10px;
+    fill: #999;
+}
+
+/* Animation Classes */
+.greyArea {
+    animation: spreadFromCenter 1s ease-out;
+}
+
+@keyframes spreadFromCenter {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+/* Resume Analysis Section Background */
+.resumeAnalysisContainer {
+    width: 100%;
+    max-width: 1200px;
+    background-color: #edece3;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0.5rem;
+        min-height: 100vh;
+    }
+    
+    .formContainer {
+        margin: 0;
+        border-radius: 8px;
+    }
+    
+    .form {
+        padding: 1rem;
+    }
+    
+    .formSection {
+        padding: 1rem;
+    }
+    
+    .title {
+        font-size: 1.4rem;
+        padding: 1rem 0.5rem;
+        line-height: 1.3;
+    }
+    
+    .sectionTitle {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .formRowContainer {
+        gap: 0.75rem;
+    }
+    
+    .halfWidth {
+        width: 48%;
+    }
+    
+    .radarChart {
+        width: 100%;
+        height: auto;
+        min-width: 300px;
+        min-height: 300px;
+        max-width: 400px;
+    }
+    
+    .chartWrapper {
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+    }
+    
+    .progressBarContainer {
+        padding: 0.75rem;
+    }
+
+    .stepIndicators {
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .stepCircle {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+
+    .stepName {
+        font-size: 9px;
+        max-width: 50px;
+        line-height: 1.2;
+    }
+
+    .stepConnector {
+        top: 14px;
+        width: calc(100% - 28px);
+    }
+    
+    .legend {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .legendItem {
+        justify-content: center;
+    }
+    
+    .navButtons {
+        gap: 0.75rem;
+    }
+    
+    .navButtonsRight {
+        gap: 0.75rem;
+    }
+    
+    .submitButton {
+        min-width: 100px;
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.25rem;
+    }
+    
+    .formContainer {
+        margin: 0;
+        border-radius: 6px;
+    }
+    
+    .title {
+        font-size: 1.2rem;
+        padding: 0.75rem 0.5rem;
+        line-height: 1.2;
+    }
+    
+    .sectionTitle {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+        font-size: 13px;
+        margin-bottom: 15px;
+    }
+    
+    .form {
+        padding: 0.75rem;
+    }
+    
+    .formSection {
+        padding: 0.75rem;
+    }
+    
+    .radarChart {
+        min-width: 250px;
+        min-height: 250px;
+        max-width: 350px;
+    }
+    
+    .chartWrapper {
+        padding: 0.25rem;
+        margin: 0.25rem 0;
+    }
+    
+    .stepCircle {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+
+    .stepName {
+        font-size: 8px;
+        max-width: 40px;
+    }
+
+    .stepConnector {
+        top: 12px;
+        width: calc(100% - 24px);
+    }
+    
+    .legend {
+        gap: 8px;
+        margin-top: 10px;
+    }
+    
+    .legendItem {
+        font-size: 12px;
+    }
+    
+    .input, .select, .textarea {
+        font-size: 14px;
+        padding: 0.5rem;
+    }
+    
+    .label {
+        font-size: 13px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .navButtons, .navButtonsRight {
+        gap: 0.5rem;
+    }
+    
+    .submitButton {
+        min-width: 90px;
+        max-width: 120px;
+        padding: 0.75rem 1rem;
+        font-size: 14px;
+    }
+    
+    .formSection {
+        padding: 1rem 0.75rem;
+    }
+    
+    /* Analysis page mobile improvements */
+    .tabContainer {
+        gap: 0.5rem;
+    }
+    
+    .tabButton {
+        padding: 0.75rem;
+        font-size: 14px;
+    }
+    
+    .suggestionsContainer {
+        height: 220px !important;
+        padding: 0.5rem;
+    }
+    
+    .suggestionItem {
+        padding: 0.75rem 1rem;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    /* Loading overlay mobile */
+    .loadingOverlay {
+        padding: 1rem;
+    }
+    
+    .loadingCard {
+        max-width: 90%;
+        padding: 1.5rem;
+    }
+    
+    .loadingText {
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .loadingTip {
+        font-size: 14px;
+        line-height: 1.5;
+        font-weight: 500;
+    }
+    
+    .chartContainer {
+        padding: 0.5rem;
+    }
+    
+    /* Fix dropdown height to match other input fields on mobile */
+    .dropdownSelected {
+        height: auto !important;
+        padding: 0.5rem !important;
+        min-height: auto !important;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 320px) {
+    .container {
+        padding: 0.125rem;
+    }
+    
+    .formContainer {
+        border-radius: 4px;
+    }
+    
+    .title {
+        font-size: 1.1rem;
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .sectionTitle {
+        font-size: 0.9rem;
+    }
+    
+    .form, .formSection {
+        padding: 0.5rem;
+    }
+    
+    .radarChart {
+        min-width: 200px;
+        min-height: 200px;
+        max-width: 280px;
+    }
+    
+    .stepCircle {
+        width: 20px;
+        height: 20px;
+        font-size: 9px;
+    }
+
+    .stepName {
+        font-size: 7px;
+        max-width: 35px;
+    }
+
+    .stepConnector {
+        top: 10px;
+        width: calc(100% - 20px);
+    }
+    
+    .input, .select, .textarea {
+        font-size: 13px;
+        padding: 0.4rem;
+    }
+    
+    .label {
+        font-size: 12px;
+    }
+    
+    .submitButton {
+        padding: 0.6rem 0.8rem;
+        font-size: 13px;
+        min-width: 80px;
+        max-width: 100px;
+    }
+    
+    .suggestionsContainer {
+        height: 180px !important;
+    }
+    
+    .suggestionItem {
+        padding: 0.5rem 0.75rem;
+        font-size: 12px;
+    }
+    
+    /* Loading overlay for very small screens */
+    .loadingCard {
+        max-width: 95%;
+        padding: 1rem;
+    }
+    
+    .loadingText {
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .loadingTip {
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 500;
+    }
+}

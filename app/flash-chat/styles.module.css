@@ -1,0 +1,33 @@
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Subscription info section */
+.subscriptionInfo {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border-left: 4px solid #0066cc;
+}
+
+.subscriptionInfo h3 {
+    color: #0066cc;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.subscriptionInfo ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.subscriptionInfo li {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+/* Rest of the existing styles */ 

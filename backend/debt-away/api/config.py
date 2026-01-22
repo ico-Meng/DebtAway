@@ -1,0 +1,16 @@
+import os
+
+PLAID_CLIENT_ID = os.environ.get("PLAID_CLIENT_ID")
+PLAID_SECRET = os.environ.get("PLAID_SECRET")
+PLAID_ENV = os.environ.get("PLAID_ENV")
+
+EXPERIAN_USERNAME = os.environ.get("EXPERIAN_USERNAME")
+EXPERIAN_PASSWORD = os.environ.get("EXPERIAN_PASSWORD")
+EXPERIAN_CLIENT_ID = os.environ.get("EXPERIAN_CLIENT_ID")
+EXPERIAN_SECRET = os.environ.get("EXPERIAN_SECRET")
+
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+
+OPENROUTER_APIKEY = os.environ.get("OPENROUTER_APIKEY")
+
+OPENAI_APIKEY = os.environ.get("OPENAI_APIKEY")
