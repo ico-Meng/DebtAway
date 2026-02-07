@@ -29,8 +29,8 @@
   50% { background-position: 100% 50%; }
 }
 
-/* Override global CSS to prevent interference with dashboard */
-.dashboardContainer button:not(.submitButton):not(.customDropdownTrigger):not(.dropdownOption):not(.nextButton):not(.backButton):not(.technologyItem):not(.sectionClearButton):not(.modalDoneButton):not(.industryButton):not(.interviewReadyButton):not(.knowledgeButton):not(.constructResumeButton):not(.resumeSaveButton):not(.resumeAddJobButton):not(.resumeBulletAddButton):not(.resumeDeleteFieldButton):not(.analysisSwitchButton) {
+/* Override global CSS to prevent interference with dashboard, but allow fully custom-styled buttons */
+.dashboardContainer button:not(.submitButton):not(.customDropdownTrigger):not(.dropdownOption):not(.nextButton):not(.backButton):not(.technologyItem):not(.sectionClearButton):not(.modalDoneButton):not(.industryButton):not(.interviewReadyButton):not(.knowledgeButton):not(.constructResumeButton):not(.resumeSaveButton):not(.resumeAddJobButton):not(.resumeBulletAddButton):not(.resumeDeleteFieldButton):not(.analysisSwitchButton):not(.getStartedButton):not(.settingsButton):not(.upgradePlanButton):not(.logoutButton) {
   background-color: transparent !important;
   background: transparent !important;
   border: none !important;
@@ -312,41 +312,50 @@
 .settingsContainer {
   position: relative;
   width: 100%;
+  min-width: 0;
 }
 
 .settingsButton {
   width: 100%;
-  padding: 1rem 1.5rem;
-  background: #EBE6E1 !important;
-  background-color: #EBE6E1 !important;
+  min-width: 0;
+  padding: 1.25rem 1.5rem;
+  background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
   text-align: left;
-  font-size: 1.1rem !important;
+  font-size: 1.125rem !important;
   font-weight: 600 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', sans-serif !important;
   color: #5a5248 !important;
   cursor: pointer !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.2s ease-out, color 0.2s ease-out;
   border-radius: 12px !important;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 .settingsButton:hover {
-  background: linear-gradient(90deg, rgba(155, 106, 16, 0.15) 0%, rgba(214, 191, 154, 0.1) 100%) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(155, 106, 16, 0.15) !important;
+  background: rgba(155, 106, 16, 0.18) !important;
+  color: #3d362e !important;
 }
 
 .settingsButton:active {
-  transform: translateY(0);
+  background: rgba(155, 106, 16, 0.24) !important;
+  transition-duration: 0.1s;
+}
+
+.settingsButton:focus-visible {
+  outline: 2px solid rgba(155, 106, 16, 0.5);
+  outline-offset: 2px;
 }
 
 .settingsButtonActive {
-  background: linear-gradient(90deg, rgba(155, 106, 16, 0.2) 0%, rgba(214, 191, 154, 0.15) 100%) !important;
+  background: rgba(155, 106, 16, 0.15) !important;
+  color: #4a4238 !important;
 }
 
 .settingsButtonText {
@@ -381,7 +390,7 @@
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.125rem;
 }
 
 .userEmailSection {
@@ -405,15 +414,15 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-.logoutButton {
+.upgradePlanButton {
   width: 100%;
-  padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #9B6A10 0%, #D6BF9A 100%) !important;
-  background-color: transparent !important;
-  border: none !important;
+  min-width: 0;
+  padding: 1.125rem 1.5rem;
+  background: rgba(155, 106, 16, 0.05) !important;
+  border: 1px solid rgba(155, 106, 16, 0.3) !important;
   outline: none !important;
-  color: #fff !important;
-  font-size: 1rem !important;
+  color: #8b7355 !important;
+  font-size: 1.0625rem !important;
   font-weight: 600 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   cursor: pointer !important;
@@ -421,20 +430,70 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(155, 106, 16, 0.2) !important;
+  gap: 0.625rem;
+  transition: background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+
+.upgradePlanButton:hover {
+  background: rgba(155, 106, 16, 0.18) !important;
+  color: #5a4a2e !important;
+  border-color: rgba(155, 106, 16, 0.45) !important;
+}
+
+.upgradePlanButton:active {
+  background: rgba(155, 106, 16, 0.26) !important;
+  transition-duration: 0.1s;
+}
+
+.upgradePlanButton:focus-visible {
+  outline: 2px solid rgba(155, 106, 16, 0.5);
+  outline-offset: 2px;
+}
+
+.upgradePlanButton span {
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+}
+
+.logoutButton {
+  width: 100%;
+  min-width: 0;
+  padding: 1.125rem 1.5rem;
+  background: rgba(155, 106, 16, 0.05) !important;
+  border: 1px solid rgba(155, 106, 16, 0.3) !important;
+  outline: none !important;
+  color: #8b7355 !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  cursor: pointer !important;
+  border-radius: 10px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  transition: background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out;
+  box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 .logoutButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(155, 106, 16, 0.3) !important;
-  background: linear-gradient(135deg, #8B5A00 0%, #C6AF8A 100%) !important;
+  background: rgba(155, 106, 16, 0.18) !important;
+  color: #5a4a2e !important;
+  border-color: rgba(155, 106, 16, 0.45) !important;
 }
 
 .logoutButton:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(155, 106, 16, 0.25) !important;
+  background: rgba(155, 106, 16, 0.26) !important;
+  transition-duration: 0.1s;
+}
+
+.logoutButton:focus-visible {
+  outline: 2px solid rgba(155, 106, 16, 0.5);
+  outline-offset: 2px;
 }
 
 .logoutButton svg {
@@ -5622,6 +5681,345 @@
   padding: 1.5rem 2rem;
   overflow-y: auto;
   flex: 1;
+}
+
+/* Upgrade Plan Modal */
+.upgradeModalOverlay {
+  align-items: center;
+  justify-content: center;
+}
+
+.upgradeModalContent {
+  max-width: 1360px;
+  width: 100%;
+  max-height: 95vh;
+}
+
+.subscriptionPlans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.planCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 244, 0.85) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(214, 191, 154, 0.5);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(214, 191, 154, 0.2);
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.planCardPro {
+  border-color: rgba(155, 106, 16, 0.75);
+  box-shadow:
+    0 14px 40px rgba(155, 106, 16, 0.25),
+    0 0 0 1px rgba(214, 191, 154, 0.35);
+  background: linear-gradient(135deg, #fff7e0 0%, #fdf3d5 40%, #faf5ea 100%);
+  position: relative;
+}
+
+.planHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.planName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4a4238;
+  margin: 0;
+}
+
+.planSubtitle {
+  font-size: 0.95rem;
+  color: rgba(90, 82, 72, 0.8);
+  margin: 0;
+}
+
+.planBadge {
+  align-self: flex-start;
+  padding: 0.3rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #9b6a10 0%, #d6bf9a 100%);
+  color: #fff9ec;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.planFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #5a5248;
+  font-weight: 600;
+}
+
+.planFeatures li::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: 0.6rem;
+  margin-top: 0.15rem;
+}
+
+.planFeatures li {
+  display: flex;
+  align-items: flex-start;
+}
+
+.planCardFree .planFeatures li::before {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.planCardPro .planFeatures li::before {
+  background: rgba(155, 106, 16, 0.16);
+  color: #9b6a10;
+}
+
+.pricingRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.pricingOption {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 244, 0.85) 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(214, 191, 154, 0.5);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pricingOption:hover {
+  border-color: rgba(155, 106, 16, 0.7);
+  box-shadow:
+    0 10px 24px rgba(155, 106, 16, 0.18),
+    0 0 0 1px rgba(214, 191, 154, 0.4);
+  transform: translateY(-2px);
+}
+
+.pricingOptionRecommended {
+  /* Keeps "Most Popular" badge positioning; thick border comes only from .pricingOptionSelected */
+}
+
+.pricingOptionSelected {
+  border-width: 2px;
+  border-color: rgba(155, 106, 16, 1);
+  box-shadow:
+    0 14px 40px rgba(155, 106, 16, 0.25),
+    0 0 0 1px rgba(214, 191, 154, 0.5);
+}
+
+.pricingHighlight {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #9b6a10;
+}
+
+.pricingAmount {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4a4238;
+}
+
+.pricingDescription {
+  font-size: 0.9rem;
+  color: rgba(90, 82, 72, 0.85);
+  margin-bottom: 0.75rem;
+}
+
+.pricingBadge {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.9rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #9b6a10 0%, #d6bf9a 100%);
+  color: #fff9ec;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pricingOptionRecommended {
+  position: relative;
+}
+
+.upgradeModalContent .modalTitle {
+  font-size: 2.1rem;
+}
+
+.modalTitleHighlight {
+  color: #9b6a10;
+}
+
+.upgradeModalContent .modalBody {
+  font-size: 1.2rem;
+}
+
+.upgradeModalContent .planName {
+  font-size: 1.6rem;
+}
+
+.upgradeModalContent .planSubtitle {
+  font-size: 1.3rem;
+}
+
+.upgradeModalContent .planFeatures {
+  font-size: 1.2rem;
+}
+
+.upgradeModalContent .pricingHighlight {
+  font-size: 1.9rem;
+}
+
+.upgradeModalContent .pricingAmount {
+  font-size: 1.15rem;
+}
+
+.upgradeModalContent .pricingDescription {
+  font-size: 1.15rem;
+}
+
+.pricingDuration {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(90, 82, 72, 0.9);
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.upgradeModalContent .pricingDuration {
+  font-size: 1.15rem;
+}
+
+.upgradeModalContent .modalHeader {
+  justify-content: center;
+  position: relative;
+}
+
+.upgradeModalContent .modalTitle {
+  text-align: center;
+}
+
+.upgradeModalContent .modalCloseButton {
+  position: absolute;
+  right: 1.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.upgradeModalContent .modalCloseButton:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.upgradeModalContent .modalCloseButton:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.upgradeModalFooter {
+  padding: 1.5rem 2rem 2rem;
+  border-top: 1px solid rgba(214, 191, 154, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.communityMessage {
+  text-align: center;
+  font-size: 1.05rem;
+  color: #000;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.getStartedButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1rem 2.8rem;
+  border-radius: 999px;
+  border: 1px solid #9b6a10 !important;
+  background: #9b6a10 !important;
+  color: #fffdf5 !important;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow:
+    0 14px 35px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(214, 191, 154, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.pricingButton {
+  margin-top: auto;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pricingButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.pricingButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.35);
+}
+
+@media (max-width: 900px) {
+  .subscriptionPlans {
+    grid-template-columns: 1fr;
+  }
+
+  .pricingRow {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Technology Sections Styles */

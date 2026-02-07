@@ -246,6 +246,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   // Settings panel state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [selectedPricingPlan, setSelectedPricingPlan] = useState<'2weeks' | '1month' | '3months'>('3months');
   const settingsContainerRef = useRef<HTMLDivElement>(null);
 
   const [activeSection, setActiveSection] = useState<'profile' | 'knowledge' | 'resume' | 'analyzer'>('profile');
@@ -2613,6 +2615,14 @@ export default function DashboardPage() {
                       {user?.profile?.email || user?.profile?.sub || 'Unknown'}
                     </div>
                   </div>
+                  <button
+                    className={styles.upgradePlanButton}
+                    onClick={() => {
+                      setIsUpgradeModalOpen(true);
+                    }}
+                  >
+                    <span>Upgrade Plan</span>
+                  </button>
                   <button
                     className={styles.logoutButton}
                     onClick={async () => {
@@ -13689,6 +13699,150 @@ onClick={() => {
           </div>
         </div>
       </main>
+      {isUpgradeModalOpen && (
+        <div
+          className={`${styles.modalOverlay} ${styles.upgradeModalOverlay}`}
+          onClick={() => setIsUpgradeModalOpen(false)}
+        >
+          <div
+            className={`${styles.modalContent} ${styles.upgradeModalContent}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                <span className={styles.modalTitleHighlight}>Ambitology Pro</span> users get 3x more interviews
+              </h3>
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => setIsUpgradeModalOpen(false)}
+                aria-label="Close"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.subscriptionPlans}>
+                <div className={`${styles.planCard} ${styles.planCardFree}`}>
+                  <div className={styles.planHeader}>
+                    <h4 className={styles.planName}>Free</h4>
+                    <p className={styles.planSubtitle}>To unleash your full potential by building knowledge base and 1-click AI resume craft and career power analysis.</p>
+                  </div>
+                  <ul className={styles.planFeatures}>
+                    <li>Basic use case to build personal profile</li>
+                    <li>
+                      Unlimited knowledge base build up for established and expanding
+                      scope
+                    </li>
+                    <li>Unlimited existing resume edit</li>
+                    <li>Up to 3 times intelligent resume craft</li>
+                    <li>
+                      Up to 3 times personal capability and resume power analysis
+                    </li>
+                  </ul>
+                </div>
+                <div className={`${styles.planCard} ${styles.planCardPro}`}>
+                  <div className={styles.planHeader}>
+                    <h4 className={styles.planName}>Pro</h4>
+                    <p className={styles.planSubtitle}>Our AI-powered platform empowers you to maximize potential, boost interviews, and accelerate hiring success.</p>
+                  </div>
+                  <ul className={styles.planFeatures}>
+                    <li>Everything in Free plan</li>
+                    <li>Unlimited intelligent resume craft</li>
+                    <li>Unlimited personal capability and resume power analysis</li>
+                    <li>
+                      Unlimited AI powered career consulting chat regarding to your
+                      knowledge base (Coming soon)
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div className={styles.pricingRow}>
+                <div
+                  className={`${styles.pricingOption} ${selectedPricingPlan === '2weeks' ? styles.pricingOptionSelected : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedPricingPlan('2weeks');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPricingPlan('2weeks');
+                    }
+                  }}
+                >
+                  <div className={styles.pricingDuration}>2 weeks of Pro Plan</div>
+                  <div className={styles.pricingHighlight}>$1.99/day</div>
+                  <div className={styles.pricingAmount}>$27.86 total</div>
+                </div>
+                <div
+                  className={`${styles.pricingOption} ${styles.pricingOptionRecommended} ${selectedPricingPlan === '1month' ? styles.pricingOptionSelected : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedPricingPlan('1month');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPricingPlan('1month');
+                    }
+                  }}
+                >
+                  <div className={styles.pricingDuration}>1 month of Pro Plan</div>
+                  <div className={styles.pricingHighlight}>$1.33/day</div>
+                  <div className={styles.pricingAmount}>$39.99 total</div>
+                </div>
+                <div
+                  className={`${styles.pricingOption} ${styles.pricingOptionRecommended} ${selectedPricingPlan === '3months' ? styles.pricingOptionSelected : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedPricingPlan('3months');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPricingPlan('3months');
+                    }
+                  }}
+                >
+                  <div className={styles.pricingBadge}>Most Popular</div>
+                  <div className={styles.pricingDuration}>3 months of Pro Plan</div>
+                  <div className={styles.pricingHighlight}>$0.99/day</div>
+                  <div className={styles.pricingAmount}>$89.99 total</div>
+                </div>
+              </div>
+              <div className={styles.upgradeModalFooter}>
+                <p className={styles.communityMessage}>Join our community where tens of thousands job seekers boosted their interview opportunities 3 times more and get job offer faster.</p>
+                <button
+                  type="button"
+                  className={styles.getStartedButton}
+                  disabled
+                  aria-disabled="true"
+                >
+                  Get Started!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
