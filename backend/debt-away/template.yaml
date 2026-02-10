@@ -40,6 +40,8 @@ Parameters:
     Type: String
   StripeSecretKey:
     Type: String
+  StripeSecretKeyAmbitology:
+    Type: String
   OpenaiApiKey:
     Type: String
 
@@ -138,6 +140,7 @@ Resources:
           EXPERIAN_SECRET: !Ref ExperianSecret
           S3_BUCKET_NAME: !Ref ChatAiS3Bucket
           STRIPE_SECRET_KEY: !Ref StripeSecretKey
+          STRIPE_SECRET_KEY_AMBITOLOGY: !Ref StripeSecretKeyAmbitology
           OPENROUTER_APIKEY: !Ref OpenRouterApiKey
           OPENAI_APIKEY: !Ref OpenaiApiKey
 
