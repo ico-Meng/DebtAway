@@ -4,7 +4,7 @@ import stripe
 import uuid
 import time
 from datetime import datetime
-from config import STRIPE_SECRET_KEY, OPENAI_APIKEY
+from config import STRIPE_SECRET_KEY, STRIPE_SECRET_KEY_AMBITOLOGY, OPENAI_APIKEY
 import openai
 import requests
 from bs4 import BeautifulSoup
@@ -651,7 +651,89 @@ async def flash_chat(request: Request):
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
 
 
-# icoicoico
+# ambitology
+@app.post("/subscription_stripe_checkout_page_handler")
+async def subscription_stripe_checkout_page_handler(request: Request):
+    try:
+        data = await request.json()
+        cognito_sub = data.get('cognito_sub', '')
+        email = data.get('email', '')
+        selected_plan = data.get('selected_plan', '')
+
+        plan_price_map = {
+            '2weeks': 'price_1SzqA3Fixq4WY15eJGcxWv7l',
+            '1month': 'price_1Szq9NFixq4WY15eMQzhzm3k',
+            '3months': 'price_1Szq83Fixq4WY15eDVms6mWR',
+        }
+
+        price_id = plan_price_map.get(selected_plan)
+        if not price_id:
+            raise HTTPException(status_code=400, detail=f"Invalid plan: {selected_plan}")
+
+        logger.info(f"Creating subscription checkout for {email}, plan: {selected_plan}")
+
+        # Determine success/cancel URLs based on environment
+        is_local = os.environ.get("AWS_SAM_LOCAL") == "true"
+        if is_local:
+            base_url = "http://localhost:3000"
+        else:
+            base_url = "https://ambitology.com"
+
+        success_url = f"{base_url}/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{base_url}/dashboard"
+
+        # Temporarily use the Ambitology Stripe key
+        original_key = stripe.api_key
+        stripe.api_key = STRIPE_SECRET_KEY_AMBITOLOGY
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                customer_email=email,
+                metadata={
+                    'service_name': 'Ambitology Subscription',
+                    'cognito_sub': cognito_sub,
+                    'email': email,
+                    'selected_plan': selected_plan,
+                },
+                line_items=[
+                    {
+                        'price': price_id,
+                        'quantity': 1,
+                    },
+                ],
+                mode='subscription',
+                allow_promotion_codes=True,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                branding_settings={
+                    'background_color': '#f5f2eb',
+                    'button_color': '#9b6a10',
+                    'border_style': 'rounded',
+                    'font_family': 'inter',
+                    'display_name': 'Ambitology',
+                },
+            )
+        finally:
+            stripe.api_key = original_key
+
+        logger.info(f"Stripe subscription checkout session created: {checkout_session.id}")
+
+        return {
+            "status": "success",
+            "payment_url": checkout_session.url,
+            "checkout_session_id": checkout_session.id,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in subscription checkout: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error creating checkout session: {str(e)}")
+
+
+# ambitology
 @app.post("/user_authentication")
 async def user_authentication(request: Request):
     """
@@ -818,7 +900,7 @@ async def user_authentication(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.get("/get_profile/{cognito_sub}")
 async def get_profile(cognito_sub: str):
     """
@@ -910,7 +992,7 @@ async def get_profile(cognito_sub: str):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.post("/profile_update")
 async def profile_update(request: Request):
     """
@@ -1045,7 +1127,7 @@ async def profile_update(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.post("/established_knowledge_update")
 async def established_knowledge_update(request: Request):
     """
@@ -1170,7 +1252,7 @@ async def established_knowledge_update(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.get("/get_knowledge/{cognito_sub}")
 async def get_knowledge(cognito_sub: str):
     """
@@ -1247,7 +1329,7 @@ async def get_knowledge(cognito_sub: str):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.post("/expanding_knowledge_update")
 async def expanding_knowledge_update(request: Request):
     """
@@ -1372,7 +1454,7 @@ async def expanding_knowledge_update(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-# icoicoico
+# ambitology
 @app.get("/get_expanding_knowledge/{cognito_sub}")
 async def get_expanding_knowledge(cognito_sub: str):
     """
@@ -1536,7 +1618,7 @@ async def check_robots_txt(url: str) -> Tuple[bool, str]:
         return (False, "")
 
 
-# icoicoico
+# ambitology
 @app.post("/validate_and_fetch_job_url")
 async def validate_and_fetch_job_url(request: Request):
     """

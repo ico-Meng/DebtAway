@@ -248,6 +248,7 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedPricingPlan, setSelectedPricingPlan] = useState<'2weeks' | '1month' | '3months'>('3months');
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
 
   const [activeSection, setActiveSection] = useState<'profile' | 'knowledge' | 'resume' | 'analyzer'>('profile');
@@ -316,6 +317,58 @@ export default function DashboardPage() {
       console.log('User authentication result:', result.is_new_user ? 'New user registered' : 'Existing user authenticated');
     } catch (error) {
       console.error('Error registering user in backend:', error);
+    }
+  };
+
+  const openStripeCheckout = (url: string) => {
+    const newWindow = window.open(url, '_blank');
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      try {
+        if (window.top) {
+          window.top.location.href = url;
+        } else {
+          window.location.href = url;
+        }
+      } catch {
+        window.location.href = url;
+      }
+    }
+  };
+
+  const handleSubscriptionCheckout = async () => {
+    if (!user?.profile?.sub || !user?.profile?.email) {
+      console.error('Cannot start checkout: user not authenticated');
+      return;
+    }
+
+    setIsCheckoutLoading(true);
+    try {
+      const response = await fetch(`${API_ENDPOINT}/subscription_stripe_checkout_page_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cognito_sub: user.profile.sub,
+          email: user.profile.email,
+          selected_plan: selectedPricingPlan,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.payment_url) {
+        openStripeCheckout(data.payment_url);
+      } else {
+        throw new Error('No payment URL received from server');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setIsCheckoutLoading(false);
     }
   };
 
@@ -13833,10 +13886,10 @@ onClick={() => {
                 <button
                   type="button"
                   className={styles.getStartedButton}
-                  disabled
-                  aria-disabled="true"
+                  disabled={isCheckoutLoading}
+                  onClick={handleSubscriptionCheckout}
                 >
-                  Get Started!
+                  {isCheckoutLoading ? 'Loading...' : 'Get Started!'}
                 </button>
               </div>
             </div>
