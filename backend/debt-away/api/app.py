@@ -870,7 +870,31 @@ async def user_authentication(request: Request):
                 ConditionExpression='attribute_not_exists(PK) AND attribute_not_exists(SK)'
             )
             logger.info(f"Successfully created user record for {cognito_sub}")
-            
+
+            # Create SUBSCRIPTION item
+            subscription_item = {
+                'PK': cognito_sub,
+                'SK': 'SUBSCRIPTION',
+                'plan': 'free',
+                'SUB_ID': '',
+                'createdAt': timestamp,
+                'updatedAt': timestamp
+            }
+            table.put_item(Item=subscription_item)
+            logger.info(f"Successfully created subscription record for {cognito_sub}")
+
+            # Create USAGE item
+            usage_item = {
+                'PK': cognito_sub,
+                'SK': 'USAGE',
+                'craft_count': 0,
+                'analysis_count': 0,
+                'createdAt': timestamp,
+                'updatedAt': timestamp
+            }
+            table.put_item(Item=usage_item)
+            logger.info(f"Successfully created usage record for {cognito_sub}")
+
             return {
                 "status": "success",
                 "message": "User registered successfully",
