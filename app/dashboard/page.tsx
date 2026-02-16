@@ -246,6 +246,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   // Settings panel state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [userPlan, setUserPlan] = useState<string>('free');
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedPricingPlan, setSelectedPricingPlan] = useState<'2weeks' | '1month' | '3months'>('3months');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -296,6 +297,18 @@ export default function DashboardPage() {
   ] as const;
   const [activeExpandingKnowledgeStep, setActiveExpandingKnowledgeStep] = useState<(typeof expandingKnowledgeSteps)[number]>('Future Personal Project');
   
+  const getPlanLabel = (plan: string) => plan === 'free' ? 'Free plan' : 'Pro plan';
+
+  const fetchUserPlan = async (cognitoSub: string) => {
+    try {
+      const res = await fetch(`${API_ENDPOINT}/get_subscription/${cognitoSub}`);
+      const data = await res.json();
+      setUserPlan(data.plan || 'free');
+    } catch (e) {
+      console.error('Failed to fetch plan', e);
+    }
+  };
+
   // Helper function to register user in backend after authentication
   const registerUserInBackend = async (authenticatedUser: User) => {
     try {
@@ -981,6 +994,7 @@ export default function DashboardPage() {
           setUser(callbackUser);
           // Register user in backend after successful login
           await registerUserInBackend(callbackUser);
+          await fetchUserPlan(callbackUser.profile.sub);
           setIsLoading(false);
           return;
         }
@@ -995,6 +1009,7 @@ export default function DashboardPage() {
           setUser(existingUser);
           // Register user in backend (handles both new and returning users)
           await registerUserInBackend(existingUser);
+          await fetchUserPlan(existingUser.profile.sub);
         }
       } catch (getUserError) {
         console.error("Get user error:", getUserError);
@@ -2663,7 +2678,7 @@ export default function DashboardPage() {
               <div className={styles.settingsPanel}>
                 <div className={styles.settingsPanelContent}>
                   <div className={styles.userEmailSection}>
-                    <div className={styles.userEmailLabel}>Logged in as:</div>
+                    <div className={styles.planBadge} onClick={() => setIsUpgradeModalOpen(true)} style={{cursor: 'pointer'}}>{getPlanLabel(userPlan)}</div>
                     <div className={styles.userEmail}>
                       {user?.profile?.email || user?.profile?.sub || 'Unknown'}
                     </div>

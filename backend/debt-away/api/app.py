@@ -924,6 +924,16 @@ async def user_authentication(request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@app.get("/get_subscription/{cognito_sub}")
+async def get_subscription(cognito_sub: str):
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('ambit-dashboard-application-data')
+    response = table.get_item(Key={'PK': cognito_sub, 'SK': 'SUBSCRIPTION'})
+    item = response.get('Item', {})
+    plan = item.get('plan', 'free')
+    return {"plan": plan}
+
+
 # ambitology
 @app.get("/get_profile/{cognito_sub}")
 async def get_profile(cognito_sub: str):
