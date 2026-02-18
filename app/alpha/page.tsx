@@ -2702,7 +2702,6 @@ export default function AlphaPage() {
     };
 
 
-    //const handleNext = () => {icoico original
     const handleNext = () => {
         if (currentStep < 6) {
             // Interrupt transitions first so we don't cancel the movement we trigger below
@@ -2758,7 +2757,6 @@ export default function AlphaPage() {
                     }
                 }
 
-                //icoico
                 // Call alpha_target_job_analysis API when moving from step 1 to step 2 (asynchronously)
                 // Calculate user_id based on email address
                 const email = formData.email || '';
@@ -2859,7 +2857,6 @@ export default function AlphaPage() {
                     console.warn('No user_id found in localStorage for alpha_capability_analysis call');
                 }
             }
-            //icoico
 
             setCurrentStep(currentStep + 1);
         }

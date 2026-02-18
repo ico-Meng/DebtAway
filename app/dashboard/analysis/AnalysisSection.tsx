@@ -25,6 +25,7 @@ interface AnalysisSectionProps {
   initialFetchedJobData?: FetchedJobData | null;
   initialKnowledgeScope?: { establishedExpertise: boolean; expandingKnowledgeBase: boolean } | null;
   autoTriggerAnalysis?: boolean;
+  onAnalysisLimitExceeded?: () => void;
 }
 
 // Job input type detection
@@ -63,7 +64,8 @@ export default function AnalysisSection({
   initialJobPosition,
   initialFetchedJobData,
   initialKnowledgeScope,
-  autoTriggerAnalysis = false
+  autoTriggerAnalysis = false,
+  onAnalysisLimitExceeded,
 }: AnalysisSectionProps) {
   const [analysisKnowledgeScope, setAnalysisKnowledgeScope] = useState<{
     establishedExpertise: boolean;
@@ -748,6 +750,11 @@ export default function AnalysisSection({
       }
 
       const result = await response.json();
+
+      if (result.error_code === 'ANALYSIS_LIMIT_EXCEEDED') {
+        onAnalysisLimitExceeded?.();
+        return;
+      }
 
       if (result.status === 'success') {
         // Ensure fade-out is complete before setting new results

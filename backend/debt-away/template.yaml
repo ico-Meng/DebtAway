@@ -89,7 +89,9 @@ Resources:
           - "audio/wav"
           - "audio/mpeg"
           - "multipart/form-data"
+          - "multipart/form-data*"
           - "application/pdf"
+          - "application/octet-stream"
   UnifiedApiFunction:
     Type: AWS::Serverless::Function
     Metadata:

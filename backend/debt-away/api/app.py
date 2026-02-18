@@ -2046,7 +2046,44 @@ async def craft_resume_from_knowledge_base(request: Request):
         education = body.get('education', [])
         professional_history = body.get('professional_history', [])
         achievements = body.get('achievements', [])
-        
+        cognito_sub = body.get('cognito_sub')
+
+        if cognito_sub:
+            dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+            table = dynamodb.Table('ambit-dashboard-application-data')
+            timestamp = datetime.utcnow().isoformat()
+
+            # Check user plan
+            sub_response = table.get_item(Key={'PK': cognito_sub, 'SK': 'SUBSCRIPTION'})
+            plan = sub_response.get('Item', {}).get('plan', 'free')
+
+            # Fetch or create USAGE item
+            usage_response = table.get_item(Key={'PK': cognito_sub, 'SK': 'USAGE'})
+            usage_item = usage_response.get('Item')
+
+            if not usage_item:
+                usage_item = {
+                    'PK': cognito_sub,
+                    'SK': 'USAGE',
+                    'craft_count': 0,
+                    'analysis_count': 0,
+                    'createdAt': timestamp,
+                    'updatedAt': timestamp
+                }
+                table.put_item(Item=usage_item)
+
+            craft_count = int(usage_item.get('craft_count', 0))
+
+            if plan == 'free' and craft_count >= 3:
+                return {"success": False, "error_code": "CRAFT_LIMIT_EXCEEDED", "message": "Free plan craft limit reached."}
+
+            # Increment craft_count for all users
+            table.update_item(
+                Key={'PK': cognito_sub, 'SK': 'USAGE'},
+                UpdateExpression='SET craft_count = craft_count + :inc, updatedAt = :ts',
+                ExpressionAttributeValues={':inc': 1, ':ts': timestamp}
+            )
+
         # Build the prompt for OpenAI
         job_context = ""
         if target_job_position:
@@ -3529,10 +3566,43 @@ async def overall_analysis(
         # Parse form data
         target_job_dict = json.loads(target_job_data)
         knowledge_scope_tags = json.loads(knowledge_scope)
-        
+
+        # Check plan and usage
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table = dynamodb.Table('ambit-dashboard-application-data')
+        timestamp = datetime.utcnow().isoformat()
+
+        sub_response = table.get_item(Key={'PK': user_id, 'SK': 'SUBSCRIPTION'})
+        plan = sub_response.get('Item', {}).get('plan', 'free')
+
+        usage_response = table.get_item(Key={'PK': user_id, 'SK': 'USAGE'})
+        usage_item = usage_response.get('Item')
+
+        if not usage_item:
+            usage_item = {
+                'PK': user_id,
+                'SK': 'USAGE',
+                'craft_count': 0,
+                'analysis_count': 0,
+                'createdAt': timestamp,
+                'updatedAt': timestamp
+            }
+            table.put_item(Item=usage_item)
+
+        analysis_count = int(usage_item.get('analysis_count', 0))
+
+        if plan == 'free' and analysis_count >= 3:
+            return {"status": "error", "error_code": "ANALYSIS_LIMIT_EXCEEDED", "message": "Free plan analysis limit reached."}
+
+        table.update_item(
+            Key={'PK': user_id, 'SK': 'USAGE'},
+            UpdateExpression='SET analysis_count = analysis_count + :inc, updatedAt = :ts',
+            ExpressionAttributeValues={':inc': 1, ':ts': timestamp}
+        )
+
         # Reset file pointer for resume file (it may have been read already)
         await resume_file.seek(0)
-        
+
         # Launch both analyses in parallel
         personal_task = personal_capability_analysis(user_id, target_job_dict, knowledge_scope_tags)
         resume_task = resume_power_analysis(resume_file, target_job_dict)

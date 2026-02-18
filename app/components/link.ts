@@ -244,30 +244,6 @@ export async function getAccount({
 }
 
 
-export async function testicoicoapi() {
-    try {
-        //const apiEndpoint = `${API_ENDPOINT}/test2-api`;
-        const apiEndpoint = `${API_ENDPOINT}/chat-deepseek`;
-        const response = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                chatContent: "How can I analyze my bank credit history?",
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to test-api: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log("response = ", data);
-    }
-    catch (error) {
-        console.error("Failed to fetch accountBalance:", error);
-    }
-}
-
 export async function testapi({
     clientId,
     linkToken,

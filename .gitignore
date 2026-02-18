@@ -39,3 +39,8 @@ next-env.d.ts
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# local development files
+Note
+dynamodb-local-metadata.json
+shared-local-instance.db

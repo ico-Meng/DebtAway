@@ -5846,7 +5846,7 @@
 }
 
 .pricingOptionRecommended {
-  /* Keeps "Most Popular" badge positioning; thick border comes only from .pricingOptionSelected */
+  position: relative;
 }
 
 .pricingOptionSelected {
@@ -5887,10 +5887,6 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.pricingOptionRecommended {
-  position: relative;
 }
 
 .upgradeModalContent .modalTitle {
@@ -9871,4 +9867,81 @@ textarea.resumeItemCompanyInput {
   font-size: 1.5rem !important;
   font-family: var(--font-comfortaa), 'Comfortaa', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   font-weight: 700 !important;
+}
+
+/* ── Craft Limit Toast ──────────────────────────────────── */
+.craftLimitToast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  max-width: 380px;
+  padding: 1.125rem 1.25rem;
+  background: linear-gradient(135deg, #faf7f0 0%, #f5f0e8 100%);
+  border: 1px solid rgba(155, 106, 16, 0.25);
+  border-left: 4px solid #9b6a10;
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px rgba(155, 106, 16, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.craftLimitToastIcon {
+  flex-shrink: 0;
+  color: #9b6a10;
+  margin-top: 0.1rem;
+}
+
+.craftLimitToastBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.craftLimitToastTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #4a4238;
+  margin: 0 0 0.3rem 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.craftLimitToastText {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6b5f50;
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.craftLimitToastClose {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #9b8a72;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -0.1rem;
+  transition: color 0.15s ease;
+}
+
+.craftLimitToastClose:hover {
+  color: #4a4238;
 }

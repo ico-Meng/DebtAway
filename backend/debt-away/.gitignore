@@ -242,3 +242,7 @@ $RECYCLE.BIN/
 */build/*
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
+
+# Local development scripts (contain sensitive env vars, never commit)
+sam_build_run.sh
+prod_deployment.sh

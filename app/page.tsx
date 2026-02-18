@@ -8,10 +8,7 @@ import { useState, useEffect } from "react";
 import { Amplify } from "aws-amplify";
 import { userManager, signOutRedirect } from "@/types";
 import type { User } from "oidc-client-ts";
-import {
-  UserProfile,
-  testicoicoapi
-} from "@/app/components/link";
+import { UserProfile } from "@/app/components/link";
 
 import Image from "next/image";
 
@@ -123,7 +120,7 @@ export default function App() {
         />
       </div>
       <br />
-      <h1 style={{ margin: 0, textAlign: 'center' }}>Alphora</h1>
+      <h1 style={{ margin: 0, textAlign: 'center' }}>Ambitology</h1>
 
       {user ? (
         <>

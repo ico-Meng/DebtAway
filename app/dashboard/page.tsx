@@ -248,6 +248,8 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string>('free');
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [showCraftLimitToast, setShowCraftLimitToast] = useState(false);
+  const [showAnalysisLimitToast, setShowAnalysisLimitToast] = useState(false);
   const [selectedPricingPlan, setSelectedPricingPlan] = useState<'2weeks' | '1month' | '3months'>('3months');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
@@ -2157,7 +2159,7 @@ export default function DashboardPage() {
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
   ];
 
-  const careerOptions = [
+  const careerOptions: { value: string; label: string; disabled?: boolean }[] = [
     { value: 'ai-ml', label: 'AI & Machine Learning' },
     { value: 'data-science', label: 'Data & Applied Science' },
     { value: 'data-engineering', label: 'Data Engineering' },
@@ -2642,7 +2644,11 @@ export default function DashboardPage() {
               className={`${styles.settingsButton} ${isSettingsOpen ? styles.settingsButtonActive : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setIsSettingsOpen(!isSettingsOpen);
+                const opening = !isSettingsOpen;
+                setIsSettingsOpen(opening);
+                if (opening && user?.profile?.sub) {
+                  fetchUserPlan(user.profile.sub);
+                }
               }}
               aria-label="Settings"
             >
@@ -2678,10 +2684,8 @@ export default function DashboardPage() {
               <div className={styles.settingsPanel}>
                 <div className={styles.settingsPanelContent}>
                   <div className={styles.userEmailSection}>
-                    <div className={styles.planBadge} onClick={() => setIsUpgradeModalOpen(true)} style={{cursor: 'pointer'}}>{getPlanLabel(userPlan)}</div>
-                    <div className={styles.userEmail}>
-                      {user?.profile?.email || user?.profile?.sub || 'Unknown'}
-                    </div>
+                    <div className={styles.planBadge} onClick={() => setIsUpgradeModalOpen(true)} style={{ cursor: 'pointer' }}>{getPlanLabel(userPlan)}</div>
+                    <div className={styles.userEmail}>{user?.profile?.email}</div>
                   </div>
                   <button
                     className={styles.upgradePlanButton}
@@ -3186,11 +3190,9 @@ export default function DashboardPage() {
                                     type="button"
                                     className={`${styles.dropdownOption} ${careerFocus === option.value ? styles.dropdownOptionSelected : ''} ${option.disabled ? styles.dropdownOptionDisabled : ''}`}
                                     onClick={() => {
-                                      if (!option.disabled) {
-                                        markProfileDirty();
-                                        setCareerFocus(option.value);
-                                        setIsDropdownOpen(false);
-                                      }
+                                      markProfileDirty();
+                                      setCareerFocus(option.value);
+                                      setIsDropdownOpen(false);
                                     }}
                                     disabled={option.disabled}
                                   >
@@ -13748,6 +13750,12 @@ onClick={() => {
                     }
                     setActiveSection('analyzer');
                   }}
+                  cognitoSub={user?.profile?.sub}
+                  onCraftLimitExceeded={() => {
+                    setIsUpgradeModalOpen(true);
+                    setShowCraftLimitToast(true);
+                    setTimeout(() => setShowCraftLimitToast(false), 9000);
+                  }}
                 />
               )}
               {activeSection === 'analyzer' && (
@@ -13761,6 +13769,11 @@ onClick={() => {
                   initialFetchedJobData={analysisInitialData?.fetchedJobData || null}
                   initialKnowledgeScope={analysisInitialData?.knowledgeScope || null}
                   autoTriggerAnalysis={analysisInitialData?.autoTrigger || false}
+                  onAnalysisLimitExceeded={() => {
+                    setIsUpgradeModalOpen(true);
+                    setShowAnalysisLimitToast(true);
+                    setTimeout(() => setShowAnalysisLimitToast(false), 9000);
+                  }}
                 />
               )}
             </div>
@@ -13909,6 +13922,52 @@ onClick={() => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {showCraftLimitToast && (
+        <div className={styles.craftLimitToast}>
+          <div className={styles.craftLimitToastIcon}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div className={styles.craftLimitToastBody}>
+            <p className={styles.craftLimitToastTitle}>Free quota reached</p>
+            <p className={styles.craftLimitToastText}>
+              You&apos;ve used all 3 free AI resume crafts. Upgrade to Pro to unlock unlimited AI resume crafting and personal capability analysis.
+            </p>
+          </div>
+          <button
+            className={styles.craftLimitToastClose}
+            onClick={() => setShowCraftLimitToast(false)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {showAnalysisLimitToast && (
+        <div className={styles.craftLimitToast}>
+          <div className={styles.craftLimitToastIcon}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div className={styles.craftLimitToastBody}>
+            <p className={styles.craftLimitToastTitle}>Free quota reached</p>
+            <p className={styles.craftLimitToastText}>
+              You&apos;ve used all 3 free personal capability analyses. Upgrade to Pro to unlock unlimited AI resume crafting and personal capability analysis services.
+            </p>
+          </div>
+          <button
+            className={styles.craftLimitToastClose}
+            onClick={() => setShowAnalysisLimitToast(false)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

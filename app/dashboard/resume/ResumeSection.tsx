@@ -220,6 +220,8 @@ interface ResumeSectionProps {
     fetchedJobData: FetchedJobData | null;
     knowledgeScope: { establishedExpertise: boolean; expandingKnowledgeBase: boolean };
   }) => void;
+  cognitoSub?: string;
+  onCraftLimitExceeded?: () => void;
 }
 
 export default function ResumeSection({
@@ -250,10 +252,13 @@ export default function ResumeSection({
   professionalHistory,
   achievements,
   onNavigateToAnalysis,
+  cognitoSub,
+  onCraftLimitExceeded,
 }: ResumeSectionProps) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [showResumePage, setShowResumePage] = useState<boolean>(false);
   const [resumeMode, setResumeMode] = useState<'industry' | 'targetJob' | 'existing' | null>(null);
+  const [hasCachedResume, setHasCachedResume] = useState<boolean>(false);
   
   // Industry Sector page state
   const [interestedCompanyType, setInterestedCompanyType] = useState<string>('');
@@ -1927,6 +1932,7 @@ export default function ResumeSection({
       (knowledgeScope.expandingKnowledgeBase && (selectedFuturePersonalProjectIds.size > 0 || selectedFutureProfessionalProjectIds.size > 0 || selectedFutureTechnicalSkillIds.size > 0));
 
     if (shouldCraftFromKnowledgeBase) {
+      setHasCachedResume(false);
       setIsCraftingResume(true);
       setCraftingCardIndex(0); // Reset to first card
       
@@ -1997,6 +2003,7 @@ export default function ResumeSection({
         }
         
         const requestPayload = {
+          cognito_sub: cognitoSub,
           basic_info: {
             firstName: basicInfo.firstName,
             middleName: basicInfo.middleName || '',
@@ -2061,6 +2068,8 @@ export default function ResumeSection({
           setResumeMode('industry');
           setShowCompanyTypePage(false);
           setShowResumePage(true);
+        } else if (result.error_code === 'CRAFT_LIMIT_EXCEEDED') {
+          onCraftLimitExceeded?.();
         } else {
           console.error('Failed to craft resume:', result.message);
           alert(`Failed to craft resume: ${result.message || 'Unknown error'}`);
@@ -3689,6 +3698,7 @@ export default function ResumeSection({
   };
 
   const handleResumeBack = () => {
+    setHasCachedResume(true);
     setShowResumePage(false);
     // Determine which page to go back to based on resume mode
     if (resumeMode === 'existing') {
@@ -4149,6 +4159,34 @@ export default function ResumeSection({
               />
             </svg>
           </button>
+          {hasCachedResume && (
+            <button
+              type="button"
+              className={`${styles.backButton} ${styles.resumeTopBackButton}`}
+              onClick={() => {
+                setShowCompanyTypePage(false);
+                setShowResumePage(true);
+              }}
+              aria-label="Go to resume"
+            >
+              <svg
+                className={styles.backButtonIcon}
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12H19M12 5L19 12L12 19"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
         </div>
         <div ref={knowledgeBaseSectionContentRef} className={`${styles.sectionContent} ${styles.companyTypeSectionContent}`}>
           <h2 className={styles.companyTypePageTitle}>From Knowledge Base</h2>

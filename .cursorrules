@@ -1,7 +1,7 @@
-# Alphora Project - Cursor AI Rules
+# Ambitology Project - Cursor AI Rules
 
 ## Project Overview
-Alphora is a career development and learning platform built with Next.js (App Router), TypeScript, AWS Amplify, and a Python backend. It empowers users to manage their knowledge assets, strengthen key skills, and generate job-ready documents to secure more interviews and offers.
+Ambitology is a career development and learning platform built with Next.js (App Router), TypeScript, AWS Amplify, and a Python backend. It empowers users to manage their knowledge assets, strengthen key skills, and generate job-ready documents to secure more interviews and offers.
 
 ## Core Technology Stack
 
@@ -61,7 +61,7 @@ Alphora is a career development and learning platform built with Next.js (App Ro
 ### Metadata (Every Page)
 ```typescript
 export const metadata: Metadata = {
-  title: 'Page Title | Alphora',
+  title: 'Page Title | Ambitology',
   description: 'Clear, concise description (150-160 chars)',
   keywords: ['relevant', 'keywords'],
   openGraph: {
