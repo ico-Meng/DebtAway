@@ -141,8 +141,9 @@ export interface CognitoAuthConfig {
 export const cognitoAuthConfig: CognitoAuthConfig = {
   authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_OMJe8BlbK",
   client_id: "1ff46n1liq6r0nlaets9m02grr",
-  //redirect_uri: "https://d84l1y8p4kdic.cloudfront.net",
-  redirect_uri: "http://localhost:3000/dashboard",
+  redirect_uri: typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://ambitology.com/dashboard"
+    : "http://localhost:3000/dashboard",
   response_type: "code",
   scope: "email openid phone",
 }
