@@ -1,0 +1,107 @@
+/* Global override for resume-analysis-lab page */
+:root {
+  --global-bg-color: #EDECE3;
+}
+
+/* Override the background from app.css with extreme specificity */
+html body,
+body,
+body[class],
+body[class*="inter"] {
+  background: var(--global-bg-color) !important;
+  background-color: var(--global-bg-color) !important;
+  background-image: none !important;
+  margin: 0 !important;
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+/* Fixed background for the entire viewport */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--global-bg-color) !important;
+  z-index: -9999;
+}
+
+/* Next.js specific elements */
+#__next,
+[data-nextjs-root],
+[data-nextjs-page],
+[id^="__next"] {
+  background-color: var(--global-bg-color) !important;
+  min-height: 100%;
+  height: auto !important;
+  overflow: auto !important;
+}
+
+/* Prevent scrollbar when not needed */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Main container and layout elements */
+main,
+.container,
+div[class*="container"]:not([class*="formContainer"]),
+div[class*="layout"],
+div[class*="page"],
+div[class*="wrapper"] {
+  background-color: var(--global-bg-color) !important;
+}
+
+/* IMPORTANT: Remove the style overrides for form elements */
+/* This ensures form elements keep their original styling */
+.formContainer,
+.formSection,
+.dropzone,
+.filePreview,
+input, 
+select, 
+textarea, 
+button:not(.submitButton),
+label,
+[class*="formContainer"],
+[class*="form-"],
+[class*="dropzone"],
+[class*="filePreview"] {
+  background-color: initial;  /* Remove our override */
+}
+
+/* Ensure submit buttons keep their proper color */
+.submitButton,
+button.submitButton,
+[class*="submitButton"] {
+  background-color: #9B6A10 !important;
+  color: white !important;
+}
+
+.submitButton:hover,
+button.submitButton:hover,
+[class*="submitButton"]:hover {
+  background-color: #9B6A10 !important;
+  box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
+}
+
+.submitButton:disabled,
+button.submitButton:disabled,
+[class*="submitButton"]:disabled {
+  background-color: #ccc !important;
+  color: white !important;
+}
+
+/* Ensure form container and title have white backgrounds */
+.formContainer,
+[class*="formContainer"],
+.title,
+[class*="title"],
+h1[class*="title"] {
+  background-color: #ffffff !important;
+} 

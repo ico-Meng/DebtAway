@@ -1,0 +1,32 @@
+{
+  "cursor.chat.alwaysShowConfirmationBeforeApplyingEdits": true,
+  "cursor.chat.showConfirmationDialogForCodeGeneration": true,
+  "cursor.chat.confirmBeforeApplyingAnyEdit": true,
+  "cursor.terminal.confirmAICommands": true,
+  "cursor.terminal.showConfirmationForAIGeneratedCommands": true,
+  "cursor.autocomplete.acceptOnTab": false,
+  "cursor.autocomplete.acceptOnEnter": false,
+  "cursor.autocomplete.showConfirmationDialog": true,
+  "cursor.ai.requireManualApproval": true,
+  "cursor.ai.showDiffBeforeApply": true,
+  "cursor.composer.confirmBeforeApplyingEdits": true,
+  "cursor.composer.showDiffView": true,
+  "cursor.cmd.confirmBeforeExecution": true,
+  "cursor.cmd.requireApprovalForTerminalCommands": true,
+  "workbench.editor.enablePreview": false,
+  "editor.acceptSuggestionOnEnter": "off",
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.quickSuggestions": {
+    "other": false,
+    "comments": false,
+    "strings": false
+  },
+  "editor.suggest.showStatusBar": true,
+  "editor.suggest.preview": true,
+  "diffEditor.renderSideBySide": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.confirmSync": true,
+  "git.confirmNoVerifyCommit": true,
+  "extensions.ignoreRecommendations": true,
+  "security.workspace.trust.untrustedFiles": "prompt"
+}

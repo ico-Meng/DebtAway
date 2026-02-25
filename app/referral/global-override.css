@@ -1,0 +1,86 @@
+/* Global overrides specifically for the referral form */
+
+body.referral-page {
+    background: #edece3 !important;
+    background-color: #edece3 !important;
+    background-image: none !important;
+    overflow-y: auto !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+body.referral-page input,
+body.referral-page select,
+body.referral-page textarea {
+    background-color: #ffffff !important;
+    color: #333 !important;
+}
+
+body.referral-page label {
+    background-color: #faf8f4 !important;
+    color: #333 !important;
+}
+
+body.referral-page button {
+    background-color: #9B6A10 !important;
+    color: white !important;
+}
+
+body.referral-page .form input[type="email"],
+body.referral-page .form input[type="text"],
+body.referral-page .form textarea {
+    background-color: #ffffff !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+body.referral-page .form input[type="email"]:focus,
+body.referral-page .form input[type="text"]:focus,
+body.referral-page .form textarea:focus {
+    background-color: #ffffff !important;
+    color: #333 !important;
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Ensure dropzone has proper styling */
+body.referral-page .dropzone {
+    background-color: #ffffff !important;
+    color: #666 !important;
+}
+
+body.referral-page .dropzone:hover,
+body.referral-page .dropzoneActive {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* File preview styling */
+body.referral-page .filePreview {
+    background-color: #f9f9f9 !important;
+}
+
+/* Button styling */
+body.referral-page .submitButton {
+    background-color: #9B6A10 !important;
+    color: white !important;
+}
+
+body.referral-page .submitButton:hover {
+    background-color: #9B6A10 !important;
+}
+
+body.referral-page .submitButton:disabled {
+    background-color: #ccc !important;
+}
+
+/* Success message styling */
+body.referral-page .successMessage {
+    background-color: #ffffff !important;
+}
+
+/* Text areas should align left */
+body.referral-page textarea {
+    text-align: left !important;
+}

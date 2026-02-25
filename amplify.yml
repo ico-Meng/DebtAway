@@ -1,0 +1,26 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - . $NVM_DIR/nvm.sh && nvm install 20 && nvm use 20 && node -v && npm -v || true
+        - npm ci --no-omit --cache .npm --prefer-offline
+        - npm i @parcel/watcher-linux-x64-glibc@^2.5.1 --no-save || true
+        - npm rebuild @parcel/watcher --platform=linux --arch=x64 || true
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+frontend:
+  phases:
+    build:
+      commands:
+        - . $NVM_DIR/nvm.sh && nvm install 20 && nvm use 20 && node -v && npm -v || true
+        - echo "Frontend build starting" >/dev/null
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
+      - node_modules/**/*

@@ -1,0 +1,12 @@
+boto3
+requests
+stripe
+fastapi
+mangum
+openai
+aws-lambda-powertools
+python-multipart
+plaid-python==27.0.0
+beautifulsoup4
+PyPDF2
+python-docx
