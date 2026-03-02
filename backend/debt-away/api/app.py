@@ -2141,17 +2141,37 @@ async def craft_resume_from_knowledge_base(request: Request):
                 job_description = target_job_position.get('description', '')
                 job_title = target_job_position.get('title', '')
                 job_company = target_job_position.get('company', '')
-                job_context = f"""
-TARGET JOB POSITION:
+                job_context = f"""TARGET JOB POSITION:
 - Job Title: {job_title}
 - Company: {job_company}
 - Job Description: {job_description}
 """
             else:
-                job_context = f"TARGET JOB POSITION: {target_job_position}"
+                job_context = f"TARGET JOB POSITION: {target_job_position}\n"
+        if target_company_type:
+            job_context += f"TARGET INDUSTRY SECTOR: {target_company_type}\n"
+
+        # Build goal context sentence for the prompt header
+        if target_job_position and target_company_type:
+            goal_context = f'The resume will be tailored for the "{target_company_type}" industry sector and the specific job position described below.'
         elif target_company_type:
-            job_context = f"TARGET INDUSTRY SECTOR: {target_company_type}"
-        
+            goal_context = f'The resume will be tailored specifically for the "{target_company_type}" industry sector, emphasizing technical keywords, frameworks, and projects most valued in that field.'
+        elif target_job_position:
+            goal_context = 'The resume will be tailored for the specific job position described below.'
+        else:
+            goal_context = "The resume will professionally showcase the candidate's technical skills and projects."
+
+        # Build optional industry-sector instruction block
+        industry_instruction = ""
+        if target_company_type:
+            industry_instruction = f"""
+INDUSTRY SECTOR FOCUS — {target_company_type}:
+- Prioritize and front-load technical keywords, frameworks, tools, and architectural patterns that are most in-demand for the "{target_company_type}" industry.
+- In tech_content for each project, highlight the technologies and design patterns that resonate most with {target_company_type} companies and hiring managers.
+- In the technical_skills section, surface and group skills that are most valued by {target_company_type} employers; reorder within each category to lead with the most sector-relevant items.
+- In overview_content and achievement_content, use terminology and framing familiar to {target_company_type} hiring managers to maximize ATS relevance.
+"""
+
         # Combine all projects
         all_personal_projects = personal_projects + future_personal_projects
         all_professional_projects = professional_projects + future_professional_projects
@@ -2173,10 +2193,9 @@ TARGET JOB POSITION:
             formatted_links = [str(l) for l in raw_links]
 
         prompt = f"""
-You are an expert resume writer. Your goal is to build a professional resume for a candidate using all the information provided below. The resume will be used for applying to a job in the "{target_company_type}" industry sector or for the specific job position described below.
+You are an expert resume writer. Your goal is to build a professional resume for a candidate using all the information provided below. {goal_context}
 
-{job_context}
-
+{job_context}{industry_instruction}
 CANDIDATE BASIC INFORMATION:
 - First Name: {basic_info.get('firstName', '')}
 - Middle Name: {basic_info.get('middleName', '')}
@@ -2232,6 +2251,7 @@ INSTRUCTIONS:
    - Use professional resume-style syntax and tone
    - No duplicate technical keywords should appear across personal_projects, professional_projects, and technical_skills
    - Prioritize matching target job description requirements throughout
+   - If a TARGET INDUSTRY SECTOR is specified, surface and prioritize technical keywords, tools, and project descriptions most relevant to that industry throughout all sections — this overrides generic keyword selection
    - Location fields must be included exactly as provided in the input data for education, professional history, and all projects
 
 Generate a structured resume data that can be directly used to populate a resume template.
@@ -2419,12 +2439,13 @@ INSTRUCTIONS:
    - Create achievement_content: quantified or impact-focused achievement statement, ENHANCED toward the target job/industry expectations (max 250 characters).
    - Create technologies: remaining relevant tech keywords not already covered in tech_content, prioritizing those matching target job skills.
 6. Process professional_projects: Extract all work-related projects from the professional experience section. Follow the same enrichment rules as personal_projects, and additionally set work_experience to "CompanyName - JobTitle" so it maps back to the correct professional history entry.
-7. Process technical_skills: Organize ALL technical skills from the resume into categories: "Languages", "Frameworks", "Tools", and any other relevant topic groupings. Enrich with skills that are closely related to the target job description (only include skills the candidate demonstrably has or has used — do not fabricate).
+7. Process technical_skills: Organize ALL technical skills from the resume into categories: "Languages", "Frameworks", "Tools", and any other relevant topic groupings. Enrich with skills that are closely related to the target job description or industry sector (only include skills the candidate demonstrably has or has used — do not fabricate). If a TARGET INDUSTRY SECTOR is provided, reorder within each category to lead with the most sector-relevant skills.
 8. IMPORTANT RULES:
    - All content fields (overview_content, tech_content items, achievement_content) must be ≤ 250 characters including spaces.
    - Use active, professional resume-style language.
    - No duplicate technical keywords across personal_projects, professional_projects, and technical_skills.
    - Prioritize keywords from the target job description throughout.
+   - If a TARGET INDUSTRY SECTOR is specified, surface and prioritize technical keywords, tools, and project descriptions most relevant to that industry throughout all sections — this overrides generic keyword selection.
    - If the resume does not have personal projects or professional projects, return empty lists.
    - If a date is unknown or not mentioned, use an empty string.
 
@@ -5061,3 +5082,477 @@ Fill all fields as completely as possible. Use empty strings for missing data, n
 
     result = response.output_parsed
     return {"success": True, "data": result.model_dump()}
+
+
+RESUME_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_existing_resume",
+            "description": (
+                "Use this when the user asks how to improve, enhance, polish, tailor, fix, "
+                "update, strengthen, or rewrite their resume, or wants help making it better "
+                "for a job application or career move. "
+                "Ambitology's 'Craft from Existing Resume' service handles this."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (2-3 sentences) telling the user that "
+                            "Ambitology's 'Craft from Existing Resume' service can help. "
+                            "Briefly explain it analyzes their resume and tailors it for any job. "
+                            "Ask if they'd like to go there now."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_knowledge_base_resume",
+            "description": (
+                "Use this when the user asks how to craft, create, generate, or build a resume "
+                "from their knowledge base, experience, background, projects, technical skills, "
+                "work history, or professional profile stored in Ambitology. "
+                "Ambitology's 'Craft from Knowledge Base' service generates a tailored resume "
+                "from the user's saved skills, projects, and experience for a target job or industry."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (2-3 sentences) telling the user that "
+                            "Ambitology's 'Craft from Knowledge Base' service can generate a "
+                            "tailored resume directly from their saved profile, skills, and projects. "
+                            "Ask if they'd like to go there now."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ask_project_type",
+            "description": (
+                "Use this in STEP 1 of the project analysis flow to ask the user what kind of project "
+                "they want to analyze. Always call this tool — never ask as plain text. "
+                "The UI will present three clickable cards: Personal Project, Work Experience, Research Project."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": "A short intro line before the choices appear (e.g. 'First, what kind of project is this?'). Keep it under 15 words."
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ask_project_status",
+            "description": (
+                "Use this in STEP 2 of the project analysis flow to ask the user whether the project "
+                "is currently in progress, already completed, or a planned future project. "
+                "Always call this tool — never ask as plain text. "
+                "The UI will present three clickable cards: In Progress, Completed, Planning Ahead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": "A short line before the choices appear (e.g. 'And what's the status of this project?'). Keep it under 15 words."
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_established_personal_project",
+            "description": (
+                "Use this when the user has confirmed they want to analyze a personal project "
+                "that is ongoing or already completed — to generate bullet points, find technologies, "
+                "tools, or technical keywords for that project. Navigate them to "
+                "Knowledge Base > Established Expertise > Personal Project and create a new project page."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (1-2 sentences) confirming you're taking them to "
+                            "the Established Expertise > Personal Project page to add a new project. "
+                            "Then ask them to provide the project URL or paste the project details "
+                            "so you can generate the best description."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_expanding_personal_project",
+            "description": (
+                "Use this when the user has confirmed they want to analyze a personal project "
+                "that is planned for the future (not yet started) — to generate bullet points, "
+                "find technologies, tools, or technical keywords for that project. Navigate them to "
+                "Knowledge Base > Expanding Knowledge Base > Future Personal Project and create a new project page."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (1-2 sentences) confirming you're taking them to "
+                            "the Expanding Knowledge Base > Future Personal Project page to add a new project. "
+                            "Then ask them to provide the project URL or paste the project details "
+                            "so you can generate the best description."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_established_professional_project",
+            "description": (
+                "Use this when the user has confirmed they want to analyze a professional or work-related "
+                "project that is ongoing or already completed — to generate bullet points, find technologies, "
+                "tools, or technical keywords for that project. Navigate them to "
+                "Knowledge Base > Established Expertise > Professional Project and create a new project page."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (1-2 sentences) confirming you're taking them to "
+                            "the Established Expertise > Professional Project page to add a new project. "
+                            "Then ask them to provide the project URL or paste the project details "
+                            "so you can generate the best description."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "navigate_to_expanding_professional_project",
+            "description": (
+                "Use this when the user has confirmed they want to analyze a professional or work-related "
+                "project that is planned for the future (not yet started) — to generate bullet points, "
+                "find technologies, tools, or technical keywords for that project. Navigate them to "
+                "Knowledge Base > Expanding Knowledge Base > Future Professional Project and create a new project page."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A warm, concise reply (1-2 sentences) confirming you're taking them to "
+                            "the Expanding Knowledge Base > Future Professional Project page to add a new project. "
+                            "Then ask them to provide the project URL or paste the project details "
+                            "so you can generate the best description."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_project",
+            "description": (
+                "Use this when the user has provided project details (a URL or text description) "
+                "and you need to analyze the project to generate professional resume bullet points, project details, "
+                "and technical keyword or skills or tools suggestions. Only call this after the user has provided "
+                "actual project content (URL or pasted details)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": "A brief message (1 sentence) saying you're analyzing the project now."
+                    },
+                    "project_details": {
+                        "type": "string",
+                        "description": "The project URL or description text provided by the user."
+                    },
+                    "project_type": {
+                        "type": "string",
+                        "enum": [
+                            "personal_established",
+                            "personal_expanding",
+                            "professional_established",
+                            "professional_expanding"
+                        ],
+                        "description": (
+                            "The project type inferred from the earlier conversation. "
+                            "personal_established = personal + ongoing/done, "
+                            "personal_expanding = personal + future planned, "
+                            "professional_established = professional + ongoing/done, "
+                            "professional_expanding = professional + future planned."
+                        )
+                    }
+                },
+                "required": ["reply", "project_details", "project_type"]
+            }
+        }
+    }
+]
+
+
+@app.post("/ai-chat")
+async def ai_chat(request: Request):
+    try:
+        data = await request.json()
+        message = data.get("message", "")
+        email   = data.get("email", "")
+        name    = data.get("name", "")
+        history = data.get("history", [])   # list of {role, content} dicts
+        career_focus = data.get("career_focus", "software engineering")
+
+        logger.info(f"AI chat question from {name} ({email}): {message}")
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a career coach AI for Ambitology. Be warm, direct, and easy to read.\n\n"
+                    "FORMATTING RULES (always follow):\n"
+                    "- Keep every reply under 50 words total.\n"
+                    "- Never write a wall of text. Use short sentences.\n"
+                    "- When listing steps or items, put each on its own line starting with ① ② ③ or • — never run them together.\n"
+                    "- Separate distinct thoughts with a blank line.\n"
+                    "- No unnecessary filler phrases like 'Great question!' or 'Of course!'.\n\n"
+                    "RESUME CRAFTING:\n"
+                    "- User wants to improve/polish/fix their resume → use navigate_to_existing_resume.\n"
+                    "- User wants to craft/create/generate a resume from knowledge base → use navigate_to_knowledge_base_resume.\n\n"
+                    "PROJECT ANALYSIS FLOW (follow steps in order, never skip):\n"
+                    "Trigger this flow when the user asks about ANY of the following:\n"
+                    "• How to write project bullet points or project descriptions\n"
+                    "• How to write or find technical skills for a project\n"
+                    "• What tools to use or list for a project\n"
+                    "• Popular skills, technologies, or technical keywords for a project\n"
+                    "• What technologies or tools to write in the resume for a project\n"
+                    "• Any question about resume content specific to a project (technologies, frameworks, skills, tools)\n"
+                    "STEP 1 — Use ask_project_type tool (never ask as plain text).\n"
+                    "STEP 2 — Use ask_project_status tool (never ask as plain text).\n"
+                    "STEP 3 — Use matching navigation tool based on the user's card selections:\n"
+                    "  Personal Project + In Progress/Completed → navigate_to_established_personal_project\n"
+                    "  Personal Project + Planning Ahead → navigate_to_expanding_personal_project\n"
+                    "  Work Experience or Research Project + In Progress/Completed → navigate_to_established_professional_project\n"
+                    "  Work Experience or Research Project + Planning Ahead → navigate_to_expanding_professional_project\n"
+                    "STEP 4 — Ask: 'Share a project URL or paste the project details.'\n"
+                    "STEP 5 — User provides URL or details → use analyze_project tool.\n\n"
+                    "Do NOT call a navigation tool before STEP 1 and STEP 2 are both answered."
+                )
+            },
+            *[{"role": m["role"], "content": m["content"]} for m in history],
+            {"role": "user", "content": message},
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=RESUME_TOOLS,
+            tool_choice="auto",
+        )
+
+        choice = response.choices[0]
+
+        if choice.finish_reason == "tool_calls":
+            tool_name = choice.message.tool_calls[0].function.name
+            args = json.loads(choice.message.tool_calls[0].function.arguments)
+            reply = args.get("reply", "I can help you with that!")
+            logger.info(f"AI chat tool call {tool_name} for {email}: {reply}")
+
+            # Handle project analysis inline
+            if tool_name == "analyze_project":
+                project_details = args.get("project_details", "")
+                project_type = args.get("project_type", "personal_established")
+
+                # If it looks like a URL, try to fetch it
+                content = project_details
+                if project_details.strip().startswith("http"):
+                    try:
+                        page_res = requests.get(project_details.strip(), timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+                        soup = BeautifulSoup(page_res.text, 'html.parser')
+                        content = soup.get_text(separator=' ', strip=True)[:3000]
+                    except Exception as fetch_err:
+                        logger.warning(f"Failed to fetch project URL: {fetch_err}")
+                        content = project_details
+
+                career_focus_label = career_focus.replace("-", " ").title() if career_focus else "software engineering"
+
+                if career_focus == 'ai-ml':
+                    kw_sections = [
+                        'AI Application & Product',
+                        'Foundation Model & AI Research',
+                        'MLOps & ML Platform',
+                        'Data Engineering & Analytics',
+                        'Infrastructure & Compute',
+                    ]
+                else:
+                    kw_sections = [
+                        'Languages, Runtimes & Build Tooling',
+                        'Client, UI & Product Experience',
+                        'Backend Services & Distributed Systems',
+                        'Data & Messaging Layer',
+                        'Operating Systems & Networks',
+                    ]
+                sections_str = ", ".join(f'"{s}"' for s in kw_sections)
+
+                industry_options = (
+                    "AI & Machine Learning, Blockchain & Web3, Cloud Computing, "
+                    "SaaS / Enterprise Software, Big Tech / Consumer Internet, FinTech, "
+                    "Trading & Quant Finance, E-commerce & Marketplace, Cybersecurity, "
+                    "Data & Analytics, Developer Tools, Healthcare & Insurance, Gaming, "
+                    "Autonomous Vehicles & Robotics, Generative AI Platforms"
+                )
+                analysis_prompt = (
+                    f"You are a technical resume expert helping a {career_focus_label} professional.\n\n"
+                    f"Project information:\n{content[:2500]}\n\n"
+                    "Analyze this project and generate professional resume content. "
+                    "Think about how the project should be designed and implemented in the best case scenario.\n\n"
+                    "Return a JSON object with exactly these keys:\n"
+                    "- projectName: A concise, professional project name (3-6 words) that clearly "
+                    "describes what this project does. No special characters.\n"
+                    "- industrySector: The single best-fit industry sector from this exact list: "
+                    f"{industry_options}. Choose the closest match.\n"
+                    "- overview: One clear sentence describing what the project does and its main purpose.\n"
+                    "- techAndTeamwork: One to two sentences about implementation approach, "
+                    "technologies used, architecture decisions, and technical challenges solved. "
+                    "If multiple sentences, separate with a newline character (\\n).\n"
+                    "- achievement: One sentence with quantified outcomes — use estimated percentages "
+                    "or realistic numbers if exact metrics are not available (e.g. 'reduced latency by ~40%', "
+                    "'supports 10k+ concurrent users').\n"
+                    f"- technologies: An object with exactly these section keys: {sections_str}. "
+                    "Each section must contain 5–8 technology keywords (languages, platforms, cloud services, "
+                    "databases) most relevant to this project AND popular for this career focus. "
+                    "Total roughly 30 keywords across all sections.\n"
+                    f"- frameworks: An object with the same section keys: {sections_str}. "
+                    "Each section must contain 5–8 framework/tool keywords (frameworks, libraries, dev tools, "
+                    "testing tools, CI/CD tools) most relevant to this project AND popular for this career focus. "
+                    "Total roughly 30 keywords across all sections. Must not duplicate technologies entries.\n\n"
+                    "Return only valid JSON with no extra text."
+                )
+
+                try:
+                    analysis_response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are a technical resume expert. Return only valid JSON."},
+                            {"role": "user", "content": analysis_prompt}
+                        ],
+                        response_format={"type": "json_object"},
+                        temperature=0.4,
+                    )
+                    analysis_data = json.loads(analysis_response.choices[0].message.content)
+                    logger.info(f"Project analysis complete for {email}, project_type={project_type}")
+                    return {
+                        "status": "success",
+                        "reply": "I've analyzed your project and prepared updates for each field. Which fields would you like to fill in?",
+                        "action": {
+                            "type": "update_project_description",
+                            "data": {
+                                "projectType": project_type,
+                                "projectSource": project_details[:2000],
+                                "projectName": analysis_data.get("projectName", ""),
+                                "industrySector": analysis_data.get("industrySector", ""),
+                                "overview": analysis_data.get("overview", ""),
+                                "techAndTeamwork": analysis_data.get("techAndTeamwork", ""),
+                                "achievement": analysis_data.get("achievement", ""),
+                                "technologies": analysis_data.get("technologies", {}),
+                                "frameworks": analysis_data.get("frameworks", {})
+                            }
+                        }
+                    }
+                except Exception as analysis_err:
+                    logger.error(f"Project analysis failed: {analysis_err}")
+                    return {
+                        "status": "success",
+                        "reply": "I had trouble analyzing the project details. Could you provide more information or try a different URL?",
+                    }
+
+            return {"status": "success", "reply": reply, "action": {"type": tool_name}}
+        else:
+            reply = choice.message.content
+            logger.info(f"AI chat response to {email}: {reply}")
+            import re as _re
+            rl = reply.lower()
+
+            # ── Semantic: project TYPE question ──
+            type_patterns = [
+                r'what (kind|type) of project',
+                r'is (this|it) (a )?(personal|professional)',
+                r'personal.{0,20}(or|vs|versus).{0,20}(professional|work experience)',
+                r'personal project.{0,60}work experience',
+                r'personal.{0,40}work.{0,40}research',
+            ]
+            if any(_re.search(p, rl) for p in type_patterns):
+                return {"status": "success", "reply": reply, "action": {"type": "ask_project_type"}}
+
+            # ── Semantic: project STATUS question ──
+            status_patterns = [
+                r'status of (this |the )?project',
+                r'(currently in progress|already completed|planned for the future)',
+                r'(in progress|ongoing).{0,60}(completed|finished).{0,60}(plan|future)',
+                r'(completed|finished).{0,60}(in progress|ongoing).{0,60}(plan|future)',
+                r'is (this |the )?project (currently|already|still|done)',
+                r"what.{0,20}(status|stage|state).{0,20}(project|it)",
+            ]
+            if any(_re.search(p, rl) for p in status_patterns):
+                return {"status": "success", "reply": reply, "action": {"type": "ask_project_status"}}
+
+            # ── Auto-detect numbered/bulleted choice lists ──
+            lines = [l.strip() for l in reply.split('\n') if l.strip()]
+            numbered = []
+            for line in lines:
+                m = _re.match(r'^(?:\d+[.)]\s*|[①②③④⑤⑥⑦⑧⑨⑩]\s*)(.+)$', line)
+                if m:
+                    numbered.append(m.group(1).strip())
+            if 2 <= len(numbered) <= 5 and all(len(item) <= 45 for item in numbered):
+                return {"status": "success", "reply": reply, "action": {"type": "text_choices", "choices": numbered}}
+
+            return {"status": "success", "reply": reply}
+
+    except Exception as e:
+        logger.error(f"Error in ai_chat: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")

@@ -181,7 +181,12 @@ export default function AnalysisSection({
     // Only clear if we have results to clear
     if (personalCapabilityAnalysis || resumePowerAnalysis) {
       setIsAnalysisResultsFadingOut(true);
-      
+      // Clear localStorage cache immediately so stale results don't restore on refresh
+      try {
+        localStorage.removeItem('cachedPersonalCapabilityAnalysis');
+        localStorage.removeItem('cachedResumePowerAnalysis');
+        localStorage.removeItem('cachedShowPersonalCapabilityPrompt');
+      } catch { /* ignore */ }
       // Wait for fade-out animation then clear data
       setTimeout(() => {
         setPersonalCapabilityAnalysis(null);
@@ -1243,6 +1248,8 @@ export default function AnalysisSection({
                               'analysis-resume-upload',
                             ) as HTMLInputElement | null;
                             if (input) input.value = '';
+                            setInputsChangedSinceLastAnalysis(true);
+                            clearAnalysisResultsWithFade();
                           }}
                           aria-label="Remove file"
                         >

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Orbitron, Comfortaa } from 'next/font/google';
@@ -12,6 +12,7 @@ import { userManager, signOutRedirect } from '@/types';
 import type { User } from 'oidc-client-ts';
 import { API_ENDPOINT } from '@/app/components/config';
 import PricingModal from '@/app/components/PricingModal';
+import AIChatbox from './AIChatbox';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -27,6 +28,35 @@ const comfortaa = Comfortaa({
 
 // Force dynamic rendering to prevent chunk loading issues
 export const dynamic = 'force-dynamic';
+
+// Imperatively animate a specific field in the project panel after a chatbox card update.
+// Uses data-project-id on outer containers and data-chat-type / aria-label on fields.
+function animateChatField(projectId: string, field: 'desc' | 'tech' | 'framework' | 'name' | 'industry') {
+  setTimeout(() => {
+    const container = document.querySelector(`[data-project-id="${projectId}"]`);
+    if (!container) return;
+    let el: Element | null = null;
+    if (field === 'desc') {
+      // Animate the visible description dropdown trigger (parent of the "Edit Project Description" button)
+      el = container.querySelector('[aria-label="Edit Project Description"]')?.parentElement ?? null;
+    } else if (field === 'tech') {
+      el = container.querySelector('[aria-label="Select Technologies"]');
+    } else if (field === 'framework') {
+      el = container.querySelector('[aria-label="Select Framework & Tools"]');
+    } else if (field === 'name') {
+      // Target the wrapper div — the input itself has outline:none !important which suppresses the glow
+      el = container.querySelector('[data-chat-type="name"]')?.parentElement ?? null;
+    } else if (field === 'industry') {
+      // Target the wrapper div — the trigger button has outline:none !important which suppresses the glow
+      el = container.querySelector('[aria-label="Select Industry"]')?.parentElement ?? null;
+    }
+    if (!el) return;
+    el.classList.remove('chatFieldUpdated');
+    void (el as HTMLElement).offsetWidth; // force reflow to restart animation
+    el.classList.add('chatFieldUpdated');
+    setTimeout(() => el!.classList.remove('chatFieldUpdated'), 2500);
+  }, 80);
+}
 
 // DateDropdown component for Education section
 interface DateDropdownProps {
@@ -744,6 +774,7 @@ export default function DashboardPage() {
             selectedTechnologies?: string[];
             selectedFrameworks?: string[];
             isInterviewReady?: boolean;
+            projectSource?: string;
           }) => ({
             id: project.id || crypto.randomUUID(),
             projectName: project.projectName || '',
@@ -760,10 +791,11 @@ export default function DashboardPage() {
             location: project.location || '',
             selectedTechnologies: project.selectedTechnologies || [],
             selectedFrameworks: project.selectedFrameworks || [],
-            isInterviewReady: project.isInterviewReady || false
+            isInterviewReady: project.isInterviewReady || false,
+            projectSource: project.projectSource || ''
           })));
         }
-        
+
         // Populate Professional Projects
         if (knowledgeData.professional_project && Array.isArray(knowledgeData.professional_project) && knowledgeData.professional_project.length > 0) {
           setProfessionalProjects(knowledgeData.professional_project.map((project: {
@@ -778,6 +810,7 @@ export default function DashboardPage() {
             selectedTechnologies?: string[];
             selectedFrameworks?: string[];
             isInterviewReady?: boolean;
+            projectSource?: string;
           }) => ({
             id: project.id || crypto.randomUUID(),
             projectName: project.projectName || '',
@@ -793,10 +826,11 @@ export default function DashboardPage() {
             projectEndYear: project.projectEndYear || '',
             selectedTechnologies: project.selectedTechnologies || [],
             selectedFrameworks: project.selectedFrameworks || [],
-            isInterviewReady: project.isInterviewReady || false
+            isInterviewReady: project.isInterviewReady || false,
+            projectSource: project.projectSource || ''
           })));
         }
-        
+
         // Populate Technical Skills
         if (knowledgeData.technical_skills) {
           const techSkills = knowledgeData.technical_skills;
@@ -949,6 +983,7 @@ export default function DashboardPage() {
             selectedTechnologies?: string[];
             selectedFrameworks?: string[];
             isInterviewReady?: boolean;
+            projectSource?: string;
           }) => ({
             id: project.id || crypto.randomUUID(),
             projectName: project.projectName || '',
@@ -965,10 +1000,11 @@ export default function DashboardPage() {
             location: project.location || '',
             selectedTechnologies: project.selectedTechnologies || [],
             selectedFrameworks: project.selectedFrameworks || [],
-            isInterviewReady: project.isInterviewReady || false
+            isInterviewReady: project.isInterviewReady || false,
+            projectSource: project.projectSource || ''
           })));
         }
-        
+
         // Populate Future Professional Projects
         if (expandingKnowledgeData.future_professional_project && Array.isArray(expandingKnowledgeData.future_professional_project)) {
           setFutureProfessionalProjects(expandingKnowledgeData.future_professional_project.map((project: {
@@ -983,6 +1019,7 @@ export default function DashboardPage() {
             selectedTechnologies?: string[];
             selectedFrameworks?: string[];
             isInterviewReady?: boolean;
+            projectSource?: string;
           }) => ({
             id: project.id || crypto.randomUUID(),
             projectName: project.projectName || '',
@@ -998,10 +1035,11 @@ export default function DashboardPage() {
             projectEndYear: project.projectEndYear || '',
             selectedTechnologies: project.selectedTechnologies || [],
             selectedFrameworks: project.selectedFrameworks || [],
-            isInterviewReady: project.isInterviewReady || false
+            isInterviewReady: project.isInterviewReady || false,
+            projectSource: project.projectSource || ''
           })));
         }
-        
+
         // Populate Future Technical Skills
         if (expandingKnowledgeData.future_technical_skills) {
           const futureTechSkills = expandingKnowledgeData.future_technical_skills;
@@ -1315,8 +1353,9 @@ export default function DashboardPage() {
     selectedTechnologies: string[];
     selectedFrameworks: string[];
     isInterviewReady?: boolean;
+    projectSource?: string;
   }
-  
+
   const [personalProjects, setPersonalProjects] = useState<PersonalProject[]>([]);
   const [activePersonalProjectSubPanel, setActivePersonalProjectSubPanel] = useState<number>(1);
   const personalProjectDotRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -1357,8 +1396,9 @@ export default function DashboardPage() {
     selectedTechnologies: string[];
     selectedFrameworks: string[];
     isInterviewReady?: boolean;
+    projectSource?: string;
   }
-  
+
   const [professionalProjects, setProfessionalProjects] = useState<ProfessionalProject[]>([]);
   const [activeProfessionalProjectSubPanel, setActiveProfessionalProjectSubPanel] = useState<number>(1);
   const professionalProjectDotRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -1399,7 +1439,6 @@ export default function DashboardPage() {
   const [isDescriptionDropdownOpen, setIsDescriptionDropdownOpen] = useState<boolean>(false);
   const descriptionDropdownRef = useRef<HTMLDivElement>(null);
   const [descriptionMode, setDescriptionMode] = useState<'source' | 'bulletPoints'>('source');
-  const [projectSourceInput, setProjectSourceInput] = useState<string>('');
   const [isLookUpLoading, setIsLookUpLoading] = useState<boolean>(false);
   const [lookUpError, setLookUpError] = useState<string | null>(null);
   const [isTechnologiesModalOpen, setIsTechnologiesModalOpen] = useState<boolean>(false);
@@ -1420,7 +1459,6 @@ export default function DashboardPage() {
   const [isFutureDescriptionDropdownOpen, setIsFutureDescriptionDropdownOpen] = useState<boolean>(false);
   const futureDescriptionDropdownRef = useRef<HTMLDivElement>(null);
   const [futureDescriptionMode, setFutureDescriptionMode] = useState<'source' | 'bulletPoints'>('source');
-  const [futureProjectSourceInput, setFutureProjectSourceInput] = useState<string>('');
   const [isFutureLookUpLoading, setIsFutureLookUpLoading] = useState<boolean>(false);
   const [futureLookUpError, setFutureLookUpError] = useState<string | null>(null);
   const [isFutureTechnologiesModalOpen, setIsFutureTechnologiesModalOpen] = useState<boolean>(false);
@@ -1857,7 +1895,409 @@ export default function DashboardPage() {
       expandingAutoSaveTimerRef.current = null;
     }
   };
-  
+
+  // ── AI Chatbot: project navigation & update callbacks ──
+
+  const handleChatNavigateToEstablishedPersonalProject = useCallback(() => {
+    setActiveSection('knowledge');
+    setShowEstablishedExpertise(true);
+    setShowExpandingKnowledgeBase(false);
+    setTimeout(() => {
+      setActiveExpertiseStep('Personal Project');
+      setPersonalProjects(prev => {
+        const willTransitionToTags = prev.length === 4;
+        if (willTransitionToTags) {
+          setIsTransitioningToTags(true);
+          setTimeout(() => setIsTransitioningToTags(false), 600);
+        }
+        const newProject = {
+          id: `project-${Date.now()}-${Math.random()}`,
+          projectName: '',
+          projectDescription: { overview: '', techAndTeamwork: '', achievement: '' },
+          selectedIndustries: [],
+          projectStartMonth: '', projectStartYear: '',
+          projectEndMonth: '', projectEndYear: '',
+          location: '',
+          selectedTechnologies: [],
+          selectedFrameworks: [],
+          isInterviewReady: false,
+        };
+        const newList = [...prev, newProject];
+        setActivePersonalProjectSubPanel(newList.length);
+        return newList;
+      });
+      markEstablishedDirty();
+    }, 150);
+  }, []);
+
+  const handleChatNavigateToExpandingPersonalProject = useCallback(() => {
+    setActiveSection('knowledge');
+    setShowExpandingKnowledgeBase(true);
+    setShowEstablishedExpertise(false);
+    setTimeout(() => {
+      setActiveExpandingKnowledgeStep('Future Personal Project');
+      setFuturePersonalProjects(prev => {
+        const willTransitionToTags = prev.length === 4;
+        if (willTransitionToTags) {
+          setIsTransitioningToTagsFuture(true);
+          setTimeout(() => setIsTransitioningToTagsFuture(false), 600);
+        }
+        const newProject = {
+          id: `project-${Date.now()}-${Math.random()}`,
+          projectName: '',
+          projectDescription: { overview: '', techAndTeamwork: '', achievement: '' },
+          selectedIndustries: [],
+          projectStartMonth: '', projectStartYear: '',
+          projectEndMonth: '', projectEndYear: '',
+          location: '',
+          selectedTechnologies: [],
+          selectedFrameworks: [],
+          isInterviewReady: false,
+        };
+        const newList = [...prev, newProject];
+        setActiveFuturePersonalProjectSubPanel(newList.length);
+        return newList;
+      });
+      markExpandingDirty();
+    }, 150);
+  }, []);
+
+  const handleChatNavigateToEstablishedProfessionalProject = useCallback(() => {
+    setActiveSection('knowledge');
+    setShowEstablishedExpertise(true);
+    setShowExpandingKnowledgeBase(false);
+    setTimeout(() => {
+      setActiveExpertiseStep('Professional Project');
+      setProfessionalProjects(prev => {
+        const willTransitionToTags = prev.length === 4;
+        if (willTransitionToTags) {
+          setIsTransitioningToTagsProfessional(true);
+          setTimeout(() => setIsTransitioningToTagsProfessional(false), 600);
+        }
+        const newProject = {
+          id: `professional-project-${Date.now()}-${Math.random()}`,
+          projectName: '',
+          projectDescription: { overview: '', techAndTeamwork: '', achievement: '' },
+          selectedWorkExperience: '',
+          projectStartMonth: '', projectStartYear: '',
+          projectEndMonth: '', projectEndYear: '',
+          selectedTechnologies: [],
+          selectedFrameworks: [],
+          isInterviewReady: false,
+        };
+        const newList = [...prev, newProject];
+        setActiveProfessionalProjectSubPanel(newList.length);
+        return newList;
+      });
+      markEstablishedDirty();
+    }, 150);
+  }, []);
+
+  const handleChatNavigateToExpandingProfessionalProject = useCallback(() => {
+    setActiveSection('knowledge');
+    setShowExpandingKnowledgeBase(true);
+    setShowEstablishedExpertise(false);
+    setTimeout(() => {
+      setActiveExpandingKnowledgeStep('Future Professional Project');
+      setFutureProfessionalProjects(prev => {
+        const willTransitionToTags = prev.length === 4;
+        if (willTransitionToTags) {
+          setIsTransitioningToTagsFutureProfessional(true);
+          setTimeout(() => setIsTransitioningToTagsFutureProfessional(false), 600);
+        }
+        const newProject = {
+          id: `professional-project-${Date.now()}-${Math.random()}`,
+          projectName: '',
+          projectDescription: { overview: '', techAndTeamwork: '', achievement: '' },
+          selectedWorkExperience: '',
+          projectStartMonth: '', projectStartYear: '',
+          projectEndMonth: '', projectEndYear: '',
+          selectedTechnologies: [],
+          selectedFrameworks: [],
+          isInterviewReady: false,
+        };
+        const newList = [...prev, newProject];
+        setActiveFutureProfessionalProjectSubPanel(newList.length);
+        return newList;
+      });
+      markExpandingDirty();
+    }, 150);
+  }, []);
+
+  // Update description of the currently viewed project in the relevant list
+  const handleChatUpdateProjectDescription = useCallback((
+    projectType: string,
+    description: { overview: string; techAndTeamwork: string; achievement: string },
+    projectSource?: string
+  ) => {
+    if (projectType === 'personal_established') {
+      const idx = activePersonalProjectSubPanel - 1;
+      setPersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectDescription: description, ...(projectSource !== undefined && { projectSource }) };
+        animateChatField(targetId, 'desc');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'professional_established') {
+      const idx = activeProfessionalProjectSubPanel - 1;
+      setProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectDescription: description, ...(projectSource !== undefined && { projectSource }) };
+        animateChatField(targetId, 'desc');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'personal_expanding') {
+      const idx = activeFuturePersonalProjectSubPanel - 1;
+      setFuturePersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectDescription: description, ...(projectSource !== undefined && { projectSource }) };
+        animateChatField(targetId, 'desc');
+        return updated;
+      });
+      markExpandingDirty();
+    } else if (projectType === 'professional_expanding') {
+      const idx = activeFutureProfessionalProjectSubPanel - 1;
+      setFutureProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectDescription: description, ...(projectSource !== undefined && { projectSource }) };
+        animateChatField(targetId, 'desc');
+        return updated;
+      });
+      markExpandingDirty();
+    }
+
+    // Trigger auto-resize for bullet point textareas after React re-renders
+    setTimeout(() => {
+      document.querySelectorAll<HTMLTextAreaElement>('textarea[data-bp]').forEach(t => {
+        t.style.height = 'auto';
+        t.style.height = `${t.scrollHeight}px`;
+      });
+    }, 80);
+  }, [activePersonalProjectSubPanel, activeProfessionalProjectSubPanel, activeFuturePersonalProjectSubPanel, activeFutureProfessionalProjectSubPanel]);
+
+  // Merge suggested technologies into currently viewed project — canonical names, no duplicates
+  const handleChatUpdateProjectTechnologies = useCallback((projectType: string, technologies: Record<string, string[]>) => {
+    const canonicalMap = new Map<string, string>();
+    Object.values(technologySections).forEach(items =>
+      items.forEach(item => { if (item !== 'Other') canonicalMap.set(item.toLowerCase(), item); })
+    );
+    const flatTech = Object.values(technologies).flat();
+    const mergeTech = (project: { selectedTechnologies: string[] }) => {
+      const existingLower = new Set(project.selectedTechnologies.map(t => t.toLowerCase()));
+      const addedLower = new Set<string>();
+      const toAdd: string[] = [];
+      for (const kw of flatTech) {
+        const lower = kw.toLowerCase();
+        if (existingLower.has(lower) || addedLower.has(lower)) continue;
+        toAdd.push(canonicalMap.get(lower) ?? kw);
+        addedLower.add(lower);
+      }
+      return [...project.selectedTechnologies, ...toAdd];
+    };
+
+    if (projectType === 'personal_established') {
+      const idx = activePersonalProjectSubPanel - 1;
+      setPersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedTechnologies: mergeTech(updated[idx]) };
+        animateChatField(targetId, 'tech');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'professional_established') {
+      const idx = activeProfessionalProjectSubPanel - 1;
+      setProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedTechnologies: mergeTech(updated[idx]) };
+        animateChatField(targetId, 'tech');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'personal_expanding') {
+      const idx = activeFuturePersonalProjectSubPanel - 1;
+      setFuturePersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedTechnologies: mergeTech(updated[idx]) };
+        animateChatField(targetId, 'tech');
+        return updated;
+      });
+      markExpandingDirty();
+    } else if (projectType === 'professional_expanding') {
+      const idx = activeFutureProfessionalProjectSubPanel - 1;
+      setFutureProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedTechnologies: mergeTech(updated[idx]) };
+        animateChatField(targetId, 'tech');
+        return updated;
+      });
+      markExpandingDirty();
+    }
+  }, [technologySections, activePersonalProjectSubPanel, activeProfessionalProjectSubPanel, activeFuturePersonalProjectSubPanel, activeFutureProfessionalProjectSubPanel]);
+
+  // Merge suggested frameworks into currently viewed project — canonical names, no duplicates
+  const handleChatUpdateProjectFrameworks = useCallback((projectType: string, frameworks: Record<string, string[]>) => {
+    const canonicalMap = new Map<string, string>();
+    Object.values(frameworkSections).forEach(items =>
+      items.forEach(item => { if (item !== 'Other') canonicalMap.set(item.toLowerCase(), item); })
+    );
+    const flatFrameworks = Object.values(frameworks).flat();
+    const mergeFrameworks = (project: { selectedFrameworks: string[] }) => {
+      const existingLower = new Set(project.selectedFrameworks.map(f => f.toLowerCase()));
+      const addedLower = new Set<string>();
+      const toAdd: string[] = [];
+      for (const kw of flatFrameworks) {
+        const lower = kw.toLowerCase();
+        if (existingLower.has(lower) || addedLower.has(lower)) continue;
+        toAdd.push(canonicalMap.get(lower) ?? kw);
+        addedLower.add(lower);
+      }
+      return [...project.selectedFrameworks, ...toAdd];
+    };
+
+    if (projectType === 'personal_established') {
+      const idx = activePersonalProjectSubPanel - 1;
+      setPersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedFrameworks: mergeFrameworks(updated[idx]) };
+        animateChatField(targetId, 'framework');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'professional_established') {
+      const idx = activeProfessionalProjectSubPanel - 1;
+      setProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedFrameworks: mergeFrameworks(updated[idx]) };
+        animateChatField(targetId, 'framework');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'personal_expanding') {
+      const idx = activeFuturePersonalProjectSubPanel - 1;
+      setFuturePersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedFrameworks: mergeFrameworks(updated[idx]) };
+        animateChatField(targetId, 'framework');
+        return updated;
+      });
+      markExpandingDirty();
+    } else if (projectType === 'professional_expanding') {
+      const idx = activeFutureProfessionalProjectSubPanel - 1;
+      setFutureProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedFrameworks: mergeFrameworks(updated[idx]) };
+        animateChatField(targetId, 'framework');
+        return updated;
+      });
+      markExpandingDirty();
+    }
+  }, [frameworkSections, activePersonalProjectSubPanel, activeProfessionalProjectSubPanel, activeFuturePersonalProjectSubPanel, activeFutureProfessionalProjectSubPanel]);
+
+  // Set the name of the currently viewed project in the relevant list
+  const handleChatUpdateProjectName = useCallback((projectType: string, name: string) => {
+    if (projectType === 'personal_established') {
+      const idx = activePersonalProjectSubPanel - 1;
+      setPersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectName: name };
+        animateChatField(targetId, 'name');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'professional_established') {
+      const idx = activeProfessionalProjectSubPanel - 1;
+      setProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectName: name };
+        animateChatField(targetId, 'name');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'personal_expanding') {
+      const idx = activeFuturePersonalProjectSubPanel - 1;
+      setFuturePersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectName: name };
+        animateChatField(targetId, 'name');
+        return updated;
+      });
+      markExpandingDirty();
+    } else if (projectType === 'professional_expanding') {
+      const idx = activeFutureProfessionalProjectSubPanel - 1;
+      setFutureProfessionalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], projectName: name };
+        animateChatField(targetId, 'name');
+        return updated;
+      });
+      markExpandingDirty();
+    }
+  }, [activePersonalProjectSubPanel, activeProfessionalProjectSubPanel, activeFuturePersonalProjectSubPanel, activeFutureProfessionalProjectSubPanel]);
+
+  // Add the recommended industry sector to the currently viewed personal project's selectedIndustries
+  const handleChatUpdateProjectIndustry = useCallback((projectType: string, industry: string) => {
+    const mergeIndustry = (existing: string[]) =>
+      existing.includes(industry) ? existing : [...existing, industry];
+
+    if (projectType === 'personal_established') {
+      const idx = activePersonalProjectSubPanel - 1;
+      setPersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedIndustries: mergeIndustry(updated[idx].selectedIndustries) };
+        animateChatField(targetId, 'industry');
+        return updated;
+      });
+      markEstablishedDirty();
+    } else if (projectType === 'personal_expanding') {
+      const idx = activeFuturePersonalProjectSubPanel - 1;
+      setFuturePersonalProjects(prev => {
+        if (idx < 0 || idx >= prev.length) return prev;
+        const targetId = prev[idx].id;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], selectedIndustries: mergeIndustry(updated[idx].selectedIndustries) };
+        animateChatField(targetId, 'industry');
+        return updated;
+      });
+      markExpandingDirty();
+    }
+  }, [activePersonalProjectSubPanel, activeFuturePersonalProjectSubPanel]);
+
   // Auto-save profile form after 60 seconds of inactivity
   useEffect(() => {
     // Only set up auto-save if form is dirty and we have a timestamp
@@ -5814,7 +6254,7 @@ export default function DashboardPage() {
                           if (projectIndex + 1 !== activePersonalProjectSubPanel) return null;
                           
                           return (
-                            <div key={project.id} className={styles.collegeSection}>
+                            <div key={project.id} data-project-id={project.id} className={styles.collegeSection}>
                               {personalProjects.length > 1 && (
                                 <div className={styles.collegeSectionHeader}>
                                   <button
@@ -5868,6 +6308,7 @@ export default function DashboardPage() {
                                   <input
                                     type="text"
                                     id={`project-name-${project.id}`}
+                                    data-chat-type="name"
                                     className={styles.formInput}
                                     value={project.projectName}
                                     onChange={(e) => {
@@ -5943,8 +6384,8 @@ export default function DashboardPage() {
                                           <div className={styles.projectSourceContainer}>
                                             <textarea
                                               className={styles.descriptionTextarea}
-                                              value={projectSourceInput}
-                                              onChange={(e) => setProjectSourceInput(e.target.value)}
+                                              value={project.projectSource || ''}
+                                              onChange={(e) => { markEstablishedDirty(); setPersonalProjects(prev => prev.map(p => p.id === project.id ? { ...p, projectSource: e.target.value } : p)); }}
                                               placeholder="Paste a project URL (https://...) or a long project description..."
                                               rows={5}
                                               style={{ resize: 'vertical' }}
@@ -5953,8 +6394,8 @@ export default function DashboardPage() {
                                             <div className={styles.lookUpButtonRow}>
                                               <button type="button"
                                                 className={`${styles.lookUpButton} ${isLookUpLoading ? styles.lookUpButtonLoading : ''}`}
-                                                onClick={() => handleLookUp(project.id, 'personal', projectSourceInput)}
-                                                disabled={isLookUpLoading || !projectSourceInput.trim()}>
+                                                onClick={() => handleLookUp(project.id, 'personal', project.projectSource || '')}
+                                                disabled={isLookUpLoading || !(project.projectSource || '').trim()}>
                                                 {isLookUpLoading
                                                   ? <><span className={styles.lookUpSpinner} /> Generating...</>
                                                   : <><svg className={styles.jobUrlFetchIcon} xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#5a5248"><path d="M450-420q38 0 64-26t26-64q0-38-26-64t-64-26q-38 0-64 26t-26 64q0 38 26 64t64 26Zm193 160L538-365q-20 13-42.5 19t-45.5 6q-71 0-120.5-49.5T280-510q0-71 49.5-120.5T450-680q71 0 120.5 49.5T620-510q0 23-6.5 45.5T594-422l106 106-57 56ZM200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80Z"/></svg> Extract</>}
@@ -5967,33 +6408,48 @@ export default function DashboardPage() {
                                           <div className={styles.bulletPointsList}>
                                             <div className={styles.bulletPointItem}>
                                               <span className={styles.bulletPointNumber}>•</span>
-                                              <input type="text" className={styles.bulletPointInput}
+                                              <textarea className={styles.bulletPointInput} data-bp
                                                 value={normalizeProjectDescription(project.projectDescription).overview}
                                                 onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: e.target.value } } : p)); }}
-                                                placeholder="Project overview..." onFocus={() => setFocusedElement('field')} />
+                                                placeholder="Project overview..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                               <button type="button" className={styles.bulletPointRemoveBtn}
                                                 onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: '' } } : p)); }}>×</button>
                                             </div>
-                                            {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
-                                              <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                            {(true) && (
+                                              <div className={styles.bulletPointItem}>
                                                 <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
-                                                  value={line}
-                                                  onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
-                                                  placeholder="Bullet detail..." onFocus={() => setFocusedElement('field')} />
+                                                <textarea className={styles.bulletPointInput} data-bp
+                                                  value={normalizeProjectDescription(project.projectDescription).achievement}
+                                                  onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
+                                                  placeholder="Output performance measurement..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                 <button type="button" className={styles.bulletPointRemoveBtn}
-                                                  onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                  onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
                                               </div>
-                                            ))}
-                                            <div className={styles.bulletPointItem}>
-                                              <span className={styles.bulletPointNumber}>•</span>
-                                              <input type="text" className={styles.bulletPointInput}
-                                                value={normalizeProjectDescription(project.projectDescription).achievement}
-                                                onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
-                                                placeholder="Quantitative achievement..." onFocus={() => setFocusedElement('field')} />
-                                              <button type="button" className={styles.bulletPointRemoveBtn}
-                                                onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
-                                            </div>
+                                            )}
+                                            {!normalizeProjectDescription(project.projectDescription).techAndTeamwork ? (
+                                              <div className={styles.bulletPointItem}>
+                                                <span className={styles.bulletPointNumber}>•</span>
+                                                <textarea className={styles.bulletPointInput} data-bp
+                                                  value=""
+                                                  onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: e.target.value + '\n' } } : p)); }}
+                                                  placeholder="Showcase with technology in use and teamwork" rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                <button type="button" className={styles.bulletPointRemoveBtn} onClick={() => {}}>×</button>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
+                                                  <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                                    <span className={styles.bulletPointNumber}>•</span>
+                                                    <textarea className={styles.bulletPointInput} data-bp
+                                                      value={line}
+                                                      onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
+                                                      placeholder="Bullet detail..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                    <button type="button" className={styles.bulletPointRemoveBtn}
+                                                      onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                  </div>
+                                                ))}
+                                              </>
+                                            )}
                                             <button type="button" className={styles.bulletPointAddBtn}
                                               onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setPersonalProjects(personalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: addBulletLine(nd.techAndTeamwork) } } : p)); }}>
                                               + Add bullet
@@ -6198,18 +6654,13 @@ export default function DashboardPage() {
                                         
                                         // Preserve custom keywords when reopening
                                         const preservedKeywords: Record<string, string[]> = {};
-                                        Object.entries(technologySections).forEach(([sectionName, options]) => {
-                                          const customItems = project.selectedTechnologies.filter(t => 
-                                            !options.includes(t) && 
-                                            t !== 'Other' &&
-                                            !Object.values(technologySections).some(sectionOptions => 
-                                              sectionOptions.includes(t) && sectionOptions !== options
-                                            )
-                                          );
-                                          if (customItems.length > 0) {
-                                            preservedKeywords[sectionName] = customItems;
-                                          }
-                                        });
+                                        const _allPredefinedTech = new Set(
+                                          Object.values(technologySections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                        const _customTechItems = project.selectedTechnologies.filter(
+                                          t => t !== 'Other' && !_allPredefinedTech.has(t));
+                                        if (_customTechItems.length > 0) {
+                                          preservedKeywords[Object.keys(technologySections)[0]] = _customTechItems;
+                                        }
                                         setTempSelectedTechnologies(restoredTechnologies);
                                         setCustomKeywords(preservedKeywords);
                                       }}
@@ -6273,18 +6724,13 @@ export default function DashboardPage() {
                                           setTempSelectedFrameworks(restoredFrameworks);
                                           setIsFrameworksModalOpen(true);
                                           const preservedKeywords: Record<string, string[]> = {};
-                                          Object.entries(frameworkSections).forEach(([sectionName, options]) => {
-                                            const customItems = project.selectedFrameworks.filter(t => 
-                                              !options.includes(t) && 
-                                              t !== 'Other' &&
-                                              !Object.values(frameworkSections).some(sectionOptions => 
-                                                sectionOptions.includes(t) && sectionOptions !== options
-                                              )
-                                            );
-                                            if (customItems.length > 0) {
-                                              preservedKeywords[sectionName] = customItems;
-                                            }
-                                          });
+                                          const _allPredefinedFramework = new Set(
+                                            Object.values(frameworkSections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                          const _customFrameworkItems = project.selectedFrameworks.filter(
+                                            t => t !== 'Other' && !_allPredefinedFramework.has(t));
+                                          if (_customFrameworkItems.length > 0) {
+                                            preservedKeywords[Object.keys(frameworkSections)[0]] = _customFrameworkItems;
+                                          }
                                           setTempSelectedFrameworks(restoredFrameworks);
                                           setCustomFrameworkKeywords(preservedKeywords);
                                         }}
@@ -7379,7 +7825,7 @@ export default function DashboardPage() {
                             if (projectIndex + 1 !== activeProfessionalProjectSubPanel) return null;
                             
                             return (
-                              <div key={project.id} className={styles.collegeSection}>
+                              <div key={project.id} data-project-id={project.id} className={styles.collegeSection}>
                               {professionalProjects.length > 1 && (
                                 <div className={styles.collegeSectionHeader}>
                                   <button
@@ -7428,6 +7874,7 @@ export default function DashboardPage() {
                                 <input
                                   type="text"
                                   id={`professional-project-name-${project.id}`}
+                                  data-chat-type="name"
                                   className={styles.formInput}
                                   value={project.projectName}
                                   onChange={(e) => {
@@ -7505,8 +7952,8 @@ export default function DashboardPage() {
                                             <div className={styles.projectSourceContainer}>
                                               <textarea
                                                 className={styles.descriptionTextarea}
-                                                value={projectSourceInput}
-                                                onChange={(e) => setProjectSourceInput(e.target.value)}
+                                                value={project.projectSource || ''}
+                                                onChange={(e) => { markEstablishedDirty(); setProfessionalProjects(prev => prev.map(p => p.id === project.id ? { ...p, projectSource: e.target.value } : p)); }}
                                                 placeholder="Paste a project URL (https://...) or a long project description..."
                                                 rows={5}
                                                 style={{ resize: 'vertical' }}
@@ -7515,8 +7962,8 @@ export default function DashboardPage() {
                                               <div className={styles.lookUpButtonRow}>
                                                 <button type="button"
                                                   className={`${styles.lookUpButton} ${isLookUpLoading ? styles.lookUpButtonLoading : ''}`}
-                                                  onClick={() => handleLookUp(project.id, 'professional', projectSourceInput)}
-                                                  disabled={isLookUpLoading || !projectSourceInput.trim()}>
+                                                  onClick={() => handleLookUp(project.id, 'professional', project.projectSource || '')}
+                                                  disabled={isLookUpLoading || !(project.projectSource || '').trim()}>
                                                   {isLookUpLoading
                                                     ? <><span className={styles.lookUpSpinner} /> Generating...</>
                                                     : <><svg className={styles.jobUrlFetchIcon} xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#5a5248"><path d="M450-420q38 0 64-26t26-64q0-38-26-64t-64-26q-38 0-64 26t-26 64q0 38 26 64t64 26Zm193 160L538-365q-20 13-42.5 19t-45.5 6q-71 0-120.5-49.5T280-510q0-71 49.5-120.5T450-680q71 0 120.5 49.5T620-510q0 23-6.5 45.5T594-422l106 106-57 56ZM200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80Z"/></svg> Extract</>}
@@ -7529,33 +7976,48 @@ export default function DashboardPage() {
                                             <div className={styles.bulletPointsList}>
                                               <div className={styles.bulletPointItem}>
                                                 <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
+                                                <textarea className={styles.bulletPointInput} data-bp
                                                   value={normalizeProjectDescription(project.projectDescription).overview}
                                                   onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: e.target.value } } : p)); }}
-                                                  placeholder="Project overview..." onFocus={() => setFocusedElement('field')} />
+                                                  placeholder="Project overview..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                 <button type="button" className={styles.bulletPointRemoveBtn}
                                                   onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: '' } } : p)); }}>×</button>
                                               </div>
-                                              {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
-                                                <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                              {(true) && (
+                                                <div className={styles.bulletPointItem}>
                                                   <span className={styles.bulletPointNumber}>•</span>
-                                                  <input type="text" className={styles.bulletPointInput}
-                                                    value={line}
-                                                    onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
-                                                    placeholder="Bullet detail..." onFocus={() => setFocusedElement('field')} />
+                                                  <textarea className={styles.bulletPointInput} data-bp
+                                                    value={normalizeProjectDescription(project.projectDescription).achievement}
+                                                    onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
+                                                    placeholder="Output performance measurement..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                   <button type="button" className={styles.bulletPointRemoveBtn}
-                                                    onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                    onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
                                                 </div>
-                                              ))}
-                                              <div className={styles.bulletPointItem}>
-                                                <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
-                                                  value={normalizeProjectDescription(project.projectDescription).achievement}
-                                                  onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
-                                                  placeholder="Quantitative achievement..." onFocus={() => setFocusedElement('field')} />
-                                                <button type="button" className={styles.bulletPointRemoveBtn}
-                                                  onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
-                                              </div>
+                                              )}
+                                              {!normalizeProjectDescription(project.projectDescription).techAndTeamwork ? (
+                                                <div className={styles.bulletPointItem}>
+                                                  <span className={styles.bulletPointNumber}>•</span>
+                                                  <textarea className={styles.bulletPointInput} data-bp
+                                                    value=""
+                                                    onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: e.target.value + '\n' } } : p)); }}
+                                                    placeholder="Showcase with technology in use and teamwork" rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                  <button type="button" className={styles.bulletPointRemoveBtn} onClick={() => {}}>×</button>
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
+                                                    <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                                      <span className={styles.bulletPointNumber}>•</span>
+                                                      <textarea className={styles.bulletPointInput} data-bp
+                                                        value={line}
+                                                        onChange={(e) => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
+                                                        placeholder="Bullet detail..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                      <button type="button" className={styles.bulletPointRemoveBtn}
+                                                        onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                    </div>
+                                                  ))}
+                                                </>
+                                              )}
                                               <button type="button" className={styles.bulletPointAddBtn}
                                                 onClick={() => { markEstablishedDirty(); const nd = normalizeProjectDescription(project.projectDescription); setProfessionalProjects(professionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: addBulletLine(nd.techAndTeamwork) } } : p)); }}>
                                                 + Add bullet
@@ -7707,18 +8169,13 @@ export default function DashboardPage() {
                                         setTempSelectedTechnologies(restoredTechnologies);
                                         setIsTechnologiesModalOpen(true);
                                         const preservedKeywords: Record<string, string[]> = {};
-                                        Object.entries(technologySections).forEach(([sectionName, options]) => {
-                                          const customItems = project.selectedTechnologies.filter(t => 
-                                            !options.includes(t) && 
-                                            t !== 'Other' &&
-                                            !Object.values(technologySections).some(sectionOptions => 
-                                              sectionOptions.includes(t) && sectionOptions !== options
-                                            )
-                                          );
-                                          if (customItems.length > 0) {
-                                            preservedKeywords[sectionName] = customItems;
-                                          }
-                                        });
+                                        const _allPredefinedTech = new Set(
+                                          Object.values(technologySections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                        const _customTechItems = project.selectedTechnologies.filter(
+                                          t => t !== 'Other' && !_allPredefinedTech.has(t));
+                                        if (_customTechItems.length > 0) {
+                                          preservedKeywords[Object.keys(technologySections)[0]] = _customTechItems;
+                                        }
                                         setTempSelectedTechnologies(restoredTechnologies);
                                         setCustomKeywords(preservedKeywords);
                                       }}
@@ -7782,18 +8239,13 @@ export default function DashboardPage() {
                                           setTempSelectedFrameworks(restoredFrameworks);
                                           setIsFrameworksModalOpen(true);
                                           const preservedKeywords: Record<string, string[]> = {};
-                                          Object.entries(frameworkSections).forEach(([sectionName, options]) => {
-                                            const customItems = project.selectedFrameworks.filter(t => 
-                                              !options.includes(t) && 
-                                              t !== 'Other' &&
-                                              !Object.values(frameworkSections).some(sectionOptions => 
-                                                sectionOptions.includes(t) && sectionOptions !== options
-                                              )
-                                            );
-                                            if (customItems.length > 0) {
-                                              preservedKeywords[sectionName] = customItems;
-                                            }
-                                          });
+                                          const _allPredefinedFramework = new Set(
+                                            Object.values(frameworkSections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                          const _customFrameworkItems = project.selectedFrameworks.filter(
+                                            t => t !== 'Other' && !_allPredefinedFramework.has(t));
+                                          if (_customFrameworkItems.length > 0) {
+                                            preservedKeywords[Object.keys(frameworkSections)[0]] = _customFrameworkItems;
+                                          }
                                           setTempSelectedFrameworks(restoredFrameworks);
                                           setCustomFrameworkKeywords(preservedKeywords);
                                         }}
@@ -10438,7 +10890,7 @@ export default function DashboardPage() {
                             if (projectIndex + 1 !== activeFuturePersonalProjectSubPanel) return null;
                             
                             return (
-                            <div key={project.id} className={styles.collegeSection}>
+                            <div key={project.id} data-project-id={project.id} className={styles.collegeSection}>
                               {futurePersonalProjects.length > 1 && (
                                 <div className={styles.collegeSectionHeader}>
                                   <button
@@ -10488,6 +10940,7 @@ export default function DashboardPage() {
                                   <input
                                     type="text"
                                     id={`future-project-name-${project.id}`}
+                                    data-chat-type="name"
                                     className={styles.formInput}
                                     value={project.projectName}
                                     onChange={(e) => {
@@ -10563,8 +11016,8 @@ export default function DashboardPage() {
                                           <div className={styles.projectSourceContainer}>
                                             <textarea
                                               className={styles.descriptionTextarea}
-                                              value={projectSourceInput}
-                                              onChange={(e) => setProjectSourceInput(e.target.value)}
+                                              value={project.projectSource || ''}
+                                              onChange={(e) => { markExpandingDirty(); setFuturePersonalProjects(prev => prev.map(p => p.id === project.id ? { ...p, projectSource: e.target.value } : p)); }}
                                               placeholder="Paste a project URL (https://...) or a long project description..."
                                               rows={5}
                                               style={{ resize: 'vertical' }}
@@ -10573,8 +11026,8 @@ export default function DashboardPage() {
                                             <div className={styles.lookUpButtonRow}>
                                               <button type="button"
                                                 className={`${styles.lookUpButton} ${isLookUpLoading ? styles.lookUpButtonLoading : ''}`}
-                                                onClick={() => handleLookUp(project.id, 'futurePersonal', projectSourceInput)}
-                                                disabled={isLookUpLoading || !projectSourceInput.trim()}>
+                                                onClick={() => handleLookUp(project.id, 'futurePersonal', project.projectSource || '')}
+                                                disabled={isLookUpLoading || !(project.projectSource || '').trim()}>
                                                 {isLookUpLoading
                                                   ? <><span className={styles.lookUpSpinner} /> Generating...</>
                                                   : <><svg className={styles.jobUrlFetchIcon} xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#5a5248"><path d="M450-420q38 0 64-26t26-64q0-38-26-64t-64-26q-38 0-64 26t-26 64q0 38 26 64t64 26Zm193 160L538-365q-20 13-42.5 19t-45.5 6q-71 0-120.5-49.5T280-510q0-71 49.5-120.5T450-680q71 0 120.5 49.5T620-510q0 23-6.5 45.5T594-422l106 106-57 56ZM200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80Z"/></svg> Extract</>}
@@ -10587,33 +11040,48 @@ export default function DashboardPage() {
                                           <div className={styles.bulletPointsList}>
                                             <div className={styles.bulletPointItem}>
                                               <span className={styles.bulletPointNumber}>•</span>
-                                              <input type="text" className={styles.bulletPointInput}
+                                              <textarea className={styles.bulletPointInput} data-bp
                                                 value={normalizeProjectDescription(project.projectDescription).overview}
                                                 onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: e.target.value } } : p)); }}
-                                                placeholder="Project overview..." onFocus={() => setFocusedElement('field')} />
+                                                placeholder="Project overview..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                               <button type="button" className={styles.bulletPointRemoveBtn}
                                                 onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: '' } } : p)); }}>×</button>
                                             </div>
-                                            {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
-                                              <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                            {(true) && (
+                                              <div className={styles.bulletPointItem}>
                                                 <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
-                                                  value={line}
-                                                  onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
-                                                  placeholder="Bullet detail..." onFocus={() => setFocusedElement('field')} />
+                                                <textarea className={styles.bulletPointInput} data-bp
+                                                  value={normalizeProjectDescription(project.projectDescription).achievement}
+                                                  onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
+                                                  placeholder="Output performance measurement..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                 <button type="button" className={styles.bulletPointRemoveBtn}
-                                                  onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                  onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
                                               </div>
-                                            ))}
-                                            <div className={styles.bulletPointItem}>
-                                              <span className={styles.bulletPointNumber}>•</span>
-                                              <input type="text" className={styles.bulletPointInput}
-                                                value={normalizeProjectDescription(project.projectDescription).achievement}
-                                                onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
-                                                placeholder="Quantitative achievement..." onFocus={() => setFocusedElement('field')} />
-                                              <button type="button" className={styles.bulletPointRemoveBtn}
-                                                onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
-                                            </div>
+                                            )}
+                                            {!normalizeProjectDescription(project.projectDescription).techAndTeamwork ? (
+                                              <div className={styles.bulletPointItem}>
+                                                <span className={styles.bulletPointNumber}>•</span>
+                                                <textarea className={styles.bulletPointInput} data-bp
+                                                  value=""
+                                                  onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: e.target.value + '\n' } } : p)); }}
+                                                  placeholder="Showcase with technology in use and teamwork" rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                <button type="button" className={styles.bulletPointRemoveBtn} onClick={() => {}}>×</button>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
+                                                  <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                                    <span className={styles.bulletPointNumber}>•</span>
+                                                    <textarea className={styles.bulletPointInput} data-bp
+                                                      value={line}
+                                                      onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
+                                                      placeholder="Bullet detail..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                    <button type="button" className={styles.bulletPointRemoveBtn}
+                                                      onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                  </div>
+                                                ))}
+                                              </>
+                                            )}
                                             <button type="button" className={styles.bulletPointAddBtn}
                                               onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFuturePersonalProjects(futurePersonalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: addBulletLine(nd.techAndTeamwork) } } : p)); }}>
                                               + Add bullet
@@ -10811,18 +11279,13 @@ export default function DashboardPage() {
                                         setTempFutureSelectedTechnologies(restoredTechnologies);
                                         setIsFutureTechnologiesModalOpen(true);
                                         const preservedKeywords: Record<string, string[]> = {};
-                                        Object.entries(technologySections).forEach(([sectionName, options]) => {
-                                          const customItems = project.selectedTechnologies.filter(t => 
-                                            !options.includes(t) && 
-                                            t !== 'Other' &&
-                                            !Object.values(technologySections).some(sectionOptions => 
-                                              sectionOptions.includes(t) && sectionOptions !== options
-                                            )
-                                          );
-                                          if (customItems.length > 0) {
-                                            preservedKeywords[sectionName] = customItems;
-                                          }
-                                        });
+                                        const _allPredefinedTech = new Set(
+                                          Object.values(technologySections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                        const _customTechItems = project.selectedTechnologies.filter(
+                                          t => t !== 'Other' && !_allPredefinedTech.has(t));
+                                        if (_customTechItems.length > 0) {
+                                          preservedKeywords[Object.keys(technologySections)[0]] = _customTechItems;
+                                        }
                                         setTempFutureSelectedTechnologies(restoredTechnologies);
                                         setCustomFutureKeywords(preservedKeywords);
                                       }}
@@ -10886,18 +11349,13 @@ export default function DashboardPage() {
                                           setTempFutureSelectedFrameworks(restoredFrameworks);
                                           setIsFutureFrameworksModalOpen(true);
                                           const preservedKeywords: Record<string, string[]> = {};
-                                          Object.entries(frameworkSections).forEach(([sectionName, options]) => {
-                                            const customItems = project.selectedFrameworks.filter(t => 
-                                              !options.includes(t) && 
-                                              t !== 'Other' &&
-                                              !Object.values(frameworkSections).some(sectionOptions => 
-                                                sectionOptions.includes(t) && sectionOptions !== options
-                                              )
-                                            );
-                                            if (customItems.length > 0) {
-                                              preservedKeywords[sectionName] = customItems;
-                                            }
-                                          });
+                                          const _allPredefinedFramework = new Set(
+                                            Object.values(frameworkSections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                          const _customFrameworkItems = project.selectedFrameworks.filter(
+                                            t => t !== 'Other' && !_allPredefinedFramework.has(t));
+                                          if (_customFrameworkItems.length > 0) {
+                                            preservedKeywords[Object.keys(frameworkSections)[0]] = _customFrameworkItems;
+                                          }
                                           setTempFutureSelectedFrameworks(restoredFrameworks);
                                           setCustomFutureFrameworkKeywords(preservedKeywords);
                                         }}
@@ -11980,7 +12438,7 @@ export default function DashboardPage() {
                             if (projectIndex + 1 !== activeFutureProfessionalProjectSubPanel) return null;
                             
                             return (
-                            <div key={project.id} className={styles.collegeSection}>
+                            <div key={project.id} data-project-id={project.id} className={styles.collegeSection}>
                               {futureProfessionalProjects.length > 1 && (
                                 <div className={styles.collegeSectionHeader}>
                                   <button
@@ -12030,6 +12488,7 @@ export default function DashboardPage() {
                                   <input
                                     type="text"
                                     id={`future-professional-project-name-${project.id}`}
+                                    data-chat-type="name"
                                     className={styles.formInput}
                                     value={project.projectName}
                                     onChange={(e) => {
@@ -12109,8 +12568,8 @@ export default function DashboardPage() {
                                             <div className={styles.projectSourceContainer}>
                                               <textarea
                                                 className={styles.descriptionTextarea}
-                                                value={futureProjectSourceInput}
-                                                onChange={(e) => setFutureProjectSourceInput(e.target.value)}
+                                                value={project.projectSource || ''}
+                                                onChange={(e) => { markExpandingDirty(); setFutureProfessionalProjects(prev => prev.map(p => p.id === project.id ? { ...p, projectSource: e.target.value } : p)); }}
                                                 placeholder="Paste a project URL (https://...) or a long project description..."
                                                 rows={5}
                                                 style={{ resize: 'vertical' }}
@@ -12119,8 +12578,8 @@ export default function DashboardPage() {
                                               <div className={styles.lookUpButtonRow}>
                                                 <button type="button"
                                                   className={`${styles.lookUpButton} ${isFutureLookUpLoading ? styles.lookUpButtonLoading : ''}`}
-                                                  onClick={() => handleLookUp(project.id, 'futureProfessional', futureProjectSourceInput)}
-                                                  disabled={isFutureLookUpLoading || !futureProjectSourceInput.trim()}>
+                                                  onClick={() => handleLookUp(project.id, 'futureProfessional', project.projectSource || '')}
+                                                  disabled={isFutureLookUpLoading || !(project.projectSource || '').trim()}>
                                                   {isFutureLookUpLoading
                                                     ? <><span className={styles.lookUpSpinner} /> Generating...</>
                                                     : <><svg className={styles.jobUrlFetchIcon} xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#5a5248"><path d="M450-420q38 0 64-26t26-64q0-38-26-64t-64-26q-38 0-64 26t-26 64q0 38 26 64t64 26Zm193 160L538-365q-20 13-42.5 19t-45.5 6q-71 0-120.5-49.5T280-510q0-71 49.5-120.5T450-680q71 0 120.5 49.5T620-510q0 23-6.5 45.5T594-422l106 106-57 56ZM200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80Z"/></svg> Extract</>}
@@ -12133,33 +12592,48 @@ export default function DashboardPage() {
                                             <div className={styles.bulletPointsList}>
                                               <div className={styles.bulletPointItem}>
                                                 <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
+                                                <textarea className={styles.bulletPointInput} data-bp
                                                   value={normalizeProjectDescription(project.projectDescription).overview}
                                                   onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: e.target.value } } : p)); }}
-                                                  placeholder="Project overview..." onFocus={() => setFocusedElement('field')} />
+                                                  placeholder="Project overview..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                 <button type="button" className={styles.bulletPointRemoveBtn}
                                                   onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, overview: '' } } : p)); }}>×</button>
                                               </div>
-                                              {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
-                                                <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                              {(true) && (
+                                                <div className={styles.bulletPointItem}>
                                                   <span className={styles.bulletPointNumber}>•</span>
-                                                  <input type="text" className={styles.bulletPointInput}
-                                                    value={line}
-                                                    onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
-                                                    placeholder="Bullet detail..." onFocus={() => setFocusedElement('field')} />
+                                                  <textarea className={styles.bulletPointInput} data-bp
+                                                    value={normalizeProjectDescription(project.projectDescription).achievement}
+                                                    onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
+                                                    placeholder="Output performance measurement..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
                                                   <button type="button" className={styles.bulletPointRemoveBtn}
-                                                    onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                    onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
                                                 </div>
-                                              ))}
-                                              <div className={styles.bulletPointItem}>
-                                                <span className={styles.bulletPointNumber}>•</span>
-                                                <input type="text" className={styles.bulletPointInput}
-                                                  value={normalizeProjectDescription(project.projectDescription).achievement}
-                                                  onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: e.target.value } } : p)); }}
-                                                  placeholder="Quantitative achievement..." onFocus={() => setFocusedElement('field')} />
-                                                <button type="button" className={styles.bulletPointRemoveBtn}
-                                                  onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, achievement: '' } } : p)); }}>×</button>
-                                              </div>
+                                              )}
+                                              {!normalizeProjectDescription(project.projectDescription).techAndTeamwork ? (
+                                                <div className={styles.bulletPointItem}>
+                                                  <span className={styles.bulletPointNumber}>•</span>
+                                                  <textarea className={styles.bulletPointInput} data-bp
+                                                    value=""
+                                                    onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: e.target.value + '\n' } } : p)); }}
+                                                    placeholder="Showcase with technology in use and teamwork" rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                  <button type="button" className={styles.bulletPointRemoveBtn} onClick={() => {}}>×</button>
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  {getBulletLines(normalizeProjectDescription(project.projectDescription).techAndTeamwork).map((line, lineIndex) => (
+                                                    <div key={`showcase-${lineIndex}`} className={styles.bulletPointItem}>
+                                                      <span className={styles.bulletPointNumber}>•</span>
+                                                      <textarea className={styles.bulletPointInput} data-bp
+                                                        value={line}
+                                                        onChange={(e) => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: updateBulletLine(nd.techAndTeamwork, lineIndex, e.target.value) } } : p)); }}
+                                                        placeholder="Bullet detail..." rows={1} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }} onFocus={() => setFocusedElement('field')}></textarea>
+                                                      <button type="button" className={styles.bulletPointRemoveBtn}
+                                                        onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: removeBulletLine(nd.techAndTeamwork, lineIndex) } } : p)); }}>×</button>
+                                                    </div>
+                                                  ))}
+                                                </>
+                                              )}
                                               <button type="button" className={styles.bulletPointAddBtn}
                                                 onClick={() => { markExpandingDirty(); const nd = normalizeProjectDescription(project.projectDescription); setFutureProfessionalProjects(futureProfessionalProjects.map(p => p.id === project.id ? { ...p, projectDescription: { ...nd, techAndTeamwork: addBulletLine(nd.techAndTeamwork) } } : p)); }}>
                                                 + Add bullet
@@ -12311,18 +12785,13 @@ export default function DashboardPage() {
                                         setTempFutureSelectedTechnologies(restoredTechnologies);
                                         setIsFutureTechnologiesModalOpen(true);
                                         const preservedKeywords: Record<string, string[]> = {};
-                                        Object.entries(technologySections).forEach(([sectionName, options]) => {
-                                          const customItems = project.selectedTechnologies.filter(t => 
-                                            !options.includes(t) && 
-                                            t !== 'Other' &&
-                                            !Object.values(technologySections).some(sectionOptions => 
-                                              sectionOptions.includes(t) && sectionOptions !== options
-                                            )
-                                          );
-                                          if (customItems.length > 0) {
-                                            preservedKeywords[sectionName] = customItems;
-                                          }
-                                        });
+                                        const _allPredefinedTech = new Set(
+                                          Object.values(technologySections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                        const _customTechItems = project.selectedTechnologies.filter(
+                                          t => t !== 'Other' && !_allPredefinedTech.has(t));
+                                        if (_customTechItems.length > 0) {
+                                          preservedKeywords[Object.keys(technologySections)[0]] = _customTechItems;
+                                        }
                                         setTempFutureSelectedTechnologies(restoredTechnologies);
                                         setCustomFutureKeywords(preservedKeywords);
                                       }}
@@ -12386,18 +12855,13 @@ export default function DashboardPage() {
                                           setTempFutureSelectedFrameworks(restoredFrameworks);
                                           setIsFutureFrameworksModalOpen(true);
                                           const preservedKeywords: Record<string, string[]> = {};
-                                          Object.entries(frameworkSections).forEach(([sectionName, options]) => {
-                                            const customItems = project.selectedFrameworks.filter(t => 
-                                              !options.includes(t) && 
-                                              t !== 'Other' &&
-                                              !Object.values(frameworkSections).some(sectionOptions => 
-                                                sectionOptions.includes(t) && sectionOptions !== options
-                                              )
-                                            );
-                                            if (customItems.length > 0) {
-                                              preservedKeywords[sectionName] = customItems;
-                                            }
-                                          });
+                                          const _allPredefinedFramework = new Set(
+                                            Object.values(frameworkSections).flatMap(opts => opts.filter(o => o !== 'Other')));
+                                          const _customFrameworkItems = project.selectedFrameworks.filter(
+                                            t => t !== 'Other' && !_allPredefinedFramework.has(t));
+                                          if (_customFrameworkItems.length > 0) {
+                                            preservedKeywords[Object.keys(frameworkSections)[0]] = _customFrameworkItems;
+                                          }
                                           setTempFutureSelectedFrameworks(restoredFrameworks);
                                           setCustomFutureFrameworkKeywords(preservedKeywords);
                                         }}
@@ -14609,6 +15073,29 @@ onClick={() => {
           </div>
         </div>
       )}
+      <AIChatbox
+        userEmail={email}
+        userName={`${firstName} ${lastName}`.trim() || undefined}
+        apiEndpoint={API_ENDPOINT}
+        careerFocus={careerFocus}
+        onNavigateToExistingResume={() => {
+          setActiveSection('resume');
+          setResumeShowExistingResumePage(true);
+        }}
+        onNavigateToKnowledgeBaseResume={() => {
+          setActiveSection('resume');
+          setResumeShowCompanyTypePage(true);
+        }}
+        onNavigateToEstablishedPersonalProject={handleChatNavigateToEstablishedPersonalProject}
+        onNavigateToExpandingPersonalProject={handleChatNavigateToExpandingPersonalProject}
+        onNavigateToEstablishedProfessionalProject={handleChatNavigateToEstablishedProfessionalProject}
+        onNavigateToExpandingProfessionalProject={handleChatNavigateToExpandingProfessionalProject}
+        onUpdateProjectDescription={handleChatUpdateProjectDescription}
+        onUpdateProjectTechnologies={handleChatUpdateProjectTechnologies}
+        onUpdateProjectFrameworks={handleChatUpdateProjectFrameworks}
+        onUpdateProjectName={handleChatUpdateProjectName}
+        onUpdateProjectIndustry={handleChatUpdateProjectIndustry}
+      />
     </div>
   );
 }

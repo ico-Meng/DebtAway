@@ -79,6 +79,7 @@ interface PersonalProject {
   selectedTechnologies: string[];
   selectedFrameworks: string[];
   isInterviewReady?: boolean;
+  projectSource?: string;
 }
 
 interface ProfessionalProject {
@@ -97,7 +98,20 @@ interface ProfessionalProject {
   selectedTechnologies: string[];
   selectedFrameworks: string[];
   isInterviewReady?: boolean;
+  projectSource?: string;
 }
+
+// Helper: check if a project has all required fields filled (projectName + at least one description field)
+const isProjectComplete = (project: PersonalProject | ProfessionalProject): boolean => {
+  return (
+    project.projectName.trim() !== '' &&
+    (
+      project.projectDescription?.overview?.trim() !== '' ||
+      project.projectDescription?.techAndTeamwork?.trim() !== '' ||
+      project.projectDescription?.achievement?.trim() !== ''
+    )
+  );
+};
 
 // Helper: shorten long URLs for display while keeping them recognizable
 const shortenUrl = (value: string): string => {
@@ -2045,11 +2059,15 @@ export default function ResumeSection({
       setCraftingCardIndex(0); // Reset to first card
       
       try {
-        // Prepare selected projects
-        const selectedPersonalProjects = personalProjects.filter(p => selectedPersonalProjectIds.has(p.id));
-        const selectedProfessionalProjects = professionalProjects.filter(p => selectedProfessionalProjectIds.has(p.id));
-        const selectedFuturePersonalProjects = futurePersonalProjects.filter(p => selectedFuturePersonalProjectIds.has(p.id));
-        const selectedFutureProfessionalProjects = futureProfessionalProjects.filter(p => selectedFutureProfessionalProjectIds.has(p.id));
+        // Prepare selected projects — strip projectSource as it's for record-keeping only, not resume generation
+        const stripProjectSource = <T extends { projectSource?: string }>(p: T): Omit<T, 'projectSource'> => {
+          const { projectSource: _ps, ...rest } = p;
+          return rest;
+        };
+        const selectedPersonalProjects = personalProjects.filter(p => selectedPersonalProjectIds.has(p.id)).map(stripProjectSource);
+        const selectedProfessionalProjects = professionalProjects.filter(p => selectedProfessionalProjectIds.has(p.id)).map(stripProjectSource);
+        const selectedFuturePersonalProjects = futurePersonalProjects.filter(p => selectedFuturePersonalProjectIds.has(p.id)).map(stripProjectSource);
+        const selectedFutureProfessionalProjects = futureProfessionalProjects.filter(p => selectedFutureProfessionalProjectIds.has(p.id)).map(stripProjectSource);
         
         // Combine technical skills
         const combinedSkills = [
@@ -3179,17 +3197,19 @@ export default function ResumeSection({
   // Auto-select first 4 projects from each section and first 20 technical skills when Established Expertise is checked
   useEffect(() => {
     if (knowledgeScope.establishedExpertise) {
-      // Auto-select first 4 personal projects
+      // Auto-select first 4 complete personal projects
       const personalIds = new Set(
         personalProjects
+          .filter(isProjectComplete)
           .slice(0, 4)
           .map(p => p.id)
       );
       setSelectedPersonalProjectIds(personalIds);
 
-      // Auto-select first 4 professional projects
+      // Auto-select first 4 complete professional projects
       const professionalIds = new Set(
         professionalProjects
+          .filter(isProjectComplete)
           .slice(0, 4)
           .map(p => p.id)
       );
@@ -3212,17 +3232,19 @@ export default function ResumeSection({
   // Auto-select first 4 future projects from each section and first 20 future technical skills when Expanding Knowledge Base is checked
   useEffect(() => {
     if (knowledgeScope.expandingKnowledgeBase) {
-      // Auto-select first 4 future personal projects
+      // Auto-select first 4 complete future personal projects
       const futurePersonalIds = new Set(
         futurePersonalProjects
+          .filter(isProjectComplete)
           .slice(0, 4)
           .map(p => p.id)
       );
       setSelectedFuturePersonalProjectIds(futurePersonalIds);
 
-      // Auto-select first 4 future professional projects
+      // Auto-select first 4 complete future professional projects
       const futureProfessionalIds = new Set(
         futureProfessionalProjects
+          .filter(isProjectComplete)
           .slice(0, 4)
           .map(p => p.id)
       );
@@ -4965,7 +4987,7 @@ export default function ResumeSection({
                             </span>
                           </div>
                           <div className={styles.projectSelectionList}>
-                            {personalProjects.map((project) => (
+                            {personalProjects.filter(isProjectComplete).map((project) => (
                               <label
                                 key={project.id}
                                 className={`${styles.projectSelectionItem} ${selectedPersonalProjectIds.has(project.id) ? styles.projectSelectionItemSelected : ''}`}
@@ -4979,7 +5001,7 @@ export default function ResumeSection({
                                 <span className={styles.projectSelectionItemText}>{project.projectName}</span>
                               </label>
                             ))}
-                            {personalProjects.length === 0 && (
+                            {personalProjects.filter(isProjectComplete).length === 0 && (
                               <div className={styles.projectSelectionEmpty}>No personal projects available</div>
                             )}
                           </div>
@@ -4992,7 +5014,7 @@ export default function ResumeSection({
                             </span>
                           </div>
                           <div className={styles.projectSelectionList}>
-                            {professionalProjects.map((project) => (
+                            {professionalProjects.filter(isProjectComplete).map((project) => (
                               <label
                                 key={project.id}
                                 className={`${styles.projectSelectionItem} ${selectedProfessionalProjectIds.has(project.id) ? styles.projectSelectionItemSelected : ''}`}
@@ -5006,7 +5028,7 @@ export default function ResumeSection({
                                 <span className={styles.projectSelectionItemText}>{project.projectName}</span>
                               </label>
                             ))}
-                            {professionalProjects.length === 0 && (
+                            {professionalProjects.filter(isProjectComplete).length === 0 && (
                               <div className={styles.projectSelectionEmpty}>No professional projects available</div>
                             )}
                           </div>
@@ -5129,7 +5151,7 @@ export default function ResumeSection({
                             </span>
                           </div>
                           <div className={styles.projectSelectionList}>
-                            {futurePersonalProjects.map((project) => (
+                            {futurePersonalProjects.filter(isProjectComplete).map((project) => (
                               <label
                                 key={project.id}
                                 className={`${styles.projectSelectionItem} ${selectedFuturePersonalProjectIds.has(project.id) ? styles.projectSelectionItemSelected : ''}`}
@@ -5143,7 +5165,7 @@ export default function ResumeSection({
                                 <span className={styles.projectSelectionItemText}>{project.projectName}</span>
                               </label>
                             ))}
-                            {futurePersonalProjects.length === 0 && (
+                            {futurePersonalProjects.filter(isProjectComplete).length === 0 && (
                               <div className={styles.projectSelectionEmpty}>No future personal projects available</div>
                             )}
                           </div>
@@ -5156,7 +5178,7 @@ export default function ResumeSection({
                             </span>
                           </div>
                           <div className={styles.projectSelectionList}>
-                            {futureProfessionalProjects.map((project) => (
+                            {futureProfessionalProjects.filter(isProjectComplete).map((project) => (
                               <label
                                 key={project.id}
                                 className={`${styles.projectSelectionItem} ${selectedFutureProfessionalProjectIds.has(project.id) ? styles.projectSelectionItemSelected : ''}`}
@@ -5170,7 +5192,7 @@ export default function ResumeSection({
                                 <span className={styles.projectSelectionItemText}>{project.projectName}</span>
                               </label>
                             ))}
-                            {futureProfessionalProjects.length === 0 && (
+                            {futureProfessionalProjects.filter(isProjectComplete).length === 0 && (
                               <div className={styles.projectSelectionEmpty}>No future professional projects available</div>
                             )}
                           </div>
