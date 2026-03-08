@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: ['www.lssmn.org'],
+        domains: ['www.lssmn.org', 'ambitology.com', 'randomuser.me'],
     },
     // Increase chunk size limits to handle large pages
     webpack: (config, { isServer }) => {
