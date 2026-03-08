@@ -634,13 +634,13 @@
 }
 
 .heroSubheading {
-  font-size: 1.375rem;
-  font-weight: 400;
-  color: #6b7280;
-  line-height: 1.6;
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: #64748b;
+  line-height: 1.85;
   margin: 0 0 2.5rem;
-  max-width: 32rem;
-  letter-spacing: -0.01em;
+  max-width: 34rem;
+  letter-spacing: 0.02em;
 }
 
 .freeTrialButton {
@@ -908,6 +908,66 @@
   gap: 5rem;
 }
 
+/* ========== SHOWCASE SECTION ========== */
+
+.showcaseSection {
+  padding: 6rem 3rem;
+  background: #fff;
+}
+
+.showcaseInner {
+  max-width: 84rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5rem;
+}
+
+.showcaseImage {
+  flex: 0 0 380px;
+  min-width: 0;
+}
+
+.showcaseImg {
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.10),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.showcaseText {
+  flex: 1;
+  min-width: 0;
+}
+
+.showcaseList {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.showcaseItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  color: #6b7280;
+  line-height: 1.7;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.showcaseItemIcon {
+  flex-shrink: 0;
+  color: #C4A052;
+  margin-top: 0.3rem;
+}
+
 /* ========== MAIN ========== */
 
 .main {
@@ -1011,6 +1071,99 @@
   font-size: 0.9375rem;
   color: rgba(255, 255, 255, 0.35);
   letter-spacing: -0.01em;
+}
+
+/* ========== DIFFERENTIATOR CARDS ========== */
+
+.differentiatorSection {
+  padding: 6rem 3rem;
+  background: #0f0f0f;
+}
+
+.differentiatorInner {
+  max-width: 84rem;
+  margin: 0 auto;
+}
+
+.differentiatorHeader {
+  text-align: center;
+  max-width: 42rem;
+  margin: 0 auto 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.differentiatorSection .featureBadge {
+  background: rgba(196, 160, 82, 0.14);
+  color: #C4A052;
+}
+
+.differentiatorHeading {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #f9fafb;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.differentiatorSub {
+  font-size: 1.0625rem;
+  color: #9ca3af;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.differentiatorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.diffCard {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.diffCard:hover {
+  border-color: rgba(196, 160, 82, 0.35);
+  box-shadow: 0 8px 32px rgba(196, 160, 82, 0.08);
+}
+
+.diffCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(196, 160, 82, 0.18), rgba(155, 106, 16, 0.12));
+  color: #C4A052;
+  flex-shrink: 0;
+}
+
+.diffCardTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f9fafb;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.diffCardBody {
+  font-size: 0.9375rem;
+  color: #9ca3af;
+  line-height: 1.7;
+  margin: 0;
 }
 
 /* ========== TESTIMONIALS ========== */
@@ -1333,6 +1486,22 @@
   .featureText {
     text-align: center;
   }
+
+  .showcaseSection {
+    padding: 4rem 1.5rem;
+  }
+
+  .showcaseInner {
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .showcaseImage {
+    flex: none;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1367,7 +1536,7 @@
   }
 
   .heroSubheading {
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
   }
 
   .footer {
@@ -1410,6 +1579,18 @@
   .testimonialCard {
     flex: 0 0 300px;
   }
+
+  .differentiatorSection {
+    padding: 4rem 1.5rem;
+  }
+
+  .differentiatorGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .differentiatorHeading {
+    font-size: 1.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1441,7 +1622,7 @@
   }
 
   .heroSubheading {
-    font-size: 1rem;
+    font-size: 0.9375rem;
     margin-bottom: 2rem;
   }
 
@@ -1484,6 +1665,18 @@
   }
 
   .testimonialHeading {
+    font-size: 1.5rem;
+  }
+
+  .differentiatorSection {
+    padding: 3rem 1.25rem;
+  }
+
+  .differentiatorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .differentiatorHeading {
     font-size: 1.5rem;
   }
 }

@@ -13,6 +13,7 @@ import type { User } from 'oidc-client-ts';
 import { API_ENDPOINT } from '@/app/components/config';
 import PricingModal from '@/app/components/PricingModal';
 import AIChatbox from './AIChatbox';
+import AccountSection from './account/AccountSection';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -356,6 +357,7 @@ export default function DashboardPage() {
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Settings panel state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string>('free');
@@ -365,7 +367,7 @@ export default function DashboardPage() {
   const [showDownloadLimitToast, setShowDownloadLimitToast] = useState(false);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
 
-  const [activeSection, setActiveSection] = useState<'profile' | 'knowledge' | 'resume' | 'analyzer'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'knowledge' | 'resume' | 'analyzer' | 'account'>('profile');
   const [showProfileIntro, setShowProfileIntro] = useState<boolean>(true);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   
@@ -406,11 +408,11 @@ export default function DashboardPage() {
   
   const [showExpandingKnowledgeBase, setShowExpandingKnowledgeBase] = useState<boolean>(false);
   const expandingKnowledgeSteps = [
-    'Future Personal Project',
-    'Future Professional Project',
-    'Future Technical Skills',
+    'Planned Personal Project',
+    'Planned Professional Project',
+    'Planned Technical Skills',
   ] as const;
-  const [activeExpandingKnowledgeStep, setActiveExpandingKnowledgeStep] = useState<(typeof expandingKnowledgeSteps)[number]>('Future Personal Project');
+  const [activeExpandingKnowledgeStep, setActiveExpandingKnowledgeStep] = useState<(typeof expandingKnowledgeSteps)[number]>('Planned Personal Project');
   
   const getPlanLabel = (plan: string) => plan === 'free' ? 'Free plan' : 'Pro plan';
 
@@ -968,7 +970,7 @@ export default function DashboardPage() {
       if (result.status === 'success' && result.expanding_knowledge_exists && result.data) {
         const expandingKnowledgeData = result.data;
         
-        // Populate Future Personal Projects
+        // Populate Planned Personal Projects
         if (expandingKnowledgeData.future_personal_project && Array.isArray(expandingKnowledgeData.future_personal_project)) {
           setFuturePersonalProjects(expandingKnowledgeData.future_personal_project.map((project: {
             id?: string;
@@ -1005,7 +1007,7 @@ export default function DashboardPage() {
           })));
         }
 
-        // Populate Future Professional Projects
+        // Populate Planned Professional Projects
         if (expandingKnowledgeData.future_professional_project && Array.isArray(expandingKnowledgeData.future_professional_project)) {
           setFutureProfessionalProjects(expandingKnowledgeData.future_professional_project.map((project: {
             id?: string;
@@ -1040,7 +1042,7 @@ export default function DashboardPage() {
           })));
         }
 
-        // Populate Future Technical Skills
+        // Populate Planned Technical Skills
         if (expandingKnowledgeData.future_technical_skills) {
           const futureTechSkills = expandingKnowledgeData.future_technical_skills;
           
@@ -1276,12 +1278,12 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Redirect to home if not authenticated
+  // Redirect to Cognito login if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/');
+      userManager.signinRedirect();
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user]);
 
   // Normalize project descriptions on mount (migrate old format)
   useEffect(() => {
@@ -1367,7 +1369,7 @@ export default function DashboardPage() {
   const [hoveredTagIndex, setHoveredTagIndex] = useState<number | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Future Personal Project state (separate from Personal Project)
+  // Planned Personal Project state (separate from Personal Project)
   const [futurePersonalProjects, setFuturePersonalProjects] = useState<PersonalProject[]>([]);
   const [activeFuturePersonalProjectSubPanel, setActiveFuturePersonalProjectSubPanel] = useState<number>(1);
   const futurePersonalProjectDotRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -1410,7 +1412,7 @@ export default function DashboardPage() {
   const [hoveredTagIndexProfessional, setHoveredTagIndexProfessional] = useState<number | null>(null);
   const hoverTimeoutRefProfessional = useRef<NodeJS.Timeout | null>(null);
   
-  // Future Professional Project state (separate from Professional Project)
+  // Planned Professional Project state (separate from Professional Project)
   const [futureProfessionalProjects, setFutureProfessionalProjects] = useState<ProfessionalProject[]>([]);
   const [activeFutureProfessionalProjectSubPanel, setActiveFutureProfessionalProjectSubPanel] = useState<number>(1);
   const futureProfessionalProjectDotRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -1441,6 +1443,12 @@ export default function DashboardPage() {
   const [descriptionMode, setDescriptionMode] = useState<'source' | 'bulletPoints'>('source');
   const [isLookUpLoading, setIsLookUpLoading] = useState<boolean>(false);
   const [lookUpError, setLookUpError] = useState<string | null>(null);
+  // Add Project popup state (shared for Personal, Planned Personal, Professional & Planned Professional buttons)
+  const [isAddProjectPopupOpen, setIsAddProjectPopupOpen] = useState<boolean>(false);
+  const [addProjectPopupType, setAddProjectPopupType] = useState<'personal' | 'planned' | 'professional' | 'planned-professional' | null>(null);
+  const [addProjectPopupMode, setAddProjectPopupMode] = useState<'choice' | 'load'>('choice');
+  const pendingAddNewCallback = useRef<(() => void) | null>(null);
+
   const [isTechnologiesModalOpen, setIsTechnologiesModalOpen] = useState<boolean>(false);
   const [isFrameworksModalOpen, setIsFrameworksModalOpen] = useState<boolean>(false);
   const [tempSelectedTechnologies, setTempSelectedTechnologies] = useState<string[]>([]);
@@ -1453,7 +1461,7 @@ export default function DashboardPage() {
   const [isShowingCustomFrameworkKeywordInput, setIsShowingCustomFrameworkKeywordInput] = useState<Record<string, boolean>>({});
   const [customFrameworkKeywordInputValue, setCustomFrameworkKeywordInputValue] = useState<Record<string, string>>({});
   const [editingCustomFrameworkKeyword, setEditingCustomFrameworkKeyword] = useState<Record<string, string>>({});
-  // Separate UI state for Future Professional Project (Expanding Knowledge Base)
+  // Separate UI state for Planned Professional Project (Expanding Knowledge Base)
   const [isFutureWorkExperienceDropdownOpen, setIsFutureWorkExperienceDropdownOpen] = useState<boolean>(false);
   const futureWorkExperienceDropdownRef = useRef<HTMLDivElement>(null);
   const [isFutureDescriptionDropdownOpen, setIsFutureDescriptionDropdownOpen] = useState<boolean>(false);
@@ -1483,7 +1491,7 @@ export default function DashboardPage() {
   const [isAddingNewLayer, setIsAddingNewLayer] = useState<boolean>(false);
   const [newLayerTitle, setNewLayerTitle] = useState<string>('');
   const [newLayerItems, setNewLayerItems] = useState<string>('');
-  // Separate state for Future Technical Skills (Expanding Knowledge Base)
+  // Separate state for Planned Technical Skills (Expanding Knowledge Base)
   const [selectedFutureTechnicalSkills, setSelectedFutureTechnicalSkills] = useState<string[]>([]);
   const [customFutureTechnicalSkillKeywords, setCustomFutureTechnicalSkillKeywords] = useState<Record<string, string[]>>({});
   const [isShowingCustomFutureTechnicalSkillKeywordInput, setIsShowingCustomFutureTechnicalSkillKeywordInput] = useState<Record<string, boolean>>({});
@@ -1591,6 +1599,66 @@ export default function DashboardPage() {
     ],
   };
 
+  // Data & Applied Science specific technology sections (abstract concepts per layer)
+  const dataScienceTechnologySections = {
+    'Data Foundations & Engineering': [
+      'SQL & Query Optimization', 'ETL / ELT Pipelines', 'Big Data Processing', 'Stream Processing',
+      'Batch Processing', 'Data Lakehouse Architecture', 'Data Modeling (Star/Snowflake Schema)',
+      'Data Quality & Validation', 'Data Lineage', 'Change Data Capture (CDC)', 'Data Governance',
+      'Feature Engineering', 'Data Versioning', 'Column-oriented Storage', 'Distributed Query Processing',
+      'Schema Evolution', 'Data Catalog', 'Data Contracts', 'Data Mesh Architecture',
+      'Real-time Analytics', 'Metadata Management', 'Synthetic Data Generation',
+      'Time-series Data Management', 'Data Augmentation', 'Unstructured Data Processing',
+      'Approximate Nearest Neighbor (ANN)', 'Data Freshness & SLAs', 'Semantic Data Modeling',
+      'Embedding Pipelines', 'Vector Search & Indexing', 'Other',
+    ],
+    'Statistics & Classical Machine Learning': [
+      'Probability Theory & Statistical Inference', 'Bayesian Analysis & Inference', 'Hypothesis Testing',
+      'Experimental Design', 'A/B Testing', 'Regression Analysis', 'Classification',
+      'Ensemble Methods (Boosting/Bagging)', 'Unsupervised Learning', 'Dimensionality Reduction (PCA/t-SNE/UMAP)',
+      'Time Series Analysis & Forecasting', 'Causal Inference', 'Survival Analysis', 'Anomaly Detection',
+      'Model Evaluation (AUC/F1/RMSE)', 'Cross-validation & Regularization', 'Gradient Boosting',
+      'Feature Selection', 'Model Interpretability (SHAP/LIME)', 'Statistical Power & Sample Size',
+      'Multivariate Analysis', 'Monte Carlo Methods', 'Graphical Models', 'Non-parametric Methods',
+      'Uplift Modeling', 'Markov Chains', 'Statistical Process Control', 'Confounding & Bias Analysis',
+      'Bayesian Optimization', 'Imbalanced Data Handling', 'Other',
+    ],
+    'ML Engineering & Deep Learning': [
+      'Deep Learning', 'Neural Network Architecture Design', 'Natural Language Processing (NLP)',
+      'Computer Vision', 'Transformer Architecture', 'Attention Mechanisms', 'Transfer Learning',
+      'Fine-tuning Pre-trained Models', 'Distributed Training', 'Model Quantization',
+      'Knowledge Distillation', 'Multimodal Learning', 'Explainable AI (XAI)', 'Reinforcement Learning',
+      'Model Compression & Pruning', 'Object Detection & Segmentation', 'Speech Recognition (ASR)',
+      'Generative Adversarial Networks (GANs)', 'Self-supervised Learning', 'Contrastive Learning',
+      'Diffusion Models', 'Graph Neural Networks (GNNs)', 'Model Bias Detection',
+      'Adversarial Robustness', 'Data Augmentation Strategies', 'Mixed Precision Training',
+      'Gradient Checkpointing', 'Neural Architecture Search', 'Meta-learning', 'Continual Learning', 'Other',
+    ],
+    'Generative AI & LLM Systems': [
+      'Large Language Models (LLM)', 'Retrieval-Augmented Generation (RAG)', 'Prompt Engineering',
+      'Embeddings & Vector Representations', 'Fine-Tuning Strategies', 'RLHF',
+      'In-context Learning', 'Few-shot & Zero-shot Learning', 'AI Agents & Agentic Workflows',
+      'Semantic Search', 'Function / Tool Calling', 'Multi-agent Systems', 'Vector Databases',
+      'AI Safety & Guardrails', 'Hybrid Search', 'LLM Evaluation & Benchmarking',
+      'Chain-of-Thought Reasoning', 'Context Window Management', 'Parameter-Efficient Fine-Tuning (PEFT)',
+      'LoRA / QLoRA', 'Instruction Tuning', 'DPO (Direct Preference Optimization)', 'Knowledge Graphs',
+      'Token Optimization', 'Output Validation & Parsing', 'AI Ethics & Bias Mitigation',
+      'Hallucination Detection', 'Multimodal AI', 'LLM Observability', 'Constitutional AI', 'Other',
+    ],
+    'MLOps & Production AI': [
+      'CI/CD for ML Pipelines', 'Experiment Tracking', 'Model Registry', 'Model Monitoring & Observability',
+      'Data Drift Detection', 'Feature Stores', 'Model Versioning', 'Inference Optimization',
+      'Model Serving Architecture', 'Pipeline Orchestration', 'Shadow Deployment',
+      'Canary & Blue-Green Deployment', 'A/B Testing for ML', 'Hyperparameter Optimization (HPO)',
+      'Distributed Training Coordination', 'Reproducibility', 'Model Governance',
+      'Responsible AI Frameworks', 'AutoML', 'Online vs. Batch Inference',
+      'Model Compression Pipelines', 'ML Metadata Management', 'Feedback Loops',
+      'Data Labeling Pipelines', 'Cost Optimization for ML', 'Resource Scheduling',
+      'Multi-tenancy ML Platforms', 'Model Card Documentation', 'End-to-end ML Workflow Design',
+      'Model Explainability & Fairness', 'Other',
+    ],
+  };
+
   // AI & Machine Learning specific framework sections (hands-on tools & frameworks per layer)
   const aiMlFrameworkSections = {
     'AI Application & Product': [
@@ -1635,6 +1703,48 @@ export default function DashboardPage() {
       'HuggingFace Accelerate', 'DeepSpeed ZeRO', 'torchrun', 'Ray Cluster',
       'NVIDIA MIG', 'CUDA Graphs', 'torch.compile', 'Transformer Engine (FP8)',
       'NVIDIA NeMo', 'Other',
+    ],
+  };
+
+  // Data & Applied Science specific framework sections (hands-on tools & frameworks per layer)
+  const dataScienceFrameworkSections = {
+    'Data Foundations & Engineering': [
+      'Apache Spark', 'Apache Kafka', 'dbt (Data Build Tool)', 'Snowflake', 'Databricks',
+      'BigQuery', 'Amazon Redshift', 'Apache Airflow', 'Pandas', 'Polars', 'DuckDB',
+      'Delta Lake', 'Apache Iceberg', 'Fivetran', 'Airbyte', 'Apache Flink', 'Trino / Presto',
+      'Apache Arrow', 'Parquet', 'LanceDB', 'Milvus', 'Pinecone', 'Weaviate', 'Chroma',
+      'Qdrant', 'pgvector', 'Elasticsearch', 'MongoDB Atlas', 'Apache Hudi', 'Great Expectations', 'Other',
+    ],
+    'Statistics & Classical Machine Learning': [
+      'scikit-learn', 'XGBoost', 'LightGBM', 'CatBoost', 'Pandas', 'NumPy', 'SciPy',
+      'statsmodels', 'R (tidyverse)', 'Matplotlib', 'Seaborn', 'Plotly', 'Tableau', 'Power BI',
+      'SHAP', 'LIME', 'Optuna', 'Hyperopt', 'PyMC (Bayesian)', 'Prophet (time series)',
+      'sktime', 'imbalanced-learn', 'Boruta (feature selection)', 'MLflow', 'Weights & Biases',
+      'FLAML / AutoSklearn (AutoML)', 'Evidently AI', 'Sweetviz', 'ydata-profiling',
+      'Great Expectations', 'Other',
+    ],
+    'ML Engineering & Deep Learning': [
+      'PyTorch', 'TensorFlow', 'Hugging Face Transformers', 'scikit-learn', 'CUDA / cuDNN',
+      'JAX / Flax', 'ONNX', 'TensorRT', 'Ray / Ray Train', 'Weights & Biases (W&B)', 'MLflow',
+      'Albumentations', 'torchvision', 'Detectron2', 'OpenCV', 'Whisper (ASR)', 'CLIP',
+      'Stable Diffusion', 'bitsandbytes', 'DeepSpeed', 'FSDP', 'HuggingFace Accelerate',
+      'timm (PyTorch Image Models)', 'torchmetrics', 'fastai', 'LM Evaluation Harness',
+      'PEFT Library', 'TRL', 'Kornia', 'torchdata', 'Other',
+    ],
+    'Generative AI & LLM Systems': [
+      'LangChain', 'LlamaIndex', 'OpenAI API', 'Anthropic Claude API', 'Hugging Face Hub',
+      'LangGraph', 'AutoGen', 'CrewAI', 'DSPy', 'Semantic Kernel', 'Haystack', 'RAGAS',
+      'LangSmith', 'Guardrails AI', 'Streamlit', 'Gradio', 'Chainlit', 'Agno (PhiData)',
+      'Pinecone', 'Weaviate', 'Chroma', 'Qdrant', 'Milvus', 'GPT-4o', 'Claude 3.5 Sonnet',
+      'Gemini 1.5 Pro', 'Llama 3', 'Mistral Large', 'Cohere API', 'vLLM', 'Other',
+    ],
+    'MLOps & Production AI': [
+      'MLflow', 'Kubeflow', 'Apache Airflow', 'Prefect', 'DVC (Data Version Control)',
+      'BentoML', 'Seldon Core', 'Ray / Ray Serve', 'NVIDIA Triton Inference Server',
+      'AWS SageMaker', 'Google Vertex AI', 'Azure Machine Learning', 'ZenML', 'Evidently AI',
+      'Argo Workflows', 'Feast (Feature Store)', 'Tecton', 'Label Studio', 'Scale AI',
+      'Docker', 'Kubernetes', 'Helm', 'Prometheus / Grafana', 'Optuna', 'W&B Sweeps',
+      'Metaflow', 'CometML', 'Flyte', 'Great Expectations', 'DataRobot', 'Other',
     ],
   };
 
@@ -1687,6 +1797,675 @@ export default function DashboardPage() {
     ],
   };
 
+  // Data & Applied Science specific technical skill focus sections (recruitment-focused skills per layer)
+  const dataScienceTechnicalSkillFocusSections = {
+    'Data Foundations & Engineering': [
+      'SQL & Query Optimization', 'Apache Spark', 'Apache Kafka', 'dbt', 'ETL / ELT Pipelines',
+      'Snowflake', 'Databricks', 'BigQuery', 'Pandas / Polars', 'Data Lakehouse Architecture',
+      'Stream Processing', 'Feature Engineering', 'Data Modeling', 'Apache Airflow',
+      'Delta Lake / Iceberg', 'Change Data Capture (CDC)', 'DuckDB', 'Data Quality & Validation',
+      'Data Governance', 'Synthetic Data Generation', 'Embedding Pipelines', 'Vector Search & Indexing',
+      'Real-time Analytics', 'Data Lineage', 'Apache Flink', 'Data Versioning',
+      'Data Mesh', 'Airbyte / Fivetran', 'Apache Arrow / Parquet', 'DynamoDB / Cassandra', 'Other',
+    ],
+    'Statistics & Classical Machine Learning': [
+      'scikit-learn', 'A/B Testing & Experimentation', 'Hypothesis Testing', 'Feature Engineering',
+      'Model Evaluation (AUC/F1/RMSE)', 'XGBoost / LightGBM', 'Cross-validation & Regularization',
+      'Probability & Bayesian Inference', 'Dimensionality Reduction (PCA/UMAP)', 'Anomaly Detection',
+      'Time Series Forecasting', 'Regression & Classification', 'Gradient Boosting',
+      'Model Interpretability (SHAP/LIME)', 'Uplift Modeling', 'Causal Inference',
+      'Prophet (forecasting)', 'Statistical Power & Sample Size', 'Pandas / NumPy',
+      'Ensemble Methods', 'AutoML', 'Survival Analysis', 'Matplotlib / Seaborn / Plotly',
+      'R (statistical computing)', 'Tableau / Power BI', 'Monte Carlo Simulation',
+      'Bayesian Optimization', 'Data Wrangling & EDA', 'Imbalanced Data Handling', 'Feature Selection', 'Other',
+    ],
+    'ML Engineering & Deep Learning': [
+      'PyTorch', 'Deep Learning Model Development', 'NLP & Transformers', 'Computer Vision',
+      'Transfer Learning & Fine-Tuning', 'Distributed Training (FSDP/DDP)', 'TensorFlow',
+      'Hugging Face Transformers', 'CUDA / cuDNN', 'Model Quantization', 'Knowledge Distillation',
+      'Explainable AI (XAI)', 'Weights & Biases', 'ONNX', 'TensorRT', 'Detectron2 / YOLO',
+      'Whisper (ASR)', 'CLIP / DALL-E', 'DeepSpeed / FSDP', 'Mixed Precision Training',
+      'Object Detection', 'Image Segmentation', 'Speech & Audio ML', 'Multimodal Learning',
+      'JAX / Flax', 'HuggingFace Accelerate', 'timm (Vision Models)', 'Model Bias & Fairness',
+      'Self-supervised Learning', 'Graph Neural Networks (GNN)', 'Other',
+    ],
+    'Generative AI & LLM Systems': [
+      'LLM APIs (GPT/Claude/Gemini)', 'RAG Architecture', 'Prompt Engineering', 'LangChain',
+      'Fine-Tuning (LoRA/QLoRA/RLHF)', 'Vector Databases', 'LlamaIndex', 'Semantic Search',
+      'Embeddings', 'AI Agents & Agentic Workflows', 'LangGraph', 'Instruction Tuning',
+      'DSPy', 'Hugging Face Hub', 'LLM Evaluation (RAGAS)', 'Guardrails AI',
+      'Multi-agent Systems (AutoGen/CrewAI)', 'vLLM', 'LangSmith', 'Function / Tool Calling',
+      'Hybrid Search', 'Knowledge Graphs', 'Pinecone / Weaviate / Chroma', 'OpenAI API',
+      'Anthropic API', 'In-context Learning', 'Chain-of-Thought Reasoning',
+      'Constitutional AI', 'DPO / RLHF', 'LLM Observability', 'Other',
+    ],
+    'MLOps & Production AI': [
+      'MLflow', 'Experiment Tracking', 'Model Registry', 'AWS SageMaker',
+      'Docker & Kubernetes', 'CI/CD for ML', 'Model Monitoring', 'Feature Stores',
+      'NVIDIA Triton Inference Server', 'Vertex AI', 'Azure ML', 'DVC', 'BentoML',
+      'Optuna / HPO', 'Prefect / Airflow', 'ZenML', 'Feast', 'Evidently AI', 'Label Studio',
+      'AutoML', 'Model Versioning', 'Seldon Core', 'Argo Workflows',
+      'Weights & Biases', 'Data Drift Detection', 'Model Serving Architecture',
+      'Ray / Ray Serve', 'End-to-end ML Pipelines', 'Model Governance', 'Responsible AI', 'Other',
+    ],
+  };
+
+  // Data Engineering specific technology sections (abstract concepts per layer)
+  const dataEngineeringTechnologySections = {
+    'Data Ingestion & Integration': [
+      'Batch Ingestion', 'Stream Ingestion', 'Change Data Capture (CDC)', 'API-based Extraction',
+      'Push vs. Pull Data Collection', 'Event-driven Ingestion', 'File-based Ingestion',
+      'Multi-source Data Integration', 'Schema-on-Read vs. Schema-on-Write',
+      'Data Serialization (Avro/Protobuf/JSON)', 'Schema Registry', 'Idempotency & Exactly-once Semantics',
+      'Backpressure Handling', 'Dead Letter Queues', 'Watermarking & Late Data Handling',
+      'Pub/Sub Messaging', 'Message Ordering Guarantees', 'Micro-batch Processing',
+      'Lambda Architecture', 'Kappa Architecture', 'Data Replication Strategies',
+      'REST & Webhook Ingestion', 'Incremental vs. Full Load', 'Log-based CDC',
+      'Query-based CDC', 'Outbox Pattern', 'Event Sourcing', 'Fan-out / Fan-in Patterns',
+      'Data Ingestion SLAs', 'Connector Ecosystem', 'Other',
+    ],
+    'Data Storage & Warehousing': [
+      'Data Lakehouse Architecture', 'Data Warehouse Design', 'Dimensional Modeling (Star/Snowflake Schema)',
+      'Data Vault Modeling', 'Columnar Storage (Parquet/ORC)', 'Table Formats (Delta Lake/Iceberg/Hudi)',
+      'Partitioning & Clustering Strategies', 'OLAP vs. OLTP', 'Slowly Changing Dimensions (SCD)',
+      'Storage-Compute Separation', 'Data Tiering (Hot/Warm/Cold)', 'Compression & Encoding',
+      'Z-Order Indexing & Bloom Filters', 'Materialized Views', 'ACID Transactions in Data Lakes',
+      'Time Travel & Versioned Queries', 'Schema Evolution', 'Metadata Layer Design',
+      'Table Statistics & Query Planning', 'Data Retention & Archival Policies',
+      'Cost Optimization for Storage', 'Federated Query Architecture', 'Cross-region Replication',
+      'Encryption at Rest & in Transit', 'Row-level Security', 'Column-level Security',
+      'Columnar Indexing', 'Query Result Caching', 'Multi-cluster Concurrency',
+      'Lakehouse Concurrency Control', 'Other',
+    ],
+    'Data Processing & Transformation': [
+      'ETL / ELT Pipelines', 'Distributed Batch Processing', 'Stream Processing',
+      'SQL-based Transformation', 'Data Normalization & Denormalization', 'Feature Engineering for Analytics',
+      'Aggregation & Window Functions', 'Broadcast Joins vs. Shuffle Joins',
+      'Data Skew Handling', 'Predicate Pushdown & Partition Pruning', 'Lazy Evaluation',
+      'DAG-based Execution Plans', 'Incremental Processing', 'Change Feed Processing',
+      'Complex Event Processing', 'Sessionization', 'Slowly Changing Dimensions Transformation',
+      'Data Deduplication', 'Fuzzy Matching & Record Linkage', 'Data Enrichment',
+      'Vectorized Execution', 'Adaptive Query Execution', 'Micro-batch vs. Continuous Streaming',
+      'Out-of-order Event Handling', 'Exactly-once Processing Semantics', 'Stateful Stream Processing',
+      'Temporal Joins', 'Upsert / Merge Patterns', 'Columnar Processing', 'Data Denormalization for OLAP', 'Other',
+    ],
+    'Data Orchestration & Pipeline Management': [
+      'Workflow DAG Design', 'Pipeline Scheduling & Dependency Management', 'Backfill & Retry Logic',
+      'Event-triggered Pipelines', 'SLA Monitoring & Alerting', 'Pipeline Observability',
+      'Data Pipeline Testing', 'CI/CD for Data Pipelines', 'Infrastructure as Code (IaC)',
+      'Dynamic DAG Generation', 'Cross-DAG Dependencies', 'Sensor & Trigger Patterns',
+      'Task Parallelism & Concurrency', 'Resource Pooling & Throttling', 'Pipeline Versioning',
+      'Environment Isolation (Dev/Stage/Prod)', 'Secrets Management', 'Idempotent Pipeline Design',
+      'Graceful Failure & Dead Letter Handling', 'Cost Attribution for Pipelines',
+      'Pipeline Lineage Tracking', 'Metadata-driven Pipelines', 'Multi-tenant Pipeline Architectures',
+      'Container-based Task Execution', 'Pipeline Cost Optimization', 'Incremental Pipeline Patterns',
+      'Blue-Green Pipeline Deployment', 'Self-healing Pipelines', 'Pipeline Compliance & Audit Logging',
+      'Data Pipeline Documentation', 'Other',
+    ],
+    'Data Quality, Governance & Observability': [
+      'Data Quality Testing & Validation', 'Data Lineage Tracking', 'Data Catalog Management',
+      'Schema Evolution & Compatibility', 'Data Contracts', 'Data Observability Frameworks',
+      'SLA & Freshness Monitoring', 'Data Access Control & Row/Column Security',
+      'Data Classification & Tagging', 'PII Detection & Masking', 'GDPR / CCPA Compliance',
+      'Data Audit Trails', 'Master Data Management (MDM)', 'Reference Data Management',
+      'Data Stewardship', 'Business Glossary', 'Metric Layer Design',
+      'Semantic Layer / Headless BI', 'Data Mesh Governance Model', 'Federated Data Governance',
+      'Statistical Anomaly Detection', 'Data Profiling & Drift Detection',
+      'Column-level Lineage', 'Table-level Lineage', 'End-to-end Pipeline Lineage',
+      'Data Trust Scores', 'Data Product Ownership', 'Data SLA Agreements',
+      'Data Change Management', 'Incident Response for Data Issues', 'Other',
+    ],
+  };
+
+  // Data Engineering specific framework sections (hands-on tools & frameworks per layer)
+  const dataEngineeringFrameworkSections = {
+    'Data Ingestion & Integration': [
+      'Apache Kafka', 'Kafka Connect', 'Debezium', 'Airbyte', 'Fivetran', 'Stitch',
+      'Apache Flink', 'Apache Beam', 'AWS Kinesis', 'Google Pub/Sub', 'Azure Event Hubs',
+      'Apache NiFi', 'Logstash', 'Fluentd', 'AWS DMS', 'Striim', 'Qlik Replicate',
+      'AWS Glue', 'Azure Data Factory', 'Google Dataflow', 'Meltano', 'Singer',
+      'Streamsets', 'AWS MSK (Managed Kafka)', 'Confluent Platform', 'Redpanda',
+      'Apache Pulsar', 'CDC with PostgreSQL WAL', 'Schema Registry (Confluent)',
+      'HVR', 'Other',
+    ],
+    'Data Storage & Warehousing': [
+      'Snowflake', 'Google BigQuery', 'Amazon Redshift', 'Databricks Lakehouse',
+      'Delta Lake', 'Apache Iceberg', 'Apache Hudi', 'Apache Hive', 'Trino / Presto',
+      'Starburst', 'DuckDB', 'ClickHouse', 'Apache Druid', 'Apache Pinot',
+      'Amazon S3', 'Google Cloud Storage', 'Azure Data Lake Storage', 'AWS Glue Data Catalog',
+      'Polaris Catalog (Apache)', 'Unity Catalog (Databricks)', 'Apache Atlas',
+      'Google BigLake', 'AWS Athena', 'Synapse Analytics', 'MongoDB', 'Cassandra',
+      'Apache HBase', 'Elasticsearch', 'pgvector', 'AlloyDB', 'Other',
+    ],
+    'Data Processing & Transformation': [
+      'Apache Spark', 'dbt (data build tool)', 'Apache Flink', 'Apache Beam',
+      'Pandas', 'Polars', 'DuckDB', 'Apache Arrow', 'Trino / Presto', 'Databricks',
+      'AWS Glue (Spark)', 'Google Dataflow', 'Dask', 'Ray Data', 'PySpark',
+      'Spark Structured Streaming', 'Kafka Streams', 'ksqlDB', 'Bytewax',
+      'Materialize', 'Rockset', 'dbt Core', 'dbt Cloud', 'SQLMesh', 'Coalesce',
+      'Ibis Framework', 'Azure HDInsight', 'Apache Storm', 'Koalas', 'Weld', 'Other',
+    ],
+    'Data Orchestration & Pipeline Management': [
+      'Apache Airflow', 'Prefect', 'Dagster', 'Metaflow', 'Flyte', 'Argo Workflows',
+      'Luigi', 'Mage AI', 'Kestra', 'dbt Cloud', 'AWS Step Functions', 'Google Cloud Composer',
+      'Azure Data Factory Pipelines', 'Astronomer (Airflow)', 'Temporal', 'Cadence',
+      'Terraform', 'Pulumi', 'AWS CDK', 'Docker', 'Kubernetes', 'Helm',
+      'GitHub Actions', 'Jenkins', 'CircleCI', 'AWS CodePipeline', 'dbt Mesh',
+      'Grafana', 'Prometheus', 'OpenTelemetry', 'Other',
+    ],
+    'Data Quality, Governance & Observability': [
+      'Great Expectations', 'Soda Core', 'Monte Carlo', 'Acceldata', 'Atlan',
+      'Apache Atlas', 'DataHub', 'Alation', 'Collibra', 'Informatica MDM',
+      'dbt Tests', 'dbt Expectations', 'Anomalo', 'Bigeye', 'Metaplane',
+      'Unity Catalog (Databricks)', 'AWS Glue Data Catalog', 'Google Data Catalog',
+      'OpenMetadata', 'Marquez', 'Amundsen', 'Apache Ranger', 'Apache Knox',
+      'Immuta', 'Privacera', 'AWS Lake Formation', 'Soda Cloud',
+      'Elementary Data', 're_data', 'Protecto', 'Other',
+    ],
+  };
+
+  // Data Engineering specific technical skill focus sections (recruitment-focused skills per layer)
+  const dataEngineeringTechnicalSkillFocusSections = {
+    'Data Ingestion & Integration': [
+      'Apache Kafka', 'Kafka Connect', 'Debezium', 'Airbyte', 'Fivetran',
+      'Change Data Capture (CDC)', 'Batch & Streaming Ingestion', 'API-based Data Extraction',
+      'AWS Kinesis', 'Apache Flink (Ingestion)', 'Event-driven Ingestion Design', 'Schema Registry (Confluent)',
+      'Exactly-once Semantics', 'Incremental vs. Full Load', 'Multi-source Integration',
+      'Outbox Pattern', 'Lambda & Kappa Architecture', 'Dead Letter Queue Handling',
+      'Google Pub/Sub', 'Azure Event Hubs', 'Apache NiFi', 'Watermarking & Late Data',
+      'Log-based CDC (PostgreSQL WAL)', 'Redpanda', 'Idempotent Ingestion Design',
+      'REST & Webhook Connectors', 'Confluent Platform', 'Micro-batch Ingestion',
+      'Real-time Data Pipelines', 'Ingestion SLA Management', 'Other',
+    ],
+    'Data Storage & Warehousing': [
+      'Snowflake', 'Google BigQuery', 'Amazon Redshift', 'Delta Lake', 'Apache Iceberg',
+      'Apache Hudi', 'Databricks Lakehouse', 'Data Lakehouse Architecture',
+      'Dimensional Modeling (Star/Snowflake)', 'Data Vault Modeling',
+      'Partitioning & Clustering Strategies', 'Trino / Presto', 'DuckDB',
+      'ClickHouse', 'ACID Transactions in Data Lakes', 'Time Travel Queries',
+      'Columnar Storage (Parquet/ORC)', 'OLAP Query Optimization', 'Storage-Compute Separation',
+      'Schema Evolution & Compatibility', 'Z-Order Indexing', 'Slowly Changing Dimensions (SCD)',
+      'Unity Catalog', 'Starburst', 'Apache Hive', 'AWS Athena',
+      'Row-level & Column-level Security', 'Storage Cost Optimization',
+      'Materialized Views', 'Table Statistics & Query Planning', 'Other',
+    ],
+    'Data Processing & Transformation': [
+      'Apache Spark', 'dbt (data build tool)', 'Apache Flink', 'PySpark',
+      'SQL-based Transformation', 'Spark Structured Streaming', 'dbt Core & dbt Cloud',
+      'Polars', 'DuckDB', 'Apache Arrow', 'Data Deduplication', 'Incremental Processing',
+      'Window Functions & Aggregations', 'Stateful Stream Processing', 'ksqlDB',
+      'Shuffle Join Optimization', 'Data Skew Handling', 'Predicate Pushdown',
+      'ELT vs. ETL Architecture', 'Batch & Micro-batch Processing', 'Kafka Streams',
+      'Sessionization & Complex Events', 'Exactly-once Stream Processing', 'Temporal Joins',
+      'Slowly Changing Dimensions Transformation', 'Upsert / Merge Patterns',
+      'AWS Glue (Spark)', 'Ray Data', 'SQLMesh', 'Ibis Framework', 'Other',
+    ],
+    'Data Orchestration & Pipeline Management': [
+      'Apache Airflow', 'Prefect', 'Dagster', 'DAG Design & Dependency Management',
+      'Pipeline Scheduling & Backfill', 'CI/CD for Data Pipelines',
+      'Infrastructure as Code (Terraform)', 'Docker + Kubernetes for Data', 'Mage AI',
+      'Metaflow', 'Flyte', 'Argo Workflows', 'AWS Step Functions',
+      'Event-triggered Pipelines', 'SLA Monitoring & Alerting', 'Pipeline Observability',
+      'Astronomer (Airflow)', 'Sensor & Trigger Patterns', 'Dynamic DAG Generation',
+      'Idempotent Pipeline Design', 'Pipeline Versioning & Blue-Green Deployment',
+      'Secrets Management', 'Multi-tenant Pipeline Architecture', 'dbt Mesh',
+      'Resource Pooling & Throttling', 'Task Parallelism', 'GitHub Actions for Pipelines',
+      'Cross-DAG Dependencies', 'Pipeline Cost Attribution', 'Self-healing Pipelines', 'Other',
+    ],
+    'Data Quality, Governance & Observability': [
+      'Great Expectations', 'dbt Tests & dbt Expectations', 'Soda Core', 'Monte Carlo',
+      'Data Lineage Tracking', 'Data Catalog (DataHub / Atlan / Alation)', 'Data Contracts',
+      'Schema Evolution & Schema Registry', 'PII Detection & Data Masking',
+      'GDPR / CCPA Compliance', 'Data Observability Frameworks', 'Freshness & SLA Monitoring',
+      'Column-level & Table-level Lineage', 'Data Profiling & Drift Detection',
+      'AWS Lake Formation', 'Apache Ranger', 'Unity Catalog (Databricks)',
+      'OpenMetadata', 'Anomalo', 'Bigeye', 'Statistical Anomaly Detection',
+      'Data Stewardship & Ownership', 'Business Glossary & Semantic Layer',
+      'Data Mesh Governance', 'Audit Logging & Access Control', 'Master Data Management (MDM)',
+      'Elementary Data', 'Informatica MDM', 'Metric Layer Design', 'Data Trust Scores', 'Other',
+    ],
+  };
+
+  // Cybersecurity specific technology sections (abstract concepts per layer)
+  const cybersecurityTechnologySections = {
+    'Application Security (AppSec)': [
+      'OWASP Top 10', 'Secure SDLC', 'SAST (Static Application Security Testing)',
+      'DAST (Dynamic Application Security Testing)', 'SCA (Software Composition Analysis)',
+      'API Security', 'OAuth 2.0 / OIDC Security', 'JWT Attack Vectors',
+      'Container Security', 'Supply Chain Security', 'Secrets Management',
+      'Secure Code Review', 'Threat Modeling (STRIDE)', 'HTTP Security Headers',
+      'CORS & CSP Policies', 'SQL Injection / XSS / CSRF', 'SSRF & XXE',
+      'Deserialization Attacks', 'Race Conditions & Logic Flaws', 'Mass Assignment & IDOR',
+      'GraphQL Security', 'SBOM (Software Bill of Materials)', 'mTLS Implementation',
+      'DevSecOps Pipeline Integration', 'ASVS (App Security Verification Standard)',
+      'Authentication & Authorization Flaws', 'Session Management',
+      'Input Validation & Output Encoding', 'Cryptographic Failures',
+      'Insecure Direct Object References', 'Other',
+    ],
+    'Network & Infrastructure Security': [
+      'Zero Trust Architecture', 'Network Segmentation & Microsegmentation',
+      'Firewall Design & ACLs', 'IDS/IPS', 'VPN & SD-WAN Security',
+      'DNS Security (DNSSEC/DoH)', 'BGP Security', 'DDoS Mitigation',
+      'SSL/TLS Inspection', 'Network Traffic Analysis', 'Packet Inspection & Filtering',
+      'NAC (Network Access Control)', '802.1X Authentication',
+      'ARP Poisoning & MITM Defense', 'Wireless Security (WPA3)',
+      'Network Flow Analysis', 'East-West Traffic Inspection', 'IPv6 Security',
+      'Proxy & Reverse Proxy Security', 'WAF Configuration', 'Load Balancer Security',
+      'Network Forensics', 'Lateral Movement Detection', 'Honeypot / Deception Networks',
+      'NetFlow & Traffic Baselining', 'BGP Flowspec for DDoS', 'MPLS Security',
+      'Out-of-band Management Security', 'Software-Defined Perimeter (SDP)',
+      'Network Microsegmentation Policies', 'Other',
+    ],
+    'Cloud & Identity Security': [
+      'IAM & Least Privilege', 'Cloud Security Posture Management (CSPM)',
+      'Cloud Workload Protection (CWPP)', 'CIEM (Cloud Infrastructure Entitlement Management)',
+      'SIEM / SOAR', 'Endpoint Detection & Response (EDR)', 'XDR (Extended Detection & Response)',
+      'Privileged Access Management (PAM)', 'Identity Federation & SSO',
+      'MFA & Passwordless Authentication', 'Data Loss Prevention (DLP)',
+      'CASB (Cloud Access Security Broker)', 'Kubernetes RBAC & Pod Security',
+      'Container Runtime Security', 'Infrastructure as Code Security',
+      'Cloud Misconfiguration Detection', 'Attack Surface Management (ASM)',
+      'SSPM (SaaS Security Posture)', 'Identity Threat Detection & Response (ITDR)',
+      'Conditional Access Policies', 'Service Account Hardening', 'Secrets Rotation',
+      'CIS Benchmark Hardening', 'Zero Trust Network Access (ZTNA)',
+      'CISA Zero Trust Maturity Model', 'Compliance Frameworks (SOC 2/ISO 27001/PCI DSS)',
+      'Cloud Native Security', 'Shared Responsibility Model',
+      'Data Sovereignty & Residency', 'Security Data Lakehouse', 'Other',
+    ],
+    'Threat Intelligence & Incident Response': [
+      'Threat Intelligence Lifecycle', 'MITRE ATT&CK Framework',
+      'Diamond Model of Intrusion Analysis', 'Cyber Kill Chain', 'OSINT Techniques',
+      'Indicator of Compromise (IoC)', 'Threat Hunting Methodologies',
+      'Malware Analysis & Triage', 'Memory Forensics', 'Disk Forensics',
+      'Network Forensics (DFIR)', 'Log Correlation & Analysis', 'SIEM Alert Triage',
+      'IR Playbook Development', 'Chain of Custody', 'APT Detection Techniques',
+      'Sigma Rules', 'Yara Rules', 'Threat Actor Profiling', 'SOC Operations (Tier 1/2/3)',
+      'Incident Post-mortem', 'Threat Feed Integration', 'Cyber Threat Intelligence (CTI)',
+      'Sandboxing & Dynamic Analysis', 'Reverse Engineering (Static Analysis)',
+      'Behavioral Analysis', 'Deception Technology (Honeypots)',
+      'Breach & Attack Simulation', 'Purple Team Methodology',
+      'DFIR Reporting & Documentation', 'Other',
+    ],
+    'Red Team & Offensive Security': [
+      'Penetration Testing Methodology', 'Active Directory Attack Techniques',
+      'Exploit Development', 'Social Engineering & Phishing', 'Privilege Escalation (Linux/Windows)',
+      'Credential Dumping & Lateral Movement', 'Living off the Land (LOLBins)',
+      'DLL Hijacking & Process Injection', 'Kerberoasting & AS-REP Roasting',
+      'Pass-the-Hash / Pass-the-Ticket', 'LSASS Dumping', 'Red Team Operations Planning',
+      'Physical Security Assessment', 'OPSEC for Red Teams',
+      'Custom Implant & C2 Development', 'AV/EDR Evasion Techniques',
+      'CVE Research & PoC Development', 'Bug Bounty Methodology',
+      'Web Application Penetration Testing', 'API Penetration Testing',
+      'Mobile Application Penetration Testing', 'Cloud Penetration Testing',
+      'Wireless Penetration Testing', 'Adversary Simulation',
+      'Purple Team Exercises', 'CTF (Capture the Flag) Techniques',
+      'Post-exploitation Techniques', 'Command & Control (C2) Architecture',
+      'Vulnerability Research', 'Social Engineering Framework', 'Other',
+    ],
+  };
+
+  // Cybersecurity specific framework sections (hands-on tools & frameworks per layer)
+  const cybersecurityFrameworkSections = {
+    'Application Security (AppSec)': [
+      'Burp Suite', 'OWASP ZAP', 'Semgrep', 'SonarQube', 'Snyk', 'Checkmarx',
+      'Veracode', 'Trivy', 'Grype', 'Syft (SBOM)', 'CycloneDX', 'GitLeaks',
+      'TruffleHog', 'HashiCorp Vault', 'OWASP Dependency-Check', 'GitHub Advanced Security',
+      'AWS Inspector', 'Wiz (Code Security)', 'Prisma Cloud (Code)', 'OWASP Dependency-Track',
+      'detect-secrets', 'Bearer', 'Aikido Security', 'Socket.dev', 'Nuclei (AppSec Templates)',
+      'ffuf / gobuster', 'sqlmap', 'GitLab SAST / DAST', 'Contrast Security', 'Stackhawk', 'Other',
+    ],
+    'Network & Infrastructure Security': [
+      'Wireshark', 'Zeek (Bro)', 'Suricata', 'Snort', 'Nmap', 'Masscan',
+      'pfSense', 'OPNSense', 'Palo Alto NGFW', 'Fortinet FortiGate', 'Cisco Firepower',
+      'Scapy', 'tcpdump', 'NetworkMiner', 'Bettercap', 'ntopng',
+      'Arkime (Moloch)', 'Corelight', 'Darktrace', 'ExtraHop Reveal(x)',
+      'PacketFence (NAC)', 'FreeRADIUS', 'F5 Advanced WAF', 'AWS Network Firewall',
+      'Cisco Stealthwatch', 'SolarWinds NTA', 'Elastic Agent (Network)',
+      'Zeek Intelligence Framework', 'Tshark', 'Hping3', 'Other',
+    ],
+    'Cloud & Identity Security': [
+      'AWS Security Hub', 'AWS GuardDuty', 'AWS CloudTrail', 'AWS IAM Access Analyzer',
+      'Wiz', 'Orca Security', 'Prisma Cloud', 'Microsoft Defender for Cloud',
+      'Microsoft Sentinel', 'Google Chronicle', 'CrowdStrike Falcon', 'SentinelOne',
+      'Microsoft Defender XDR', 'Okta', 'Azure AD / Entra ID', 'CyberArk',
+      'BeyondTrust', 'Delinea (Thycotic)', 'Splunk SIEM', 'Elastic SIEM (ELK)',
+      'IBM QRadar', 'Lacework', 'Aqua Security', 'Sysdig', 'Falco (Runtime Security)',
+      'Tenable.io', 'Qualys VMDR', 'Rapid7 InsightVM', 'Veza (CIEM)', 'Cymulate', 'Other',
+    ],
+    'Threat Intelligence & Incident Response': [
+      'Splunk SIEM', 'Elastic SIEM (ELK)', 'IBM QRadar', 'Microsoft Sentinel',
+      'MISP', 'OpenCTI', 'TheHive', 'Cortex XSOAR', 'Velociraptor',
+      'Autopsy', 'Volatility Framework', 'Redline (FireEye/Mandiant)', 'FTK (Forensic Toolkit)',
+      'Recorded Future', 'Mandiant Advantage', 'VirusTotal', 'Any.run (Sandbox)',
+      'Cuckoo Sandbox', 'REMnux', 'FlareVM', 'Tanium', 'Carbon Black (VMware)',
+      'Exabeam', 'LogRhythm', 'Securonix', 'Palo Alto Cortex XDR',
+      'Anomali ThreatStream', 'ThreatConnect', 'Yara (rule engine)', 'Sigma (rule format)', 'Other',
+    ],
+    'Red Team & Offensive Security': [
+      'Metasploit Framework', 'Cobalt Strike', 'Sliver C2', 'Havoc C2',
+      'BloodHound / SharpHound', 'Mimikatz', 'Impacket', 'CrackMapExec',
+      'Responder', 'Nessus', 'OpenVAS', 'Nuclei', 'Burp Suite Pro',
+      'ffuf', 'gobuster', 'sqlmap', 'GoPhish', 'Evilginx2 (Phishing)',
+      'Rubeus (Kerberos)', 'PowerView / PowerSploit', 'WinPEAS / LinPEAS',
+      'Ligolo-ng (Tunneling)', 'Chisel', 'LaZagne', 'Empire Framework',
+      'Brute Ratel C4', 'GHIDRA (Reverse Engineering)', 'Binary Ninja / IDA Pro',
+      'PsExec / SMBExec', 'Covenant C2', 'Other',
+    ],
+  };
+
+  // Cybersecurity specific technical skill focus sections (recruitment-focused skills per layer)
+  const cybersecurityTechnicalSkillFocusSections = {
+    'Application Security (AppSec)': [
+      'Burp Suite', 'OWASP Top 10', 'SAST (Semgrep / Checkmarx)', 'DAST (OWASP ZAP)',
+      'SCA (Snyk / Dependency-Check)', 'API Security Testing', 'OAuth 2.0 / OIDC Flows',
+      'JWT Attacks & Defenses', 'Container Image Scanning (Trivy)', 'Secrets Detection (GitLeaks)',
+      'Secure Code Review', 'SBOM Generation (CycloneDX)', 'DevSecOps Pipeline Integration',
+      'HTTP Security Headers', 'CORS Misconfiguration', 'SQL Injection / XSS / CSRF',
+      'SSRF & XXE Exploitation', 'Deserialization Attacks', 'Race Conditions & Logic Flaws',
+      'Mass Assignment & IDOR Vulnerabilities', 'GraphQL Security Testing',
+      'Supply Chain Attack Vectors', 'HashiCorp Vault Integration', 'mTLS Implementation',
+      'Security in CI/CD Pipelines', 'Threat Modeling (STRIDE)', 'ASVS Compliance',
+      'Dependency Confusion Attacks', 'WebSocket Security', 'GitHub Advanced Security', 'Other',
+    ],
+    'Network & Infrastructure Security': [
+      'Nmap & Port Scanning', 'Wireshark & Traffic Analysis', 'Suricata / Snort (IDS/IPS)',
+      'Zeek (Network Monitoring)', 'Zero Trust Architecture', 'Network Segmentation & VLANs',
+      'Firewall Rules & ACL Design', 'VPN Architecture & Configuration',
+      'DNS Security (DNSSEC / DoH)', 'DDoS Mitigation Strategies', 'SSL/TLS Inspection',
+      'Palo Alto NGFW Configuration', 'pfSense / OPNSense', 'Network Flow Analysis (NetFlow/sFlow)',
+      'Packet Crafting (Scapy)', 'ARP Poisoning & MITM Attacks', '802.1X & NAC',
+      'WPA3 & Wireless Security', 'BGP Security & Route Hijacking', 'SD-WAN Security',
+      'IPv6 Security Considerations', 'Load Balancer & WAF Configuration',
+      'Network Forensics', 'Lateral Movement Detection', 'East-West Traffic Inspection',
+      'Microsegmentation (VMware NSX)', 'Bettercap & MITM Frameworks',
+      'Corelight / Arkime (Full Packet Capture)', 'Darktrace / ExtraHop (NDR)',
+      'AWS Network Firewall', 'Other',
+    ],
+    'Cloud & Identity Security': [
+      'AWS IAM Policies & Roles', 'AWS Security Hub', 'AWS GuardDuty',
+      'AWS CloudTrail Analysis', 'Wiz (Cloud Security)', 'Prisma Cloud / CSPM',
+      'Microsoft Sentinel / Defender for Cloud', 'Google Chronicle',
+      'CrowdStrike Falcon', 'SentinelOne EDR', 'Microsoft Defender XDR',
+      'Okta / Azure AD (Entra ID)', 'CyberArk / BeyondTrust (PAM)',
+      'CIEM (Veza / Sailpoint)', 'Kubernetes Security (RBAC / Falco)',
+      'Terraform Security Scanning', 'Cloud Security Benchmarks (CIS)',
+      'CISA Zero Trust Maturity Model', 'Data Loss Prevention (DLP)',
+      'CASB (Cloud Access Security Broker)', 'SSPM (SaaS Security Posture)',
+      'Attack Surface Management (ASM)', 'Container Runtime Security (Aqua / Sysdig)',
+      'Secrets Rotation & Management', 'Identity Threat Detection & Response (ITDR)',
+      'SSO & SAML Federation', 'MFA Bypass Techniques & Defenses',
+      'Service Account Hardening', 'Cloud Misconfiguration Remediation',
+      'Compliance Frameworks (SOC 2 / ISO 27001 / PCI DSS)', 'Other',
+    ],
+    'Threat Intelligence & Incident Response': [
+      'MITRE ATT&CK Framework', 'MISP (Threat Intelligence Platform)', 'OpenCTI',
+      'Splunk SIEM', 'Elastic SIEM (ELK Stack)', 'IBM QRadar',
+      'TheHive (IR Platform)', 'Cortex XSOAR (SOAR)', 'Velociraptor (DFIR)',
+      'Autopsy (Digital Forensics)', 'Volatility (Memory Forensics)',
+      'Threat Hunting Methodologies', 'Indicator of Compromise (IoC) Analysis',
+      'OSINT Techniques', 'Malware Triage & Sandbox Analysis (Any.run / Cuckoo)',
+      'Yara Rules', 'Sigma Rules', 'IR Playbook Development',
+      'Log Analysis & Correlation', 'Alert Triage & Escalation',
+      'Chain of Custody & Evidence Handling', 'Threat Intelligence Feeds Integration',
+      'Diamond Model & Kill Chain Analysis', 'Threat Actor Profiling',
+      'APT Detection Techniques', 'Deception Technology (Honeypots)',
+      'SOC Operations & Tier 1/2/3 Workflows', 'Incident Post-mortem & Lessons Learned',
+      'Threat Intelligence Lifecycle Management', 'DFIR Reporting', 'Other',
+    ],
+    'Red Team & Offensive Security': [
+      'Metasploit Framework', 'BloodHound & Active Directory Attacks',
+      'Mimikatz & Credential Dumping', 'Cobalt Strike / Sliver C2',
+      'Impacket (AD Exploitation)', 'CrackMapExec', 'Responder (LLMNR Poisoning)',
+      'Nessus / OpenVAS (Vulnerability Scanning)', 'Nuclei (Template-based Scanning)',
+      'Burp Suite Pro', 'ffuf / gobuster (Web Fuzzing)', 'sqlmap',
+      'Privilege Escalation (WinPEAS / LinPEAS)', 'Active Directory Enumeration',
+      'Kerberoasting & AS-REP Roasting', 'Pass-the-Hash / Pass-the-Ticket',
+      'LSASS Dumping Techniques', 'Living off the Land Binaries (LOLBins)',
+      'DLL Hijacking & Process Injection', 'Phishing Campaign Development (GoPhish)',
+      'Evilginx2 (AiTM Phishing)', 'Red Team Operations Planning',
+      'Physical Security Assessment', 'OPSEC for Red Teams',
+      'AV/EDR Evasion Techniques', 'CVE Research & Exploit Development',
+      'Bug Bounty Platform Methodology', 'Purple Team Exercises',
+      'GHIDRA / Binary Ninja (Reverse Engineering)', 'Rubeus (Kerberos Attacks)', 'Other',
+    ],
+  };
+
+  // UI/UX & Product Design specific technology sections (concepts & methodologies per layer)
+  const uiUxTechnologySections = {
+    'UX Research & Strategy': [
+      'Qualitative Research', 'Quantitative Research', 'Usability Testing', 'Moderated Testing',
+      'Unmoderated Testing', 'Think-aloud Protocol', 'Heuristic Evaluation', 'Cognitive Walkthrough',
+      'Information Architecture (IA)', 'Mental Model Mapping', 'Card Sorting (Open/Closed/Hybrid)',
+      'Tree Testing', 'First-click Testing', 'Diary Studies', 'Experience Sampling Method (ESM)',
+      'Jobs-to-be-done (JTBD) Framework', 'User Persona Development', 'Empathy Mapping',
+      'Affinity Diagramming', 'Stakeholder Mapping', 'Research Triangulation', 'Desirability Studies',
+      'Longitudinal Studies', 'Five-second Tests', 'Participatory Design', 'A/B Concept Testing',
+      'Competitive Analysis', 'Ethnographic Research', 'Contextual Inquiry',
+      'Survey Methodology & Sampling Theory', 'Other',
+    ],
+    'Visual Design & Brand': [
+      'Visual Hierarchy', 'Grid Systems (8pt Grid)', 'Typography (Type Pairing, Type Scale)',
+      'Color Theory (HSL, Color Harmony, Contrast Ratios)', 'Gestalt Principles', 'Brand Identity Systems',
+      'Icon Design & Icon Grids', 'Illustration Style Guides', 'Motion Principles (Easing, Duration)',
+      'Dark Mode Design', 'Responsive Design (Fluid vs. Adaptive)', 'Accessibility Contrast (WCAG AA/AAA)',
+      'Visual Affordances & Signifiers', 'Art Direction', 'Data Visualization Design',
+      'Color Token Systems (Primitive, Semantic, Component)', 'Brand Voice & Visual Tone Mapping',
+      'Variable Font Implementation', 'Spatial Design (3D UI, Depth Layering)',
+      'Bento Grid Layouts', 'Pattern Libraries', 'Style Guide Creation', 'Image Composition',
+      'Logo Construction & Usage Rules', 'Generative Brand Design with AI', 'Bitmap vs. Vector Asset Management',
+      'Skeuomorphic vs. Flat Design', 'Print & Digital Brand Alignment', 'Glassmorphism / Neumorphism',
+      'Negative Space & Breathing Room', 'Other',
+    ],
+    'Interaction Design & Prototyping': [
+      'Interaction Design Principles', 'Microinteractions', 'Motion Design (UI Animation)',
+      'State Design (Idle, Hover, Active, Disabled, Loading, Error)', 'Gesture Design (Swipe, Pinch, Tap)',
+      'Easing Curves (Ease-in, Ease-out, Spring Physics)', 'Scrollytelling & Scroll-triggered Animation',
+      'Skeleton Screens & Loading States', 'Progressive Disclosure', 'Error States & Empty States Design',
+      'Modal vs. Inline Feedback Patterns', 'Navigation Patterns (Bottom Nav, Drawer, Breadcrumbs)',
+      'Form Design & Validation Patterns', 'Onboarding Flow Design', 'Responsive Interaction Patterns',
+      'Voice UI Interaction Design', 'Conversational UI (Chatbot, LLM Interface)',
+      'Accessibility Interaction Patterns (Keyboard Nav, Focus States)', '60fps Animation Targets',
+      'User Flow Diagramming', 'Task Flow vs. Wireflow', 'High-fidelity vs. Low-fidelity Prototyping',
+      'Click-through vs. Coded Prototype Trade-offs', 'Variable-driven Interactive Prototypes',
+      'Cross-platform Interaction Consistency (iOS vs. Android vs. Web)', 'Haptic Feedback Design',
+      'Spatial UI Interaction (AR/VR/XR)', 'Smart Animation in Figma', 'AI-generated UI Flows',
+      'Prototype Fidelity Spectrum', 'Other',
+    ],
+    'Design Systems & Frontend Implementation': [
+      'Design Tokens (Primitive, Semantic, Component-level)', 'Component-driven Development',
+      'Atomic Design Methodology', 'Theming & Multi-brand Token Architecture',
+      'CSS Custom Properties (CSS Variables)', 'CSS-in-JS (Styled Components, Emotion)',
+      'Utility-first CSS (Tailwind CSS)', 'CSS Modules', 'Responsive Design (Container Queries)',
+      'ARIA Roles & Attributes', 'WCAG 2.2 / 3.0 Accessibility Standards', 'Semantic HTML',
+      'Dark Mode / Light Mode Theming via Tokens', 'Token-to-code Pipeline (Figma → Style Dictionary)',
+      'Component API Design (Props, Slots, Composition)', 'Versioning & Changelog Management',
+      'Governance Models for Design Systems', 'Living Documentation', 'Cross-platform Design Systems',
+      'Headless UI Components (Radix UI)', 'Composable Component Architecture',
+      'CSS Container Queries', 'CSS :has() Selector', 'Performance Budgeting for UI',
+      'Visual Regression Testing', 'Component Playground & Sandboxing', 'Figma Dev Mode Workflows',
+      'Design System Adoption Metrics', 'Style Dictionary Transformation Pipelines',
+      'Server Components & SSR Considerations for UI', 'Other',
+    ],
+    'Product Analytics & Growth Design': [
+      'Funnel Analysis', 'Cohort Analysis', 'Retention Analysis', 'A/B Testing',
+      'Multivariate Testing (MVT)', 'Statistical Significance & Confidence Intervals',
+      'North Star Metric (NSM) Framework', 'HEART Framework (Google)',
+      'AARRR Pirate Metrics', 'Conversion Rate Optimization (CRO)', 'Click-through Rate (CTR) Analysis',
+      'Session Replay & Behavioral Analytics', 'Heatmap Analysis (Click, Scroll, Move)',
+      'User Segmentation & Behavioral Clustering', 'Feature Flag Management',
+      'Power Analysis & Sample Size Calculation', 'Holdout Groups / Counterfactual Testing',
+      'Event Tracking Schema Design (Instrumentation)', 'Product-led Growth (PLG) Metrics',
+      'Customer Lifetime Value (LTV) Modeling', 'Churn Prediction', 'NPS & CSAT',
+      'User Journey Analytics (Path Analysis)', 'Feature Adoption Tracking',
+      'Attribution Modeling', 'Onboarding Activation Metrics', 'Sequential Testing',
+      'Privacy-first Analytics (Cookieless, First-party Data)', 'Data Instrumentation & Taxonomy',
+      'Engagement Scoring & Session Depth', 'Other',
+    ],
+  };
+
+  // UI/UX & Product Design specific framework sections (hands-on tools per layer)
+  const uiUxFrameworkSections = {
+    'UX Research & Strategy': [
+      'Dovetail (AI-powered Research Repository)', 'UserTesting (Moderated/Unmoderated)',
+      'Maze (Rapid Unmoderated Testing)', 'Optimal Workshop (Card Sorting, Tree Testing)',
+      'UserZoom / UserZoom GO', 'Lyssna (formerly UsabilityHub)', 'Lookback.io (Moderated Remote)',
+      'Respondent.io (Participant Recruitment)', 'Qualtrics (Survey Platform)', 'SurveyMonkey',
+      'Typeform', 'Miro (Affinity Mapping, Journey Mapping)', 'FigJam (Collaborative Whiteboarding)',
+      'Mural', 'Hotjar (Behavioral Data)', 'FullStory (Session Replay)', 'Dscout (Diary Studies)',
+      'Notably AI (AI-assisted Analysis)', 'Condens (Research Repository)', 'Grain (Video Highlights)',
+      'Otter.ai (AI Transcription)', 'Reveall (Insight Management)', 'Sprig (In-product Surveys)',
+      'Pendo (In-app Feedback & NPS)', 'Aurelius (Research Synthesis)', 'Askable (Participant Recruitment)',
+      'EnjoyHQ / UserTesting Repo', 'NVivo (Qualitative Coding)', 'SPSS / R (Statistical Analysis)',
+      'Google Sheets (Quantitative Data Analysis)', 'Other',
+    ],
+    'Visual Design & Brand': [
+      'Figma (Primary Design Tool)', 'Adobe Illustrator (Vector & Brand Assets)', 'Adobe Photoshop',
+      'Adobe InDesign (Print & Layout)', 'Adobe Firefly (Generative AI)', 'Midjourney (AI Image Generation)',
+      'Sketch', 'Affinity Designer', 'Canva Pro', 'Spline (3D Design for UI)', 'Blender (3D Rendering)',
+      'After Effects (Motion Graphics)', 'Lottie / LottieFiles', 'Rive (Real-time Interactive Animation)',
+      'Tokens Studio for Figma (Design Token Management)', 'Zeroheight (Design Documentation)',
+      'Frontify (Brand Management Platform)', 'Brandfolder (Digital Asset Management)',
+      'Bynder (DAM for Enterprise)', 'Stark (Figma Accessibility Plugin)', 'Contrast (A11y Color Checker)',
+      'Coolors (Color Palette Generation)', 'Huemint (AI-powered Color Palette)',
+      'Abstract (Version Control for Design)', 'Notion (Brand Documentation)',
+      'Google Fonts', 'Fontlab / Glyphs (Custom Typography)', 'ColorSlurp / Pastel',
+      'Loupe (Color Token Visualization)', 'Supernova (Design System Docs)', 'Other',
+    ],
+    'Interaction Design & Prototyping': [
+      'Figma (Smart Animate, Interactive Components)', 'ProtoPie (Advanced Interaction Logic)',
+      'Framer (Code-powered Design & Prototyping)', 'Principle (Mac-native Animation)',
+      'Origami Studio (Meta\'s Interaction Tool)', 'Adobe XD', 'Rive (Real-time Interactive Animation)',
+      'Lottie / LottieFiles', 'After Effects (Motion Graphics)', 'Jitter.video (Collaborative Motion)',
+      'InVision (Legacy Enterprise)', 'Marvel App', 'Axure RP (Logic-heavy Prototypes)',
+      'Balsamiq (Low-fidelity Wireframing)', 'Whimsical (Flowcharts & Wireframes)',
+      'Overflow (User Flow Diagramming)', 'Miro (Flow Mapping)', 'Webflow (No-code Interaction-rich)',
+      'Framer Motion (React Animation)', 'GSAP (GreenSock Animation Platform)',
+      'CSS Animations & Transitions', 'React Spring (Physics-based Animation)',
+      'Spline (3D Interactions for Web)', 'Zeplin (Design-to-dev Handoff)',
+      'Figma Dev Mode (Handoff)', 'Zeroheight (Interaction Pattern Docs)',
+      'Notion (Interaction Specs)', 'Cursor / Copilot (Vibe Coding for Prototyping)',
+      'Rive Runtime SDK', 'Haiku Animator', 'Other',
+    ],
+    'Design Systems & Frontend Implementation': [
+      'Figma (Source of Design Truth, Variables)', 'Tokens Studio for Figma',
+      'Style Dictionary (Token Transformation)', 'Storybook (Component Docs & Dev Environment)',
+      'Chromatic (Visual Regression Testing)', 'React (Component Libraries)',
+      'TypeScript (Type-safe Component APIs)', 'Tailwind CSS', 'Radix UI (Headless Accessible Primitives)',
+      'shadcn/ui (Radix + Tailwind Component System)', 'Material UI (MUI)', 'Ant Design',
+      'Chakra UI', 'Styled Components', 'Emotion (CSS-in-JS)', 'Vanilla Extract (Type-safe CSS-in-JS)',
+      'CSS Modules', 'Zeroheight (Design System Docs)', 'Supernova (DS Docs + Automation)',
+      'Specify (Token Sync Figma to Code)', 'Turborepo / Nx (Monorepo Tooling)',
+      'Rollup / Vite (Component Library Bundling)', 'npm / pnpm (Package Publishing)',
+      'Playwright / Cypress (Component Testing)', 'Jest + Testing Library', 'Axe (A11y Testing)',
+      'Figma Dev Mode', 'Lerna (Monorepo Versioning)', 'GitHub (Version Control)',
+      'Theo (Token Transformation)', 'Other',
+    ],
+    'Product Analytics & Growth Design': [
+      'Amplitude (Event-based Product Analytics)', 'Mixpanel (User-level Analytics, Funnels, Cohorts)',
+      'Heap (Auto-capture Analytics)', 'Pendo (In-app Analytics + NPS)', 'FullStory (Session Replay)',
+      'Hotjar (Heatmaps, Session Recordings)', 'LogRocket (Session Replay + Bug Tracking)',
+      'Sprig (In-product Survey + Analytics)', 'Optimizely (A/B Testing Platform)',
+      'LaunchDarkly (Feature Flags)', 'Google Analytics 4 (GA4)', 'VWO (Visual Website Optimizer)',
+      'Statsig (Experimentation Platform)', 'Eppo (Bayesian Experimentation)',
+      'Looker (BI & Data Visualization)', 'Tableau', 'Mode Analytics', 'Metabase (Self-serve BI)',
+      'SQL (Direct Product Data Querying)', 'Segment (Customer Data Platform)',
+      'PostHog (Open-source Analytics + Feature Flags)', 'Braze / Iterable (Lifecycle Marketing)',
+      'Airtable (Experiment Tracking & Roadmap)', 'Notion / Confluence (Experiment Docs)',
+      'Excel / Google Sheets (Lightweight Analysis)', 'Python (Pandas, Matplotlib)',
+      'dbt (Data Transformation)', 'Databricks / Snowflake', 'Figma (Designing Experiment Variants)',
+      'Contentsquare (Digital Experience Analytics)', 'Other',
+    ],
+  };
+
+  // UI/UX & Product Design specific technical skill focus sections (recruitment-focused skills per layer)
+  const uiUxTechnicalSkillFocusSections = {
+    'UX Research & Strategy': [
+      'Usability Testing (Moderated & Unmoderated)', 'User Interviews & Discussion Guides',
+      'Heuristic Evaluation (Nielsen\'s 10 Principles)', 'Card Sorting & Tree Testing',
+      'Information Architecture Design', 'Affinity Diagramming & Synthesis',
+      'User Persona Development', 'Customer Journey Mapping & Service Blueprinting',
+      'Empathy Mapping & Mental Model Diagrams', 'JTBD (Jobs-to-be-done) Framework',
+      'Competitive UX Audits', 'Research Repository Management (Dovetail, Condens)',
+      'Participant Recruitment & Panel Management', 'SUS Score & Task Completion Rate Analysis',
+      'Survey Design & Sampling Methodology', 'First-click Testing & Path Analysis',
+      'AI-assisted Research Synthesis (Dovetail AI, Notably)', 'Thematic Coding & Qualitative Analysis',
+      'Ethnographic Research & Contextual Inquiry', 'Diary Studies & Longitudinal Research',
+      'Triangulating Qualitative & Quantitative Data', 'RITE Methodology',
+      'Stakeholder Workshop Facilitation', 'Desirability & Concept Testing',
+      'Research Report Writing & Executive Summaries', 'Statistical Significance for Quant Research',
+      'Unmoderated Remote Testing (Maze, Lyssna)', 'Cross-functional Research Evangelism',
+      'Ethical Data Collection & Informed Consent', 'Experience Sampling Method (ESM)', 'Other',
+    ],
+    'Visual Design & Brand': [
+      'Figma (Advanced)', 'Brand Identity System Design', '8pt Grid & Spacing Systems',
+      'Typography Scale & Type Pairing', 'WCAG AA/AAA Color Contrast Compliance',
+      'Icon Set Design & Optical Sizing', 'AI Generative Tools (Firefly, Midjourney)',
+      'Dark Mode & High-contrast Mode Design', 'Responsive Layout Design (Mobile/Tablet/Desktop)',
+      'Data Visualization Design', 'Color Token System Architecture (Primitive/Semantic/Component)',
+      'Illustration Style Guide & Library Management', 'Motion Principle Specification (Lottie/Rive)',
+      'Design Specification & Redlines for Engineering Handoff', 'Digital Asset Management (DAM)',
+      'Style Guide & Brand Book Production (Zeroheight)', 'Variable Font Implementation',
+      '3D UI Design with Spline', 'Design Critique & Visual Decision Articulation',
+      'Photography Direction & Sourcing', 'Adaptive Color Palette Design (Light/Dark/High-contrast)',
+      'Logo Lockup & Usage Guideline Creation', 'Pixel-perfect Deliverable Production',
+      'Brand-to-product Continuity', 'Print Design (DPI, Bleeds, CMYK vs. RGB)',
+      'Gestalt Principles Application', 'White-label Product Design', 'Visual Debt Auditing',
+      'Adobe Illustrator & Photoshop', 'Sketch', 'Other',
+    ],
+    'Interaction Design & Prototyping': [
+      'Multi-state Interactive Components in Figma (Variants + Interactive)', 'High-fidelity Prototyping',
+      'Micro-interaction Timing & Easing Specification', 'ProtoPie (Conditional Logic Prototypes)',
+      'System State Design (Loading, Error, Empty, Success, Disabled)', 'User Flow Mapping',
+      'Onboarding & First-run Experience Design', 'Apple HIG & Material Design 3 Guidelines',
+      'Accessible Interaction Design (Keyboard Nav, Focus Indicators)', 'Scroll-triggered & Parallax Specs',
+      'Gesture Interaction Design (Mobile)', 'Voice & Conversational UI Flow Design',
+      'Lottie Animation Production & Developer Handoff', 'Principle / After Effects Animation',
+      'ProtoPie Variables & Conditions', 'Interaction Intent Communication & Annotation',
+      'Skeleton Loading Screen Design', 'Prototype-based Usability Testing',
+      '60fps Performance Target Design', 'Progressive Disclosure Patterns',
+      'Modal, Drawer, Toast & Notification Patterns', 'Data-dense UI Prototyping (Tables, Filters)',
+      'AI & LLM Chat Interface Interaction Design', 'Interaction Design Documentation',
+      'Framer Code-backed Prototypes', 'Rapid Wireframing (Balsamiq, Whimsical)',
+      'Figma Dev Mode Spec Export', 'Interaction Audit of Existing Products',
+      'XR (AR/VR) Spatial Interaction Design', 'Webflow No-code Interaction', 'Other',
+    ],
+    'Design Systems & Frontend Implementation': [
+      'React Component Development', 'TypeScript (Type-safe Component APIs)',
+      'Three-tier Token Architecture Implementation (Primitive/Semantic/Component)',
+      'Style Dictionary Configuration & Token Pipelines', 'Figma Variables & Tokens Studio',
+      'Storybook Setup & Maintenance (Controls, Docs, a11y Addon)', 'Chromatic Visual Regression Testing',
+      'WCAG 2.2 AA/AAA Accessibility Implementation (ARIA, Keyboard Nav, Focus Management)',
+      'Semantic HTML in Components', 'Axe-core Automated Accessibility Auditing',
+      'CSS Container Queries & Responsive Components', 'Multi-theme & Dark Mode (CSS Custom Properties)',
+      'Headless Component APIs (Radix UI)', 'SemVer & Changelog Management',
+      'Component Unit Testing (Jest + Testing Library)', 'Design System Governance & Contribution Models',
+      'Zeroheight / Supernova Documentation', 'Figma Dev Mode & Design-to-code Collaboration',
+      'Design System Adoption Auditing', 'Automated Token Sync from Figma',
+      'Motion Tokens for Consistent Animation', 'Tailwind CSS Extension with Design Tokens',
+      'shadcn/ui Extension & Customization', 'Turborepo Monorepo Setup',
+      'npm Package Publishing & Peer Dependency Management', 'Design System Usage Analytics',
+      'Internal Design System Documentation Sites', 'Cross-platform Token Exports (iOS/Android/Web)',
+      'Design System Office Hours & Onboarding', 'npm / pnpm', 'Other',
+    ],
+    'Product Analytics & Growth Design': [
+      'A/B Experiment Design (Hypothesis, Metrics, Holdout)', 'Power Analysis & Sample Size Calculation',
+      'Statistical Significance & p-value Interpretation', 'Event Tracking Taxonomy Design',
+      'Analytics Instrumentation (Segment, Amplitude)', 'Funnel Analysis & Conversion Drop-off',
+      'Cohort Analysis (Retention by Segment / Signup Date)', 'Heatmap & Session Recording Analysis',
+      'Behavioral User Segmentation', 'SQL for Product Event Data',
+      'Analytics Dashboard Building (Amplitude, Mixpanel, Looker)', 'North Star Metric & HEART Framework',
+      'NPS & CSAT Survey Design & Analysis', 'Feature Flag Management (LaunchDarkly, Statsig)',
+      'Post-launch Measurement Reviews', 'Experiment Variant Design in Figma',
+      'Holdout Group & Counterfactual Experiment Design', 'Path Analysis & User Navigation Analytics',
+      'Onboarding Activation Drop-off Identification', 'Feature Adoption Rate Measurement',
+      'Rage Click & UX Friction Detection (FullStory, LogRocket)', 'Growth Loop Design',
+      'CRO Audit (Landing Pages, Checkout, Onboarding)', 'Privacy-compliant Analytics Setup',
+      'Revenue Impact Attribution of Design Changes', 'Experiment Brief Writing & Results Sharing',
+      'PLG (Product-led Growth) Design Principles', 'Mixpanel / Amplitude (Advanced)',
+      'Hotjar & FullStory (Advanced)', 'PostHog Open-source Analytics', 'Other',
+    ],
+  };
+
   const profileSteps = [
     'Career Focus',
     'Basic Info',
@@ -1696,6 +2475,15 @@ export default function DashboardPage() {
   const [activeProfileStep, setActiveProfileStep] = useState<(typeof profileSteps)[number]>('Career Focus');
   const [careerFocus, setCareerFocus] = useState<string>('');
   const prevCareerFocusRef = useRef<string>('');
+  const [isCareerFocusHovered, setIsCareerFocusHovered] = useState(false);
+  const careerFocusHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredProjDescKey, setHoveredProjDescKey] = useState<string | null>(null);
+  const projDescHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredIndustrySectorKey, setHoveredIndustrySectorKey] = useState<string | null>(null);
+  const industrySectorHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredWorkExperienceKey, setHoveredWorkExperienceKey] = useState<string | null>(null);
+  const workExperienceHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [chatboxInject, setChatboxInject] = useState<{ text: string; seq: number; action?: Record<string, unknown> } | null>(null);
 
   // Check if career focus has been selected
   const isCareerFocusSelected = useMemo(() => !!careerFocus, [careerFocus]);
@@ -1704,18 +2492,30 @@ export default function DashboardPage() {
   const technologySections = useMemo((): Record<string, string[]> => {
     if (careerFocus === 'software-engineering') return softwareEngineeringTechnologySections;
     if (careerFocus === 'ai-ml') return aiMlTechnologySections;
+    if (careerFocus === 'data-science') return dataScienceTechnologySections;
+    if (careerFocus === 'data-engineering') return dataEngineeringTechnologySections;
+    if (careerFocus === 'cybersecurity') return cybersecurityTechnologySections;
+    if (careerFocus === 'ui-ux') return uiUxTechnologySections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
   const technicalSkillFocusSections = useMemo((): Record<string, string[]> => {
     if (careerFocus === 'software-engineering') return softwareEngineeringTechnicalSkillFocusSections;
     if (careerFocus === 'ai-ml') return aiMlTechnicalSkillFocusSections;
+    if (careerFocus === 'data-science') return dataScienceTechnicalSkillFocusSections;
+    if (careerFocus === 'data-engineering') return dataEngineeringTechnicalSkillFocusSections;
+    if (careerFocus === 'cybersecurity') return cybersecurityTechnicalSkillFocusSections;
+    if (careerFocus === 'ui-ux') return uiUxTechnicalSkillFocusSections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
   const frameworkSections = useMemo((): Record<string, string[]> => {
     if (careerFocus === 'software-engineering') return softwareEngineeringFrameworkSections;
     if (careerFocus === 'ai-ml') return aiMlFrameworkSections;
+    if (careerFocus === 'data-science') return dataScienceFrameworkSections;
+    if (careerFocus === 'data-engineering') return dataEngineeringFrameworkSections;
+    if (careerFocus === 'cybersecurity') return cybersecurityFrameworkSections;
+    if (careerFocus === 'ui-ux') return uiUxFrameworkSections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
@@ -1758,7 +2558,9 @@ export default function DashboardPage() {
     url: string;
   }
   const [links, setLinks] = useState<Link[]>([]);
-  
+  const [hoveredUrlField, setHoveredUrlField] = useState<string | null>(null);
+  const [shorteningUrlId, setShorteningUrlId] = useState<string | null>(null);
+
   // Education section state
   interface Degree {
     id: string;
@@ -1874,6 +2676,24 @@ export default function DashboardPage() {
     }
   };
   
+  // Shorten a URL via the /api/shorten proxy and update the given setter
+  const shortenUrl = async (url: string, setter: (val: string) => void, fieldId: string) => {
+    if (!url || !url.startsWith('http')) return;
+    setShorteningUrlId(fieldId);
+    try {
+      const response = await fetch(`/api/shorten?url=${encodeURIComponent(url)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setter(data.shortened);
+        markProfileDirty();
+      }
+    } catch (e) {
+      console.error('Failed to shorten URL:', e);
+    } finally {
+      setShorteningUrlId(null);
+    }
+  };
+
   // Helper function to mark established expertise form as dirty and update timestamp
   const markEstablishedDirty = () => {
     setEstablishedFormState('established_dirty');
@@ -1935,7 +2755,7 @@ export default function DashboardPage() {
     setShowExpandingKnowledgeBase(true);
     setShowEstablishedExpertise(false);
     setTimeout(() => {
-      setActiveExpandingKnowledgeStep('Future Personal Project');
+      setActiveExpandingKnowledgeStep('Planned Personal Project');
       setFuturePersonalProjects(prev => {
         const willTransitionToTags = prev.length === 4;
         if (willTransitionToTags) {
@@ -1998,7 +2818,7 @@ export default function DashboardPage() {
     setShowExpandingKnowledgeBase(true);
     setShowEstablishedExpertise(false);
     setTimeout(() => {
-      setActiveExpandingKnowledgeStep('Future Professional Project');
+      setActiveExpandingKnowledgeStep('Planned Professional Project');
       setFutureProfessionalProjects(prev => {
         const willTransitionToTags = prev.length === 4;
         if (willTransitionToTags) {
@@ -2764,7 +3584,7 @@ export default function DashboardPage() {
     }
   }, [activeExpertiseStep, professionalProjects.length, isKnowledgeLoading]);
 
-  // Initialize with one personal project if empty when Future Personal Project step is active
+  // Initialize with one personal project if empty when Planned Personal Project step is active
   useEffect(() => {
     // Wait for initial sessionStorage restore to complete
     if (isInitialLoadRef.current) {
@@ -2776,7 +3596,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (activeExpandingKnowledgeStep === 'Future Personal Project' && futurePersonalProjects.length === 0) {
+    if (activeExpandingKnowledgeStep === 'Planned Personal Project' && futurePersonalProjects.length === 0) {
       const initialProject: PersonalProject = {
         id: `project-${Date.now()}-${Math.random()}`,
         projectName: '',
@@ -2800,7 +3620,7 @@ export default function DashboardPage() {
     }
   }, [activeExpandingKnowledgeStep, futurePersonalProjects.length, isExpandingKnowledgeLoading]);
 
-  // Initialize with one professional project if empty when Future Professional Project step is active
+  // Initialize with one professional project if empty when Planned Professional Project step is active
   useEffect(() => {
     // Wait for initial sessionStorage restore to complete
     if (isInitialLoadRef.current) {
@@ -2812,7 +3632,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (activeExpandingKnowledgeStep === 'Future Professional Project' && futureProfessionalProjects.length === 0) {
+    if (activeExpandingKnowledgeStep === 'Planned Professional Project' && futureProfessionalProjects.length === 0) {
       const initialProject: ProfessionalProject = {
         id: `professional-project-${Date.now()}-${Math.random()}`,
         projectName: '',
@@ -2888,7 +3708,7 @@ export default function DashboardPage() {
 
   // Validate and reset activeFutureProfessionalProjectSubPanel if out of bounds
   useEffect(() => {
-    if (activeExpandingKnowledgeStep === 'Future Professional Project' && futureProfessionalProjects.length > 0) {
+    if (activeExpandingKnowledgeStep === 'Planned Professional Project' && futureProfessionalProjects.length > 0) {
       if (activeFutureProfessionalProjectSubPanel > futureProfessionalProjects.length || activeFutureProfessionalProjectSubPanel < 1) {
         setActiveFutureProfessionalProjectSubPanel(1);
       }
@@ -2906,7 +3726,7 @@ export default function DashboardPage() {
 
   // Validate and reset activeFuturePersonalProjectSubPanel if out of bounds
   useEffect(() => {
-    if (activeExpandingKnowledgeStep === 'Future Personal Project' && futurePersonalProjects.length > 0) {
+    if (activeExpandingKnowledgeStep === 'Planned Personal Project' && futurePersonalProjects.length > 0) {
       if (activeFuturePersonalProjectSubPanel > futurePersonalProjects.length || activeFuturePersonalProjectSubPanel < 1) {
         setActiveFuturePersonalProjectSubPanel(1);
       }
@@ -3006,9 +3826,11 @@ export default function DashboardPage() {
 
   const careerOptions: { value: string; label: string; disabled?: boolean }[] = [
     { value: 'ai-ml', label: 'AI & Machine Learning' },
+    { value: 'cybersecurity', label: 'Cybersecurity' },
     { value: 'data-science', label: 'Data & Applied Science' },
     { value: 'data-engineering', label: 'Data Engineering' },
     { value: 'software-engineering', label: 'Software Engineering' },
+    { value: 'ui-ux', label: 'UI/UX & Product Design' },
   ];
 
   // Validation functions
@@ -3171,7 +3993,7 @@ export default function DashboardPage() {
   // Check if an expanding knowledge step is completed (has any field filled)
   const isExpandingKnowledgeStepCompleted = (step: string): boolean => {
     switch (step) {
-      case 'Future Personal Project':
+      case 'Planned Personal Project':
         return personalProjects.length > 0 && personalProjects.some(project => 
           project.projectName.trim() !== '' ||
           ((project.projectDescription?.overview?.trim() || '') !== '' || (project.projectDescription?.techAndTeamwork?.trim() || '') !== '' || (project.projectDescription?.achievement?.trim() || '') !== '') ||
@@ -3183,7 +4005,7 @@ export default function DashboardPage() {
           project.projectEndMonth !== '' ||
           project.projectEndYear !== ''
         );
-      case 'Future Professional Project':
+      case 'Planned Professional Project':
         return professionalProjects.length > 0 && professionalProjects.some(project => 
           project.projectName.trim() !== '' ||
           ((project.projectDescription?.overview?.trim() || '') !== '' || (project.projectDescription?.techAndTeamwork?.trim() || '') !== '' || (project.projectDescription?.achievement?.trim() || '') !== '') ||
@@ -3191,7 +4013,7 @@ export default function DashboardPage() {
           project.selectedTechnologies.length > 0 ||
           project.selectedFrameworks.length > 0
         );
-      case 'Future Technical Skills':
+      case 'Planned Technical Skills':
         return selectedFutureTechnicalSkills.length > 0 || customFutureTechnicalSkillLayers.length > 0;
       default:
         return false;
@@ -3300,17 +4122,19 @@ export default function DashboardPage() {
   }, [user, careerFocus, showEstablishedExpertise, isKnowledgeFetched, isKnowledgeLoading]);
 
   // Fetch expanding knowledge data when user enters Expanding Knowledge Base pages
+  // OR when user lands on Technical Skill Focus (to pre-load Planned Technical Skills)
   useEffect(() => {
     // Only fetch if:
     // 1. User is authenticated
     // 2. Career focus is known
-    // 3. Expanding Knowledge Base is being shown
+    // 3. Expanding Knowledge Base is being shown OR Technical Skill Focus step is active
     // 4. Expanding Knowledge hasn't been fetched yet
     // 5. Not currently loading
-    if (user?.profile?.sub && careerFocus && showExpandingKnowledgeBase && !isExpandingKnowledgeFetched && !isExpandingKnowledgeLoading) {
+    const shouldFetch = showExpandingKnowledgeBase || (showEstablishedExpertise && activeExpertiseStep === 'Technical Skill Focus');
+    if (user?.profile?.sub && careerFocus && shouldFetch && !isExpandingKnowledgeFetched && !isExpandingKnowledgeLoading) {
       fetchExpandingKnowledge();
     }
-  }, [user, careerFocus, showExpandingKnowledgeBase, isExpandingKnowledgeFetched, isExpandingKnowledgeLoading]);
+  }, [user, careerFocus, showExpandingKnowledgeBase, showEstablishedExpertise, activeExpertiseStep, isExpandingKnowledgeFetched, isExpandingKnowledgeLoading]);
 
   // Auto-focus the active step button when profile section is active
   useEffect(() => {
@@ -3577,10 +4401,17 @@ export default function DashboardPage() {
 
   return (
     <div className={`${styles.dashboardContainer} ${orbitron.variable} ${comfortaa.variable}`}>
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.logoContainer} onClick={() => router.push('/')}>
-            <h2 className={styles.sidebarTitle}>Ambitology</h2>
+          <div className={`${styles.logoContainer} ${sidebarCollapsed ? styles.logoContainerCollapsed : ''}`}>
+            <h2 className={styles.sidebarTitle} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>Ambitology</h2>
+            <button
+              className={styles.sidebarToggleBtn}
+              onClick={() => setSidebarCollapsed(c => !c)}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <img src="/view_sidebar.svg" alt="Toggle sidebar" width={26} height={26} />
+            </button>
           </div>
         </div>
         <nav className={styles.nav}>
@@ -3656,6 +4487,7 @@ export default function DashboardPage() {
               onClick={(e) => {
                 e.stopPropagation();
                 const opening = !isSettingsOpen;
+                if (opening && sidebarCollapsed) setSidebarCollapsed(false);
                 setIsSettingsOpen(opening);
                 if (opening && user?.profile?.sub) {
                   fetchUserPlan(user.profile.sub);
@@ -3705,6 +4537,15 @@ export default function DashboardPage() {
                     }}
                   >
                     <span>Upgrade Plan</span>
+                  </button>
+                  <button
+                    className={styles.upgradePlanButton}
+                    onClick={() => {
+                      setActiveSection('account');
+                      setIsSettingsOpen(false);
+                    }}
+                  >
+                    <span>Account</span>
                   </button>
                   <button
                     className={styles.logoutButton}
@@ -4180,8 +5021,39 @@ export default function DashboardPage() {
                           </div>
                         )}
                         <div className={styles.formField}>
-                          <label htmlFor="career-focus" className={styles.formLabel}>
-                            Career Focus <span className={styles.requiredIndicator}>*</span>
+                          <label htmlFor="career-focus" className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => {
+                            if (careerFocusHideTimer.current) clearTimeout(careerFocusHideTimer.current);
+                            setIsCareerFocusHovered(true);
+                          }}
+                          onMouseLeave={() => {
+                            careerFocusHideTimer.current = setTimeout(() => setIsCareerFocusHovered(false), 2000);
+                          }}>
+                            <span>Career Focus <span className={styles.requiredIndicator}>*</span></span>
+                            <button
+                              type="button"
+                              aria-label="Career Focus info"
+                              onClick={() => setChatboxInject(prev => ({
+                                text: "Career Focus sets your skill scope and the career path you're aiming for. You'll choose your exact target job when you build your resume or start an analysis.",
+                                seq: (prev?.seq ?? 0) + 1,
+                              }))}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                lineHeight: 1,
+                                opacity: isCareerFocusHovered ? 1 : 0,
+                                transform: isCareerFocusHovered ? 'scale(1)' : 'scale(0.6)',
+                                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                pointerEvents: isCareerFocusHovered ? 'auto' : 'none',
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10">
+                                <path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                              </svg>
+                            </button>
                           </label>
                           <div className={styles.customDropdown} ref={dropdownRef}>
                             <button
@@ -4689,43 +5561,83 @@ export default function DashboardPage() {
                         {activeBasicInfoSubPanel === 3 && (
                           <div className={styles.basicInfoSubPanel}>
                             <div className={styles.formRow}>
-                              <div className={styles.formField}>
+                              <div
+                                className={styles.formField}
+                                onMouseEnter={() => setHoveredUrlField('personal-website')}
+                                onMouseLeave={() => setHoveredUrlField(null)}
+                              >
                                 <label htmlFor="personal-website" className={styles.formLabel}>
                                   Personal Website
                                 </label>
-                                <input
-                                  ref={(el) => { subPanel3FieldRefs.current[0] = el; }}
-                                  type="url"
-                                  id="personal-website"
-                                  className={styles.formInput}
-                                  value={personalWebsite}
-                                  onChange={(e) => {
-                                    markProfileDirty();
-                                    setPersonalWebsite(e.target.value);
-                                  }}
-                                  onKeyDown={(e) => handleEnterKey(e, 3)}
-                                  onFocus={() => setFocusedElement('field')}
-                                  placeholder="https://yourwebsite.com"
-                                />
+                                <div className={styles.urlInputWrapper}>
+                                  <input
+                                    ref={(el) => { subPanel3FieldRefs.current[0] = el; }}
+                                    type="url"
+                                    id="personal-website"
+                                    className={styles.formInput}
+                                    value={personalWebsite}
+                                    onChange={(e) => {
+                                      markProfileDirty();
+                                      setPersonalWebsite(e.target.value);
+                                    }}
+                                    onKeyDown={(e) => handleEnterKey(e, 3)}
+                                    onFocus={() => setFocusedElement('field')}
+                                    placeholder="https://yourwebsite.com"
+                                  />
+                                  {(hoveredUrlField === 'personal-website' || shorteningUrlId === 'personal-website') && personalWebsite.length > 22 && (
+                                    <button
+                                      type="button"
+                                      className={styles.shortenUrlButton}
+                                      onClick={() => shortenUrl(personalWebsite, setPersonalWebsite, 'personal-website')}
+                                      disabled={!!shorteningUrlId}
+                                    >
+                                      {shorteningUrlId === 'personal-website' ? (
+                                        <div className={styles.shortenUrlSpinner} />
+                                      ) : (
+                                        <img src="/short_text.svg" alt="Shorten URL" width={30} height={30} />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className={styles.formField}>
+                              <div
+                                className={styles.formField}
+                                onMouseEnter={() => setHoveredUrlField('linkedin')}
+                                onMouseLeave={() => setHoveredUrlField(null)}
+                              >
                                 <label htmlFor="linkedin" className={styles.formLabel}>
                                   LinkedIn
                                 </label>
-                                <input
-                                  ref={(el) => { subPanel3FieldRefs.current[1] = el; }}
-                                  type="url"
-                                  id="linkedin"
-                                  className={styles.formInput}
-                                  value={linkedin}
-                                  onChange={(e) => {
-                                    markProfileDirty();
-                                    setLinkedin(e.target.value);
-                                  }}
-                                  onKeyDown={(e) => handleEnterKey(e, 3)}
-                                  onFocus={() => setFocusedElement('field')}
-                                  placeholder="https://linkedin.com/in/yourprofile"
-                                />
+                                <div className={styles.urlInputWrapper}>
+                                  <input
+                                    ref={(el) => { subPanel3FieldRefs.current[1] = el; }}
+                                    type="url"
+                                    id="linkedin"
+                                    className={styles.formInput}
+                                    value={linkedin}
+                                    onChange={(e) => {
+                                      markProfileDirty();
+                                      setLinkedin(e.target.value);
+                                    }}
+                                    onKeyDown={(e) => handleEnterKey(e, 3)}
+                                    onFocus={() => setFocusedElement('field')}
+                                    placeholder="https://linkedin.com/in/yourprofile"
+                                  />
+                                  {(hoveredUrlField === 'linkedin' || shorteningUrlId === 'linkedin') && linkedin.length > 22 && (
+                                    <button
+                                      type="button"
+                                      className={styles.shortenUrlButton}
+                                      onClick={() => shortenUrl(linkedin, setLinkedin, 'linkedin')}
+                                      disabled={!!shorteningUrlId}
+                                    >
+                                      {shorteningUrlId === 'linkedin' ? (
+                                        <div className={styles.shortenUrlSpinner} />
+                                      ) : (
+                                        <img src="/short_text.svg" alt="Shorten URL" width={30} height={30} />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             {links.map((link, linkIndex) => (
@@ -4754,29 +5666,54 @@ export default function DashboardPage() {
                                     placeholder="Link name"
                                   />
                                 </div>
-                                <div className={styles.formField} style={{ flex: '1' }}>
+                                <div
+                                  className={styles.formField}
+                                  style={{ flex: '1' }}
+                                  onMouseEnter={() => setHoveredUrlField(`link-url-${link.id}`)}
+                                  onMouseLeave={() => setHoveredUrlField(null)}
+                                >
                                   <label htmlFor={`link-url-${link.id}`} className={styles.formLabel}>
                                     URL
                                   </label>
-                                  <input
-                                    ref={(el) => { 
-                                      const baseIndex = 2; // After personal-website (0) and linkedin (1)
-                                      subPanel3FieldRefs.current[baseIndex + linkIndex * 2 + 1] = el; 
-                                    }}
-                                    type="url"
-                                    id={`link-url-${link.id}`}
-                                    className={styles.formInput}
-                                    value={link.url}
-                                    onChange={(e) => {
-                                      markProfileDirty();
-                                      setLinks(links.map(l => 
-                                        l.id === link.id ? { ...l, url: e.target.value } : l
-                                      ));
-                                    }}
-                                    onKeyDown={(e) => handleEnterKey(e, 3)}
-                                    onFocus={() => setFocusedElement('field')}
-                                    placeholder="https://example.com"
-                                  />
+                                  <div className={styles.urlInputWrapper}>
+                                    <input
+                                      ref={(el) => {
+                                        const baseIndex = 2; // After personal-website (0) and linkedin (1)
+                                        subPanel3FieldRefs.current[baseIndex + linkIndex * 2 + 1] = el;
+                                      }}
+                                      type="url"
+                                      id={`link-url-${link.id}`}
+                                      className={styles.formInput}
+                                      value={link.url}
+                                      onChange={(e) => {
+                                        markProfileDirty();
+                                        setLinks(links.map(l =>
+                                          l.id === link.id ? { ...l, url: e.target.value } : l
+                                        ));
+                                      }}
+                                      onKeyDown={(e) => handleEnterKey(e, 3)}
+                                      onFocus={() => setFocusedElement('field')}
+                                      placeholder="https://example.com"
+                                    />
+                                    {(hoveredUrlField === `link-url-${link.id}` || shorteningUrlId === `link-url-${link.id}`) && link.url.length > 22 && (
+                                      <button
+                                        type="button"
+                                        className={styles.shortenUrlButton}
+                                        onClick={() => shortenUrl(link.url, (val) => {
+                                          markProfileDirty();
+                                          setLinks(links.map(l => l.id === link.id ? { ...l, url: val } : l));
+                                        }, `link-url-${link.id}`)}
+                                        title="Shorten URL"
+                                        disabled={!!shorteningUrlId}
+                                      >
+                                        {shorteningUrlId === `link-url-${link.id}` ? (
+                                          <div className={styles.shortenUrlSpinner} />
+                                        ) : (
+                                          <img src="/short_text.svg" alt="Shorten URL" width={30} height={30} />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className={styles.collegeSectionHeader} style={{ marginBottom: '-0.5rem', marginLeft: '0.5rem' }}>
                                   <button
@@ -5248,6 +6185,11 @@ export default function DashboardPage() {
                                           </button>
                                         </div>
                                       )}
+                                      {collegeIndex === 0 && (
+                                        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#9B8B7A', margin: '0.75rem 0 0.25rem', fontStyle: 'italic' }}>
+                                          The most recent education experience
+                                        </p>
+                                      )}
                                       <div className={styles.buttonRowContainer} style={{ marginTop: '0.75rem' }}>
                                         <button
                                           type="button"
@@ -5542,6 +6484,12 @@ export default function DashboardPage() {
                                     </div>
                                   </div>
                                   
+                                  {expIndex === 0 && (
+                                    <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#9B8B7A', margin: '0.5rem 0 0.25rem', fontStyle: 'italic' }}>
+                                      The most recent working experience.
+                                    </p>
+                                  )}
+
                                   {professionalExperiences.length > 1 && expIndex < professionalExperiences.length - 1 && (
                                     <div className={styles.companySeparator}></div>
                                   )}
@@ -5895,7 +6843,7 @@ export default function DashboardPage() {
                   </div>
                   <h2 className={styles.sectionTitle}>Knowledge Asset</h2>
                   <p className={styles.sectionText}>
-                    Manage and organize your knowledge assets and resources.
+                    Manage and organize your knowledge base assets and resources.
                   </p>
                   <div className={styles.knowledgeButtonContainer}>
                     <button
@@ -5921,7 +6869,7 @@ export default function DashboardPage() {
                         // Only reset to first step if no step is currently set or if it's invalid
                         // Otherwise, keep the current step (restored from localStorage)
                         if (!activeExpandingKnowledgeStep || !expandingKnowledgeSteps.includes(activeExpandingKnowledgeStep)) {
-                          setActiveExpandingKnowledgeStep('Future Personal Project');
+                          setActiveExpandingKnowledgeStep('Planned Personal Project');
                         }
                       }}
                       aria-label="Expanding Knowledge Base"
@@ -6323,8 +7271,9 @@ export default function DashboardPage() {
                                   />
                                 </div>
                                 <div className={styles.knowledgeFormField} style={{ maxWidth: '300px', minWidth: '200px' }}>
-                                  <label htmlFor="project-description" className={styles.formLabel}>
-                                    Project Description <span className={styles.requiredIndicator}>*</span>
+                                  <label htmlFor="project-description" className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`pe-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                    <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
+                                    <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `pe-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `pe-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                   </label>
                                   <div className={styles.customDropdown} ref={descriptionDropdownRef} style={{ maxWidth: '320px', width: '100%' }}>
                                     <button
@@ -6464,8 +7413,9 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`industry-${project.id}`} className={styles.formLabel}>
-                                      Industry Sector
+                                    <label htmlFor={`industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); setHoveredIndustrySectorKey(`ind-${project.id}`); }} onMouseLeave={() => { industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
+                                      <span>Industry Sector</span>
+                                      <button type="button" aria-label="Industry Sector info" onClick={() => setChatboxInject(prev => ({ text: "Select an Industry Sector to tag this project with the most relevant industry. This helps tailor your resume when you're targeting roles in a specific sector.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorKey === `ind-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorKey === `ind-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
                                     <div 
                                       className={`${styles.customDropdown} ${isIndustryHovered && project.selectedIndustries.length > 0 && !isIndustryDropdownOpen ? styles.customDropdownWithTooltip : ''}`}
@@ -7633,34 +8583,37 @@ export default function DashboardPage() {
                                   className={styles.addCollegeButton}
                                   disabled={!project.projectName.trim() || (!project.projectDescription?.overview?.trim() && !project.projectDescription?.techAndTeamwork?.trim() && !project.projectDescription?.achievement?.trim())}
                                   onClick={() => {
-                                    const newProject: PersonalProject = {
-                                      id: `project-${Date.now()}-${Math.random()}`,
-                                      projectName: '',
-                                      projectDescription: {
-                                        overview: '',
-                                        techAndTeamwork: '',
-                                        achievement: '',
-                                      },
-                                      selectedIndustries: [],
-                                      projectStartMonth: '',
-                                      projectStartYear: '',
-                                      projectEndMonth: '',
-                                      projectEndYear: '',
-                                      location: '',
-                                      selectedTechnologies: [],
-                                      selectedFrameworks: [],
-                                      isInterviewReady: false,
+                                    pendingAddNewCallback.current = () => {
+                                      const newProject: PersonalProject = {
+                                        id: `project-${Date.now()}-${Math.random()}`,
+                                        projectName: '',
+                                        projectDescription: {
+                                          overview: '',
+                                          techAndTeamwork: '',
+                                          achievement: '',
+                                        },
+                                        selectedIndustries: [],
+                                        projectStartMonth: '',
+                                        projectStartYear: '',
+                                        projectEndMonth: '',
+                                        projectEndYear: '',
+                                        location: '',
+                                        selectedTechnologies: [],
+                                        selectedFrameworks: [],
+                                        isInterviewReady: false,
+                                      };
+                                      const willTransitionToTags = personalProjects.length === 4;
+                                      if (willTransitionToTags) {
+                                        setIsTransitioningToTags(true);
+                                        setTimeout(() => { setIsTransitioningToTags(false); }, 600);
+                                      }
+                                      markEstablishedDirty();
+                                      setPersonalProjects(prev => [...prev, newProject]);
+                                      setActivePersonalProjectSubPanel(personalProjects.length + 1);
                                     };
-                                    const willTransitionToTags = personalProjects.length === 4;
-                                    if (willTransitionToTags) {
-                                      setIsTransitioningToTags(true);
-                                      setTimeout(() => {
-                                        setIsTransitioningToTags(false);
-                                      }, 600);
-                                    }
-                                    markEstablishedDirty();
-                                    setPersonalProjects([...personalProjects, newProject]);
-                                    setActivePersonalProjectSubPanel(personalProjects.length + 1);
+                                    setAddProjectPopupType('personal');
+                                    setAddProjectPopupMode('choice');
+                                    setIsAddProjectPopupOpen(true);
                                   }}
                                   aria-label="Add Personal Project"
                                 >
@@ -7669,7 +8622,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                             )}
-                            
+
+                            {projectIndex === 0 && (
+                              <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#9B8B7A', margin: '0.75rem 0 0.25rem', fontStyle: 'italic' }}>
+                                The most recent personal project.
+                              </p>
+                            )}
+
                             <div className={styles.buttonRowContainer} style={{ marginTop: '0.75rem' }}>
                               <button
                                 type="button"
@@ -7891,8 +8850,9 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                           <div className={styles.knowledgeFormField}>
-                            <label htmlFor={`professional-project-description-${project.id}`} className={styles.formLabel}>
-                              Project Description <span className={styles.requiredIndicator}>*</span>
+                            <label htmlFor={`professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`prof-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                              <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
+                              <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `prof-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `prof-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                             </label>
                             <div className={styles.customDropdown} ref={descriptionDropdownRef} style={{ maxWidth: '320px', width: '100%' }}>
                               <button
@@ -8030,8 +8990,9 @@ export default function DashboardPage() {
                                   </div>
                                   
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`professional-work-experience-${project.id}`} className={styles.formLabel}>
-                                      Work Experience <span className={styles.requiredIndicator}>*</span>
+                                    <label htmlFor={`professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey(`we-${project.id}`); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                      <span>Work Experience <span className={styles.requiredIndicator}>*</span></span>
+                                      <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === `we-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === `we-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
                                     <div 
                                       className={styles.customDropdown}
@@ -9061,33 +10022,36 @@ export default function DashboardPage() {
                                   className={styles.addCollegeButton}
                                   disabled={!project.projectName.trim() || (!project.projectDescription?.overview?.trim() && !project.projectDescription?.techAndTeamwork?.trim() && !project.projectDescription?.achievement?.trim())}
                                   onClick={() => {
-                                    const newProject: ProfessionalProject = {
-                                      id: `professional-project-${Date.now()}-${Math.random()}`,
-                                      projectName: '',
-                                      projectDescription: {
-                                        overview: '',
-                                        techAndTeamwork: '',
-                                        achievement: '',
-                                      },
-                                      selectedWorkExperience: '',
-                                      projectStartMonth: '',
-                                      projectStartYear: '',
-                                      projectEndMonth: '',
-                                      projectEndYear: '',
-                                      selectedTechnologies: [],
-                                      selectedFrameworks: [],
-                                      isInterviewReady: false,
+                                    pendingAddNewCallback.current = () => {
+                                      const newProject: ProfessionalProject = {
+                                        id: `professional-project-${Date.now()}-${Math.random()}`,
+                                        projectName: '',
+                                        projectDescription: {
+                                          overview: '',
+                                          techAndTeamwork: '',
+                                          achievement: '',
+                                        },
+                                        selectedWorkExperience: '',
+                                        projectStartMonth: '',
+                                        projectStartYear: '',
+                                        projectEndMonth: '',
+                                        projectEndYear: '',
+                                        selectedTechnologies: [],
+                                        selectedFrameworks: [],
+                                        isInterviewReady: false,
+                                      };
+                                      const willTransitionToTags = professionalProjects.length === 4;
+                                      if (willTransitionToTags) {
+                                        setIsTransitioningToTagsProfessional(true);
+                                        setTimeout(() => { setIsTransitioningToTagsProfessional(false); }, 600);
+                                      }
+                                      markEstablishedDirty();
+                                      setProfessionalProjects(prev => [...prev, newProject]);
+                                      setActiveProfessionalProjectSubPanel(professionalProjects.length + 1);
                                     };
-                                    const willTransitionToTags = professionalProjects.length === 4;
-                                    if (willTransitionToTags) {
-                                      setIsTransitioningToTagsProfessional(true);
-                                      setTimeout(() => {
-                                        setIsTransitioningToTagsProfessional(false);
-                                      }, 600);
-                                    }
-                                    markEstablishedDirty();
-                                    setProfessionalProjects([...professionalProjects, newProject]);
-                                    setActiveProfessionalProjectSubPanel(professionalProjects.length + 1);
+                                    setAddProjectPopupType('professional');
+                                    setAddProjectPopupMode('choice');
+                                    setIsAddProjectPopupOpen(true);
                                   }}
                                   aria-label="Add Professional Project"
                                 >
@@ -9096,7 +10060,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                             )}
-                            
+
+                            {projectIndex === 0 && (
+                              <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#9B8B7A', margin: '0.75rem 0 0.25rem', fontStyle: 'italic' }}>
+                                The most recent work project.
+                              </p>
+                            )}
+
                             <div className={styles.buttonRowContainer} style={{ marginTop: '0.75rem' }}>
                               <button
                                 type="button"
@@ -9187,8 +10157,9 @@ export default function DashboardPage() {
                             </div>
                             <div className={styles.knowledgeFormRow}>
                               <div className={styles.knowledgeFormField}>
-                                <label className={styles.formLabel}>
-                                  Project Description <span className={styles.requiredIndicator}>*</span>
+                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey('initializing'); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                  <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
+                                  <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === 'initializing' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === 'initializing' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                 </label>
                                 <div className={styles.customDropdown} style={{ maxWidth: '320px', width: '100%' }}>
                                   <button
@@ -9219,7 +10190,10 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className={styles.knowledgeFormField}>
-                                <label className={styles.formLabel}>Work Experience</label>
+                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey('we-init'); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                  <span>Work Experience</span>
+                                  <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === 'we-init' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === 'we-init' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                                </label>
                                 <div className={styles.customDropdown} style={{ maxWidth: '320px', width: '100%' }}>
                                   <button
                                     type="button"
@@ -9448,7 +10422,7 @@ export default function DashboardPage() {
                               }
                               return selectedTechnicalSkills.includes(opt);
                             }).length;
-                            // Count Future Technical Skills selections
+                            // Count Planned Technical Skills selections
                             const sectionFutureCount = options.filter(opt => {
                               if (opt === 'Other') {
                                 return selectedFutureTechnicalSkills.includes(`Other_${sectionName}`);
@@ -9534,7 +10508,7 @@ export default function DashboardPage() {
                                               !sectionCustomKeywords.includes(t)
                                             )
                                           );
-                                          // Clear from Future Technical Skills
+                                          // Clear from Planned Technical Skills
                                           setSelectedFutureTechnicalSkills(prev =>
                                             prev.filter(t => 
                                               !sectionOptions.includes(t) && 
@@ -9939,7 +10913,7 @@ export default function DashboardPage() {
                               }
                               return selectedTechnicalSkills.includes(opt);
                             }).length;
-                            // Count Future Technical Skills selections
+                            // Count Planned Technical Skills selections
                             const layerFutureCount = layer.items.filter(opt => {
                               if (opt === 'Other') {
                                 return selectedFutureTechnicalSkills.includes(`Other_${layer.id}`);
@@ -10024,7 +10998,7 @@ export default function DashboardPage() {
                                             !sectionCustomKeywords.includes(t)
                                           )
                                         );
-                                        // Clear from Future Technical Skills
+                                        // Clear from Planned Technical Skills
                                         setSelectedFutureTechnicalSkills(prev =>
                                           prev.filter(t => 
                                             !layerItems.includes(t) && 
@@ -10546,7 +11520,7 @@ export default function DashboardPage() {
                               // Navigate to Expanding Knowledge Base first page
                               setShowEstablishedExpertise(false);
                               setShowExpandingKnowledgeBase(true);
-                              setActiveExpandingKnowledgeStep('Future Personal Project');
+                              setActiveExpandingKnowledgeStep('Planned Personal Project');
                             }}
                             aria-label="Edit Expanding Knowledge Base"
                           >
@@ -10637,7 +11611,7 @@ export default function DashboardPage() {
                               <span className={styles.profileStepIndex}>{idx + 1}</span>
                               <span className={styles.profileStepLabel}>{step}</span>
                             </button>
-                            {step === 'Future Personal Project' && isActive && futurePersonalProjects.length > 1 && (futurePersonalProjects.length <= 4 || isTransitioningToTagsFuture) && (
+                            {step === 'Planned Personal Project' && isActive && futurePersonalProjects.length > 1 && (futurePersonalProjects.length <= 4 || isTransitioningToTagsFuture) && (
                               <div className={`${styles.subPanelDots} ${(futurePersonalProjects.length > 4 || isTransitioningToTagsFuture) ? styles.subPanelDotsExiting : ''}`} style={{ cursor: draggedFuturePersonalProjectDotIndex !== null ? 'grabbing' : 'default' }}>
                                 {futurePersonalProjects.map((project, projectIdx) => (
                                   <button
@@ -10713,12 +11687,12 @@ export default function DashboardPage() {
                                       setFocusedElement('dot');
                                     }}
                                     tabIndex={activePersonalProjectSubPanel === projectIdx + 1 ? 0 : -1}
-                                    aria-label={`Future Personal Project ${projectIdx + 1}`}
+                                    aria-label={`Planned Personal Project ${projectIdx + 1}`}
                                   />
                                 ))}
                               </div>
                             )}
-                            {step === 'Future Professional Project' && isActive && futureProfessionalProjects.length > 1 && (futureProfessionalProjects.length <= 4 || isTransitioningToTagsFutureProfessional) && (
+                            {step === 'Planned Professional Project' && isActive && futureProfessionalProjects.length > 1 && (futureProfessionalProjects.length <= 4 || isTransitioningToTagsFutureProfessional) && (
                               <div className={`${styles.subPanelDots} ${(futureProfessionalProjects.length > 4 || isTransitioningToTagsFutureProfessional) ? styles.subPanelDotsExiting : ''}`} style={{ cursor: draggedFutureProfessionalProjectDotIndex !== null ? 'grabbing' : 'default' }}>
                                 {futureProfessionalProjects.map((project, projectIdx) => (
                                   <button
@@ -10794,7 +11768,7 @@ export default function DashboardPage() {
                                       setFocusedElement('dot');
                                     }}
                                     tabIndex={activeFutureProfessionalProjectSubPanel === projectIdx + 1 ? 0 : -1}
-                                    aria-label={`Future Professional Project ${projectIdx + 1}`}
+                                    aria-label={`Planned Professional Project ${projectIdx + 1}`}
                                   />
                                 ))}
                               </div>
@@ -10805,7 +11779,7 @@ export default function DashboardPage() {
                     </ul>
                   </div>
                   <div className={styles.profilePanel}>
-                    {activeExpandingKnowledgeStep === 'Future Personal Project' && futurePersonalProjects.length > 4 && (
+                    {activeExpandingKnowledgeStep === 'Planned Personal Project' && futurePersonalProjects.length > 4 && (
                       <div className={`${styles.projectTagsContainer} ${futurePersonalProjects.length > 11 ? styles.projectTagsContainerScrollable : ''} ${tagsInitializedFuture ? styles.projectTagsInitialized : ''}`}>
                         {futurePersonalProjects.map((project, projectIdx) => (
                           <button
@@ -10853,7 +11827,7 @@ export default function DashboardPage() {
                               }
                               setHoveredTagIndexFuture(null);
                             }}
-                            aria-label={`Future Personal Project ${projectIdx + 1}: ${project.projectName || 'Untitled'}`}
+                            aria-label={`Planned Personal Project ${projectIdx + 1}: ${project.projectName || 'Untitled'}`}
                             data-tooltip={project.projectName || `Project ${projectIdx + 1}`}
                             style={{
                               animationDelay: `${projectIdx * 0.05}s`
@@ -10864,7 +11838,7 @@ export default function DashboardPage() {
                         ))}
                       </div>
                     )}
-                    {activeExpandingKnowledgeStep === 'Future Personal Project' && (
+                    {activeExpandingKnowledgeStep === 'Planned Personal Project' && (
                       <div className={styles.knowledgePanelSection}>
                         {showExpandingSavedMessage && (
                           <div className={styles.savedMessage}>
@@ -10882,7 +11856,7 @@ export default function DashboardPage() {
                         ) : futurePersonalProjects.length === 0 ? (
                           <div className={styles.collegeSection}>
                             <div className={styles.knowledgeFormField} style={{ marginBottom: '1.5rem', marginLeft: 0, marginRight: 0, alignSelf: 'flex-start', paddingLeft: '2rem', maxWidth: '510px' }}>
-                              <p style={{ color: '#666', fontStyle: 'italic' }}>No projects yet. Click "Add Future Personal Project" to get started.</p>
+                              <p style={{ color: '#666', fontStyle: 'italic' }}>No projects yet. Click "Add Planned Personal Project" to get started.</p>
                             </div>
                           </div>
                         ) : (
@@ -10911,7 +11885,7 @@ export default function DashboardPage() {
                                       markExpandingDirty();
                                       setFuturePersonalProjects(newProjects);
                                     }}
-                                    aria-label="Delete Future Personal Project"
+                                    aria-label="Delete Planned Personal Project"
                                   >
                                     <svg 
                                       className={styles.deleteButtonIcon}
@@ -10955,8 +11929,9 @@ export default function DashboardPage() {
                                   />
                                 </div>
                                 <div className={styles.knowledgeFormField} style={{ maxWidth: '300px', minWidth: '200px' }}>
-                                  <label htmlFor={`future-project-description-${project.id}`} className={styles.formLabel}>
-                                    Project Description <span className={styles.requiredIndicator}>*</span>
+                                  <label htmlFor={`future-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`pp-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                    <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
+                                    <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `pp-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `pp-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                   </label>
                                   <div className={styles.customDropdown} ref={descriptionDropdownRef} style={{ maxWidth: '320px', width: '100%' }}>
                                     <button
@@ -11096,8 +12071,9 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`future-industry-${project.id}`} className={styles.formLabel}>
-                                      Industry Sector
+                                    <label htmlFor={`future-industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); setHoveredIndustrySectorKey(`ind-future-${project.id}`); }} onMouseLeave={() => { industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
+                                      <span>Industry Sector</span>
+                                      <button type="button" aria-label="Industry Sector info" onClick={() => setChatboxInject(prev => ({ text: "Select an Industry Sector to tag this project with the most relevant industry. This helps tailor your resume when you're targeting roles in a specific sector.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorKey === `ind-future-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorKey === `ind-future-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
                                     <div 
                                       className={`${styles.customDropdown} ${isIndustryHovered && project.selectedIndustries.length > 0 && !isIndustryDropdownOpen ? styles.customDropdownWithTooltip : ''}`}
@@ -11388,7 +12364,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {isFutureTechnologiesModalOpen && activeExpandingKnowledgeStep === 'Future Personal Project' && (
+                        {isFutureTechnologiesModalOpen && activeExpandingKnowledgeStep === 'Planned Personal Project' && (
                           <div className={`${styles.modalOverlay} ${styles.technologiesModalOverlay}`} onClick={() => {
                             setTempFutureSelectedTechnologies([...project.selectedTechnologies]);
                             setIsFutureTechnologiesModalOpen(false);
@@ -11775,7 +12751,7 @@ export default function DashboardPage() {
                               </div>
                             )}
                             
-                            {isFutureFrameworksModalOpen && activeExpandingKnowledgeStep === 'Future Personal Project' && (
+                            {isFutureFrameworksModalOpen && activeExpandingKnowledgeStep === 'Planned Personal Project' && (
                               <div className={`${styles.modalOverlay} ${styles.technologiesModalOverlay}`} onClick={() => {
                                 setTempFutureSelectedFrameworks([...project.selectedFrameworks]);
                                 setIsFutureFrameworksModalOpen(false);
@@ -12239,39 +13215,42 @@ export default function DashboardPage() {
                                   className={styles.addCollegeButton}
                                   disabled={!project.projectName.trim() || (!project.projectDescription?.overview?.trim() && !project.projectDescription?.techAndTeamwork?.trim() && !project.projectDescription?.achievement?.trim())}
                                   onClick={() => {
-                                    const newProject: PersonalProject = {
-                                      id: `project-${Date.now()}-${Math.random()}`,
-                                      projectName: '',
-                                      projectDescription: {
-                                        overview: '',
-                                        techAndTeamwork: '',
-                                        achievement: '',
-                                      },
-                                      selectedIndustries: [],
-                                      projectStartMonth: '',
-                                      projectStartYear: '',
-                                      projectEndMonth: '',
-                                      projectEndYear: '',
-                                      location: '',
-                                      selectedTechnologies: [],
-                                      selectedFrameworks: [],
-                                      isInterviewReady: false,
+                                    pendingAddNewCallback.current = () => {
+                                      const newProject: PersonalProject = {
+                                        id: `project-${Date.now()}-${Math.random()}`,
+                                        projectName: '',
+                                        projectDescription: {
+                                          overview: '',
+                                          techAndTeamwork: '',
+                                          achievement: '',
+                                        },
+                                        selectedIndustries: [],
+                                        projectStartMonth: '',
+                                        projectStartYear: '',
+                                        projectEndMonth: '',
+                                        projectEndYear: '',
+                                        location: '',
+                                        selectedTechnologies: [],
+                                        selectedFrameworks: [],
+                                        isInterviewReady: false,
+                                      };
+                                      const willTransitionToTags = futurePersonalProjects.length === 4;
+                                      if (willTransitionToTags) {
+                                        setIsTransitioningToTagsFuture(true);
+                                        setTimeout(() => { setIsTransitioningToTagsFuture(false); }, 600);
+                                      }
+                                      markExpandingDirty();
+                                      setFuturePersonalProjects(prev => [...prev, newProject]);
+                                      setActiveFuturePersonalProjectSubPanel(futurePersonalProjects.length + 1);
                                     };
-                                    const willTransitionToTags = futurePersonalProjects.length === 4;
-                                    if (willTransitionToTags) {
-                                      setIsTransitioningToTagsFuture(true);
-                                      setTimeout(() => {
-                                        setIsTransitioningToTagsFuture(false);
-                                      }, 600);
-                                    }
-                                    markExpandingDirty();
-                                    setFuturePersonalProjects([...futurePersonalProjects, newProject]);
-                                    setActiveFuturePersonalProjectSubPanel(futurePersonalProjects.length + 1);
+                                    setAddProjectPopupType('planned');
+                                    setAddProjectPopupMode('choice');
+                                    setIsAddProjectPopupOpen(true);
                                   }}
-                                  aria-label="Add Future Personal Project"
+                                  aria-label="Add Planned Personal Project"
                                 >
                                   <span className={styles.addButtonIcon}>+</span>
-                                  <span className={styles.addButtonText}>Add Future Personal Project</span>
+                                  <span className={styles.addButtonText}>Add Planned Personal Project</span>
                                 </button>
                               </div>
                             )}
@@ -12323,10 +13302,10 @@ export default function DashboardPage() {
                                   if (projectIndex < futurePersonalProjects.length - 1) {
                                     setActiveFuturePersonalProjectSubPanel(projectIndex + 2);
                                   } else {
-                                    setActiveExpandingKnowledgeStep('Future Professional Project');
+                                    setActiveExpandingKnowledgeStep('Planned Professional Project');
                                   }
                                 }}
-                                aria-label={projectIndex < futurePersonalProjects.length - 1 ? "Next to Next Project" : "Next to Future Professional Project"}
+                                aria-label={projectIndex < futurePersonalProjects.length - 1 ? "Next to Next Project" : "Next to Planned Professional Project"}
                               >
                                 <span className={styles.nextButtonText}>Next</span>
                                 <svg 
@@ -12353,7 +13332,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     )}
-                    {activeExpandingKnowledgeStep === 'Future Professional Project' && futureProfessionalProjects.length > 4 && (
+                    {activeExpandingKnowledgeStep === 'Planned Professional Project' && futureProfessionalProjects.length > 4 && (
                       <div className={`${styles.projectTagsContainer} ${futureProfessionalProjects.length > 11 ? styles.projectTagsContainerScrollable : ''} ${tagsInitializedFutureProfessional ? styles.projectTagsInitialized : ''}`}>
                         {futureProfessionalProjects.map((project, projectIdx) => (
                           <button
@@ -12401,7 +13380,7 @@ export default function DashboardPage() {
                               }
                               setHoveredTagIndexProfessional(null);
                             }}
-                            aria-label={`Future Professional Project ${projectIdx + 1}: ${project.projectName || 'Untitled'}`}
+                            aria-label={`Planned Professional Project ${projectIdx + 1}: ${project.projectName || 'Untitled'}`}
                             data-tooltip={project.projectName || `Project ${projectIdx + 1}`}
                             style={{
                               animationDelay: `${projectIdx * 0.05}s`
@@ -12412,7 +13391,7 @@ export default function DashboardPage() {
                         ))}
                       </div>
                     )}
-                    {activeExpandingKnowledgeStep === 'Future Professional Project' && (
+                    {activeExpandingKnowledgeStep === 'Planned Professional Project' && (
                       <div className={styles.knowledgePanelSection}>
                         {showExpandingSavedMessage && (
                           <div className={styles.savedMessage}>
@@ -12430,7 +13409,7 @@ export default function DashboardPage() {
                         ) : futureProfessionalProjects.length === 0 ? (
                           <div className={styles.collegeSection}>
                             <div className={styles.knowledgeFormField} style={{ marginBottom: '1.5rem', marginLeft: 0, marginRight: 0, alignSelf: 'flex-start', paddingLeft: '2rem', maxWidth: '510px' }}>
-                              <p style={{ color: '#666', fontStyle: 'italic' }}>No projects yet. Click "Add Future Professional Project" to get started.</p>
+                              <p style={{ color: '#666', fontStyle: 'italic' }}>No projects yet. Click "Add Planned Professional Project" to get started.</p>
                             </div>
                           </div>
                         ) : (
@@ -12459,7 +13438,7 @@ export default function DashboardPage() {
                                       markExpandingDirty();
                                       setFutureProfessionalProjects(newProjects);
                                     }}
-                                    aria-label="Delete Future Professional Project"
+                                    aria-label="Delete Planned Professional Project"
                                   >
                                     <svg 
                                       className={styles.deleteButtonIcon}
@@ -12507,8 +13486,9 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                           <div className={styles.knowledgeFormField}>
-                            <label htmlFor={`future-professional-project-description-${project.id}`} className={styles.formLabel}>
-                              Project Description <span className={styles.requiredIndicator}>*</span>
+                            <label htmlFor={`future-professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`ppf-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                              <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
+                              <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `ppf-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `ppf-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                             </label>
                             <div className={styles.customDropdown} ref={futureDescriptionDropdownRef} style={{ maxWidth: '320px', width: '100%' }}>
                               <button
@@ -12646,8 +13626,9 @@ export default function DashboardPage() {
                                   </div>
                                   
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`future-professional-work-experience-${project.id}`} className={styles.formLabel}>
-                                      Work Experience <span className={styles.requiredIndicator}>*</span>
+                                    <label htmlFor={`future-professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey(`we-future-${project.id}`); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                      <span>Work Experience <span className={styles.requiredIndicator}>*</span></span>
+                                      <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === `we-future-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === `we-future-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
                                     <div 
                                       className={styles.customDropdown}
@@ -13675,38 +14656,41 @@ onClick={() => {
                                   className={styles.addCollegeButton}
                                   disabled={!project.projectName.trim() || (!project.projectDescription?.overview?.trim() && !project.projectDescription?.techAndTeamwork?.trim() && !project.projectDescription?.achievement?.trim())}
                                   onClick={() => {
-                                    const newProject: ProfessionalProject = {
-                                      id: `professional-project-${Date.now()}-${Math.random()}`,
-                                      projectName: '',
-                                      projectDescription: {
-                                        overview: '',
-                                        techAndTeamwork: '',
-                                        achievement: '',
-                                      },
-                                      selectedWorkExperience: '',
-                                      projectStartMonth: '',
-                                      projectStartYear: '',
-                                      projectEndMonth: '',
-                                      projectEndYear: '',
-                                      selectedTechnologies: [],
-                                      selectedFrameworks: [],
-                                      isInterviewReady: false,
+                                    pendingAddNewCallback.current = () => {
+                                      const newProject: ProfessionalProject = {
+                                        id: `professional-project-${Date.now()}-${Math.random()}`,
+                                        projectName: '',
+                                        projectDescription: {
+                                          overview: '',
+                                          techAndTeamwork: '',
+                                          achievement: '',
+                                        },
+                                        selectedWorkExperience: '',
+                                        projectStartMonth: '',
+                                        projectStartYear: '',
+                                        projectEndMonth: '',
+                                        projectEndYear: '',
+                                        selectedTechnologies: [],
+                                        selectedFrameworks: [],
+                                        isInterviewReady: false,
+                                      };
+                                      const willTransitionToTags = futureProfessionalProjects.length === 4;
+                                      if (willTransitionToTags) {
+                                        setIsTransitioningToTagsFutureProfessional(true);
+                                        setTimeout(() => { setIsTransitioningToTagsFutureProfessional(false); }, 600);
+                                      }
+                                      markExpandingDirty();
+                                      setFutureProfessionalProjects(prev => [...prev, newProject]);
+                                      setActiveFutureProfessionalProjectSubPanel(futureProfessionalProjects.length + 1);
                                     };
-                                    const willTransitionToTags = futureProfessionalProjects.length === 4;
-                                    if (willTransitionToTags) {
-                                      setIsTransitioningToTagsFutureProfessional(true);
-                                      setTimeout(() => {
-                                        setIsTransitioningToTagsFutureProfessional(false);
-                                      }, 600);
-                                    }
-                                    markExpandingDirty();
-                                    setFutureProfessionalProjects([...futureProfessionalProjects, newProject]);
-                                    setActiveFutureProfessionalProjectSubPanel(futureProfessionalProjects.length + 1);
+                                    setAddProjectPopupType('planned-professional');
+                                    setAddProjectPopupMode('choice');
+                                    setIsAddProjectPopupOpen(true);
                                   }}
-                                  aria-label="Add Future Professional Project"
+                                  aria-label="Add Planned Professional Project"
                                 >
                                   <span className={styles.addButtonIcon}>+</span>
-                                  <span className={styles.addButtonText}>Add Future Professional Project</span>
+                                  <span className={styles.addButtonText}>Add Planned Professional Project</span>
                                 </button>
                               </div>
                             )}
@@ -13721,12 +14705,12 @@ onClick={() => {
                                     await handleExpandingKnowledgeSubmit();
                                   }
                                   if (projectIndex === 0) {
-                                    setActiveExpandingKnowledgeStep('Future Personal Project');
+                                    setActiveExpandingKnowledgeStep('Planned Personal Project');
                                   } else {
                                     setActiveFutureProfessionalProjectSubPanel(projectIndex);
                                   }
                                 }}
-                                aria-label={projectIndex === 0 ? "Back to Future Personal Project" : "Back to Previous Project"}
+                                aria-label={projectIndex === 0 ? "Back to Planned Personal Project" : "Back to Previous Project"}
                               >
                                 <svg 
                                   className={styles.nextButtonIcon}
@@ -13758,10 +14742,10 @@ onClick={() => {
                                   if (projectIndex < futureProfessionalProjects.length - 1) {
                                     setActiveFutureProfessionalProjectSubPanel(projectIndex + 2);
                                   } else {
-                                    setActiveExpandingKnowledgeStep('Future Technical Skills');
+                                    setActiveExpandingKnowledgeStep('Planned Technical Skills');
                                   }
                                 }}
-                                aria-label={projectIndex < futureProfessionalProjects.length - 1 ? "Next to Next Project" : "Next to Future Technical Skills"}
+                                aria-label={projectIndex < futureProfessionalProjects.length - 1 ? "Next to Next Project" : "Next to Planned Technical Skills"}
                               >
                                 <span className={styles.nextButtonText}>Next</span>
                                 <svg 
@@ -13788,7 +14772,7 @@ onClick={() => {
                       )}
                       </div>
                     )}
-                    {activeExpandingKnowledgeStep === 'Future Technical Skills' && (
+                    {activeExpandingKnowledgeStep === 'Planned Technical Skills' && (
                       <div className={styles.profilePanelSection}>
                         {showExpandingSavedMessage && (
                           <div className={styles.savedMessage}>
@@ -13806,7 +14790,7 @@ onClick={() => {
                             </div>
                             <h3 className={styles.careerFocusRequiredTitle}>Career Focus Required</h3>
                             <p className={styles.careerFocusRequiredText}>
-                              Please select your Career Focus in the Profile section first to access the Future Technical Skills options.
+                              Please select your Career Focus in the Profile section first to access the Planned Technical Skills options.
                             </p>
                             <button
                               type="button"
@@ -13895,7 +14879,7 @@ onClick={() => {
                               }
                               return selectedTechnicalSkills.includes(opt);
                             }).length;
-                            // Count Future Technical Skills selections
+                            // Count Planned Technical Skills selections
                             const sectionFutureCount = options.filter(opt => {
                               if (opt === 'Other') {
                                 return selectedFutureTechnicalSkills.includes(`Other_${sectionName}`);
@@ -13981,7 +14965,7 @@ onClick={() => {
                                               !sectionCustomKeywords.includes(t)
                                             )
                                           );
-                                          // Clear from Future Technical Skills
+                                          // Clear from Planned Technical Skills
                                           setSelectedFutureTechnicalSkills(prev =>
                                             prev.filter(t => 
                                               !sectionOptions.includes(t) && 
@@ -14804,9 +15788,9 @@ onClick={() => {
                               if (expandingFormState === 'expanding_dirty') {
                                 await handleExpandingKnowledgeSubmit();
                               }
-                              setActiveExpandingKnowledgeStep('Future Professional Project');
+                              setActiveExpandingKnowledgeStep('Planned Professional Project');
                             }}
-                            aria-label="Back to Future Professional Project"
+                            aria-label="Back to Planned Professional Project"
                           >
                             <svg 
                               className={styles.nextButtonIcon}
@@ -14945,6 +15929,15 @@ onClick={() => {
                     setShowDownloadLimitToast(true);
                     setTimeout(() => setShowDownloadLimitToast(false), 9000);
                   }}
+                  onInjectChatMessage={(message, action) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1, action: action as Record<string, unknown> | undefined }))}
+                />
+              )}
+              {activeSection === 'account' && (
+                <AccountSection
+                  cognitoSub={user?.profile?.sub ?? ''}
+                  email={(user?.profile?.email as string) ?? ''}
+                  userPlan={userPlan}
+                  onUpgrade={() => setIsUpgradeModalOpen(true)}
                 />
               )}
               {activeSection === 'analyzer' && (
@@ -14967,6 +15960,7 @@ onClick={() => {
                     setShowAnalysisLimitToast(true);
                     setTimeout(() => setShowAnalysisLimitToast(false), 9000);
                   }}
+                  onInjectChatMessage={(message) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1 }))}
                 />
               )}
             </div>
@@ -15073,6 +16067,227 @@ onClick={() => {
           </div>
         </div>
       )}
+      {/* Add Project Popup (shared for Personal, Planned Personal, Professional & Planned Professional) */}
+      {isAddProjectPopupOpen && (
+        <div
+          className={styles.addProjectPopupOverlay}
+          onClick={() => { setIsAddProjectPopupOpen(false); setAddProjectPopupMode('choice'); }}
+        >
+          <div className={styles.addProjectPopup} onClick={(e) => e.stopPropagation()}>
+            {/* Close button */}
+            <button
+              className={styles.downloadFormatClose}
+              onClick={() => { setIsAddProjectPopupOpen(false); setAddProjectPopupMode('choice'); }}
+              aria-label="Close"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+            </button>
+
+            {/* Header */}
+            <div className={styles.addProjectPopupHeader}>
+              <p className={styles.addProjectPopupTitle}>
+                {addProjectPopupType === 'personal' ? 'Add Personal Project'
+                  : addProjectPopupType === 'planned' ? 'Add Planned Personal Project'
+                  : addProjectPopupType === 'professional' ? 'Add Professional Project'
+                  : 'Add Planned Professional Project'}
+              </p>
+            </div>
+
+            {addProjectPopupMode === 'choice' ? (
+              /* Choice mode: two icon buttons */
+              <div className={styles.addProjectChoiceButtons}>
+                <button
+                  type="button"
+                  className={styles.addProjectChoiceBtn}
+                  onClick={() => {
+                    setIsAddProjectPopupOpen(false);
+                    setAddProjectPopupMode('choice');
+                    pendingAddNewCallback.current?.();
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/note_add.svg" alt="" className={styles.addProjectChoiceBtnIcon} />
+                  <div className={styles.addProjectChoiceBtnLabel}>
+                    <span className={styles.addProjectChoiceBtnName}>Add New</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={styles.addProjectChoiceBtn}
+                  onClick={() => {
+                    setAddProjectPopupMode('load');
+                    if (!isKnowledgeFetched && !isKnowledgeLoading) fetchKnowledge();
+                    if (!isExpandingKnowledgeFetched && !isExpandingKnowledgeLoading) fetchExpandingKnowledge();
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/document_search.svg" alt="" className={styles.addProjectChoiceBtnIcon} />
+                  <div className={styles.addProjectChoiceBtnLabel}>
+                    <span className={styles.addProjectChoiceBtnName}>Load Project</span>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              /* Load mode: scrollable project list */
+              <div className={styles.addProjectLoadContainer}>
+                <button
+                  type="button"
+                  className={styles.addProjectLoadBackBtn}
+                  onClick={() => setAddProjectPopupMode('choice')}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'rotate(180deg)' }}>
+                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Back
+                </button>
+                {(isKnowledgeLoading || isExpandingKnowledgeLoading) ? (
+                  <div className={styles.addProjectLoadSpinner}>
+                    <span /><span /><span />
+                  </div>
+                ) : (addProjectPopupType === 'professional' || addProjectPopupType === 'planned-professional') ? (
+                  /* Professional project load list */
+                  (professionalProjects.length === 0 && futureProfessionalProjects.length === 0) ? (
+                    <p className={styles.addProjectLoadEmpty}>No saved projects found.</p>
+                  ) : (
+                    <div className={styles.addProjectLoadList}>
+                      {professionalProjects.length > 0 && (
+                        <div className={styles.addProjectLoadSection}>
+                          <p className={styles.addProjectLoadSectionTitle}>Professional Projects</p>
+                          {professionalProjects.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className={styles.addProjectLoadItem}
+                              onClick={() => {
+                                const newProject: ProfessionalProject = { ...p, id: `professional-project-${Date.now()}-${Math.random()}` };
+                                if (addProjectPopupType === 'professional') {
+                                  if (professionalProjects.length === 4) { setIsTransitioningToTagsProfessional(true); setTimeout(() => setIsTransitioningToTagsProfessional(false), 600); }
+                                  markEstablishedDirty();
+                                  setProfessionalProjects(prev => [...prev, newProject]);
+                                  setActiveProfessionalProjectSubPanel(professionalProjects.length + 1);
+                                } else {
+                                  if (futureProfessionalProjects.length === 4) { setIsTransitioningToTagsFutureProfessional(true); setTimeout(() => setIsTransitioningToTagsFutureProfessional(false), 600); }
+                                  markExpandingDirty();
+                                  setFutureProfessionalProjects(prev => [...prev, newProject]);
+                                  setActiveFutureProfessionalProjectSubPanel(futureProfessionalProjects.length + 1);
+                                }
+                                setIsAddProjectPopupOpen(false);
+                                setAddProjectPopupMode('choice');
+                              }}
+                            >
+                              <span className={styles.addProjectLoadItemText}>{p.projectName || 'Untitled'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {futureProfessionalProjects.length > 0 && (
+                        <div className={styles.addProjectLoadSection}>
+                          <p className={styles.addProjectLoadSectionTitle}>Planned Professional Projects</p>
+                          {futureProfessionalProjects.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className={styles.addProjectLoadItem}
+                              onClick={() => {
+                                const newProject: ProfessionalProject = { ...p, id: `professional-project-${Date.now()}-${Math.random()}` };
+                                if (addProjectPopupType === 'professional') {
+                                  if (professionalProjects.length === 4) { setIsTransitioningToTagsProfessional(true); setTimeout(() => setIsTransitioningToTagsProfessional(false), 600); }
+                                  markEstablishedDirty();
+                                  setProfessionalProjects(prev => [...prev, newProject]);
+                                  setActiveProfessionalProjectSubPanel(professionalProjects.length + 1);
+                                } else {
+                                  if (futureProfessionalProjects.length === 4) { setIsTransitioningToTagsFutureProfessional(true); setTimeout(() => setIsTransitioningToTagsFutureProfessional(false), 600); }
+                                  markExpandingDirty();
+                                  setFutureProfessionalProjects(prev => [...prev, newProject]);
+                                  setActiveFutureProfessionalProjectSubPanel(futureProfessionalProjects.length + 1);
+                                }
+                                setIsAddProjectPopupOpen(false);
+                                setAddProjectPopupMode('choice');
+                              }}
+                            >
+                              <span className={styles.addProjectLoadItemText}>{p.projectName || 'Untitled'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  /* Personal project load list */
+                  (personalProjects.length === 0 && futurePersonalProjects.length === 0) ? (
+                    <p className={styles.addProjectLoadEmpty}>No saved projects found.</p>
+                  ) : (
+                    <div className={styles.addProjectLoadList}>
+                      {personalProjects.length > 0 && (
+                        <div className={styles.addProjectLoadSection}>
+                          <p className={styles.addProjectLoadSectionTitle}>Personal Projects</p>
+                          {personalProjects.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className={styles.addProjectLoadItem}
+                              onClick={() => {
+                                const newProject: PersonalProject = { ...p, id: `project-${Date.now()}-${Math.random()}` };
+                                if (addProjectPopupType === 'personal') {
+                                  if (personalProjects.length === 4) { setIsTransitioningToTags(true); setTimeout(() => setIsTransitioningToTags(false), 600); }
+                                  markEstablishedDirty();
+                                  setPersonalProjects(prev => [...prev, newProject]);
+                                  setActivePersonalProjectSubPanel(personalProjects.length + 1);
+                                } else {
+                                  if (futurePersonalProjects.length === 4) { setIsTransitioningToTagsFuture(true); setTimeout(() => setIsTransitioningToTagsFuture(false), 600); }
+                                  markExpandingDirty();
+                                  setFuturePersonalProjects(prev => [...prev, newProject]);
+                                  setActiveFuturePersonalProjectSubPanel(futurePersonalProjects.length + 1);
+                                }
+                                setIsAddProjectPopupOpen(false);
+                                setAddProjectPopupMode('choice');
+                              }}
+                            >
+                              <span className={styles.addProjectLoadItemText}>{p.projectName || 'Untitled'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {futurePersonalProjects.length > 0 && (
+                        <div className={styles.addProjectLoadSection}>
+                          <p className={styles.addProjectLoadSectionTitle}>Planned Personal Projects</p>
+                          {futurePersonalProjects.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className={styles.addProjectLoadItem}
+                              onClick={() => {
+                                const newProject: PersonalProject = { ...p, id: `project-${Date.now()}-${Math.random()}` };
+                                if (addProjectPopupType === 'personal') {
+                                  if (personalProjects.length === 4) { setIsTransitioningToTags(true); setTimeout(() => setIsTransitioningToTags(false), 600); }
+                                  markEstablishedDirty();
+                                  setPersonalProjects(prev => [...prev, newProject]);
+                                  setActivePersonalProjectSubPanel(personalProjects.length + 1);
+                                } else {
+                                  if (futurePersonalProjects.length === 4) { setIsTransitioningToTagsFuture(true); setTimeout(() => setIsTransitioningToTagsFuture(false), 600); }
+                                  markExpandingDirty();
+                                  setFuturePersonalProjects(prev => [...prev, newProject]);
+                                  setActiveFuturePersonalProjectSubPanel(futurePersonalProjects.length + 1);
+                                }
+                                setIsAddProjectPopupOpen(false);
+                                setAddProjectPopupMode('choice');
+                              }}
+                            >
+                              <span className={styles.addProjectLoadItemText}>{p.projectName || 'Untitled'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <AIChatbox
         userEmail={email}
         userName={`${firstName} ${lastName}`.trim() || undefined}
@@ -15095,6 +16310,12 @@ onClick={() => {
         onUpdateProjectFrameworks={handleChatUpdateProjectFrameworks}
         onUpdateProjectName={handleChatUpdateProjectName}
         onUpdateProjectIndustry={handleChatUpdateProjectIndustry}
+        onNavigateToProfessionalStep={() => {
+          setActiveSection('profile');
+          setActiveProfileStep('Professional');
+        }}
+        onShowPricing={() => setIsUpgradeModalOpen(true)}
+        injectMessage={chatboxInject}
       />
     </div>
   );

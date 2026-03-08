@@ -51,7 +51,8 @@ export default function LandingPage() {
     "/images/slide-6.png",
     "/images/slide-7.png",
     "/images/slide-8.png",
-    "/images/slide-9.png",
+    "/images/slide-10.png",
+    "/images/slide-11.png",
   ];
   const slideCount = heroSlides.length;
 
@@ -61,9 +62,8 @@ export default function LandingPage() {
         try {
           const callbackUser = await userManager.signinCallback();
           if (callbackUser) {
-            setUser(callbackUser);
-            fetchUserPlan(callbackUser.profile.sub);
-            setIsLoading(false);
+            // Redirect to dashboard after successful login/signup
+            window.location.replace('/dashboard');
             return;
           }
         } catch {
@@ -253,7 +253,7 @@ export default function LandingPage() {
                         </span>
                         <div className={styles.servicesItemContent}>
                           <span className={styles.servicesItemLabel}>Build Knowledge Base</span>
-                          <span className={styles.servicesItemDesc}>Manage your skills &amp; future projects</span>
+                          <span className={styles.servicesItemDesc}>Manage your skills &amp; projects with AI</span>
                         </div>
                       </a>
                       <a href="/dashboard?tab=resume" className={styles.servicesItem} onClick={handleServiceClick}>
@@ -346,19 +346,19 @@ export default function LandingPage() {
 
               {aboutOpen && (
                 <div className={styles.aboutDropdown}>
-                  <a href="#" className={styles.aboutItem}>
+                  <a href="/mission" className={styles.aboutItem}>
                     <span className={styles.aboutItemIcon}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 8l4 4-4 4M8 12h8" />
                       </svg>
                     </span>
                     <div className={styles.aboutItemContent}>
-                      <span className={styles.aboutItemLabel}>Company</span>
+                      <span className={styles.aboutItemLabel}>Mission</span>
                       <span className={styles.aboutItemDesc}>Our mission, vision &amp; story</span>
                     </div>
                   </a>
-                  <a href="#" className={styles.aboutItem}>
+                  <a href="/careers" className={styles.aboutItem}>
                     <span className={styles.aboutItemIcon}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
@@ -370,7 +370,7 @@ export default function LandingPage() {
                       <span className={styles.aboutItemDesc}>Join our growing team</span>
                     </div>
                   </a>
-                  <a href="#" className={styles.aboutItem}>
+                  <a href="/contact" className={styles.aboutItem}>
                     <span className={styles.aboutItemIcon}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -435,7 +435,7 @@ export default function LandingPage() {
               <span className={styles.heroHighlight}>Ambitology!</span>
             </h1>
             <p className={styles.heroSubheading}>
-              Unleash your technical potential and boost your career opportunities today!
+              Unleash your technical potential and boost your career opportunities in the AI era!
             </p>
             {user ? (
               <a href="/dashboard" className={styles.freeTrialButton}>
@@ -447,7 +447,7 @@ export default function LandingPage() {
               </a>
             ) : (
               <button onClick={handleSignIn} className={styles.freeTrialButton}>
-                Free Trial
+                Free Start
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" />
                   <polyline points="12 5 19 12 12 19" />
@@ -500,10 +500,10 @@ export default function LandingPage() {
           <div className={styles.featureText}>
             <span className={styles.featureBadge}>AI-Powered Insights</span>
             <h2 className={styles.featureHeading}>
-            See your career fit: The AI-driven capability analysis built from your knowledge base and aligned to your target position.
+            Career fit analysis 
             </h2>
             <p className={styles.featureDescription}>
-              Understand your strengths, identify skill gaps, and get actionable recommendations to stand out in your next job search.
+              The AI-driven personalized capability analysis built from your knowledge base and aligned to your target position. Understand your strengths, identify skill gaps, and get actionable recommendations to stand out in your next job search.
             </p>
           </div>
         </div>
@@ -515,7 +515,7 @@ export default function LandingPage() {
           <div className={styles.featureText}>
             <span className={styles.featureBadge}>Six-Dimension Scoring</span>
             <h2 className={styles.featureHeading}>
-              LLM-powered agentic analysis that scores your resume across six key dimensions for your target position.
+              LLM-powered agentic analysis that scores your resume
             </h2>
             <p className={styles.featureDescription}>
               From background and education to technical skills and job match — get a comprehensive breakdown that pinpoints exactly where to improve.
@@ -544,10 +544,10 @@ export default function LandingPage() {
           <div className={styles.featureText}>
             <span className={styles.featureBadge}>Smart Resume Builder</span>
             <h2 className={styles.featureHeading}>
-              AI-driven resume crafting that leverages your present and future knowledge base to match your target position and industry focus.
+              AI-driven resume crafting for target roles
             </h2>
             <p className={styles.featureDescription}>
-              Automatically tailor every section of your resume to highlight the most relevant experience, skills, and achievements for the role you want.
+              Tailor your resume that leverages your present and planned knowledge base to match your target position and industry focus.
             </p>
           </div>
         </div>
@@ -571,6 +571,150 @@ export default function LandingPage() {
               alt="Knowledge base and skills selection interface"
               className={styles.featureImg}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Showcase Section — AI Agent in Action */}
+      <section className={styles.showcaseSection}>
+        <div className={styles.showcaseInner}>
+          <div className={styles.showcaseImage}>
+            <img
+              src="/images/ai-chat-showcase.png"
+              alt="AI Career Coach in action"
+              className={styles.showcaseImg}
+            />
+          </div>
+          <div className={styles.showcaseText}>
+            <span className={styles.featureBadge}>AI Agent in Action</span>
+            <h2 className={styles.featureHeading}>
+              End-to-end agentic solution — powered by flows of smart conversation
+            </h2>
+            <div className={styles.showcaseList}>
+              <div className={styles.showcaseItem}>
+                <span className={styles.showcaseItemIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </span>
+                <span>Build your complete knowledge base — profile, projects, skills, and future goals — in minutes, under your review, with guided AI agenti cconversations</span>
+              </div>
+              <div className={styles.showcaseItem}>
+                <span className={styles.showcaseItemIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </span>
+                <span>Get personalized six-dimension career fit analysis instantly — no manual input required</span>
+              </div>
+              <div className={styles.showcaseItem}>
+                <span className={styles.showcaseItemIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </span>
+                <span>One intelligent AI agent handles the entire pipeline — from knowledge capture to interview readiness</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Ambitology — Differentiator Cards */}
+      <section className={styles.differentiatorSection}>
+        <div className={styles.differentiatorInner}>
+          <div className={styles.differentiatorHeader}>
+            <span className={styles.featureBadge}>Built for the AI Era</span>
+            <h2 className={styles.differentiatorHeading}>Why Ambitology is different</h2>
+            <p className={styles.differentiatorSub}>
+              The rules of career growth have changed. Ambitology is the only platform built for how fast the world actually moves.
+            </p>
+          </div>
+          <div className={styles.differentiatorGrid}>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>Skills compound faster than ever</h3>
+              <p className={styles.diffCardBody}>
+                In the AI era, technical professionals absorb more tools and frameworks in a single week than they once did in months. Your real capability is growing far ahead of what any static resume can capture.
+              </p>
+            </div>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                  <path d="M7 8h2M11 8h6M7 11h4M13 11h4" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>Agentic tools raise the ceiling</h3>
+              <p className={styles.diffCardBody}>
+                Developers now use AI coding agents to implement complex products at a higher level of abstraction — shipping in days what once took months. Your architectural understanding is your true differentiator, and Ambitology helps you articulate it.
+              </p>
+            </div>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                  <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>Plan months ahead — not weeks behind</h3>
+              <p className={styles.diffCardBody}>
+                The gap between starting your job search and landing an offer can stretch weeks to months. Ambitology's AI agents let you plan and document future projects and experiences in advance, so your profile is always ahead of your job search — not catching up to it.
+              </p>
+            </div>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  <line x1="12" y1="7" x2="16" y2="7" />
+                  <line x1="12" y1="11" x2="16" y2="11" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>Your full knowledge, ready at interview time</h3>
+              <p className={styles.diffCardBody}>
+                Candidates can catalogue both their established experience and their planned future skills. When interview time comes, Ambitology matches everything you know — and everything you will know — to the exact role you're targeting.
+              </p>
+            </div>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                  <polyline points="16 11 18 13 22 9" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>End-to-end AI agent — not just a tool</h3>
+              <p className={styles.diffCardBody}>
+                Ambitology is not a resume editor or a job board. It's a complete AI agent system that guides you from skill planning to resume crafting, fit analysis, and interview preparation — one continuous intelligent loop that compounds over your entire job search.
+              </p>
+            </div>
+
+            <div className={styles.diffCard}>
+              <div className={styles.diffCardIcon}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+              </div>
+              <h3 className={styles.diffCardTitle}>Solve the market gap, not just your resume</h3>
+              <p className={styles.diffCardBody}>
+                Recruitment has a fundamental inefficiency: exceptional candidates are constantly undersold while companies struggle to find the right people. Ambitology closes that gap by ensuring every candidate is represented at their true ceiling — not just their last job title.
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
@@ -653,18 +797,30 @@ export default function LandingPage() {
             </div>
             <div className={styles.footerColumns}>
               <div className={styles.footerColumn}>
-                <a href="#" className={styles.footerLink}>Home</a>
-                <a href="#" className={styles.footerLink}>Services</a>
-                <a href="#" className={styles.footerLink}>Career</a>
+                <a
+                  href="#"
+                  className={styles.footerLink}
+                  onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                >Home</a>
+                <a
+                  href="#"
+                  className={styles.footerLink}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    setServicesOpen(true);
+                  }}
+                >Services</a>
+                <a href="/careers" className={styles.footerLink}>Career</a>
               </div>
               <div className={styles.footerColumn}>
-                <a href="#" className={styles.footerLink}>Privacy Policy</a>
-                <a href="#" className={styles.footerLink}>Term of Service</a>
-                <a href="#" className={styles.footerLink}>Disclaimer</a>
+                <a href="/privacy-policy" className={styles.footerLink}>Privacy Policy</a>
+                <a href="/terms-of-service" className={styles.footerLink}>Terms of Service</a>
+                <a href="/disclaimer" className={styles.footerLink}>Disclaimer</a>
               </div>
               <div className={styles.footerColumn}>
-                <a href="#" className={styles.footerLink}>Refund Policy</a>
-                <a href="#" className={styles.footerLink}>Contact</a>
+                <a href="/refund-policy" className={styles.footerLink}>Refund Policy</a>
+                <a href="/contact" className={styles.footerLink}>Contact</a>
                 <a href="#" className={styles.footerLink}>FAQ</a>
               </div>
             </div>

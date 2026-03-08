@@ -20,6 +20,12 @@ interface ProjectAnalysisData {
   frameworks: Record<string, string[]>;
 }
 
+interface SanityCheckIssue {
+  severity: 'High' | 'Mid' | 'Low';
+  ordinal: string;
+  message: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -32,11 +38,14 @@ interface Message {
       | 'navigate_to_expanding_personal_project'
       | 'navigate_to_established_professional_project'
       | 'navigate_to_expanding_professional_project'
+      | 'navigate_to_professional_step'
       | 'ask_project_type'
       | 'ask_project_status'
       | 'text_choices'
       | 'update_project_description'
-      | 'ask_project_meta';
+      | 'ask_project_meta'
+      | 'show_pricing'
+      | 'sanity_check_sequence';
     data?: ProjectAnalysisData;
     choices?: string[];
     cardDismissed?: boolean;
@@ -45,6 +54,12 @@ interface Message {
     nameCardDismissed?: boolean;
     industryCardDismissed?: boolean;
     selectedChoice?: string;
+    sanityData?: {
+      issues: SanityCheckIssue[];
+      currentIndex: number;
+      matchedCount: number;
+      animDir?: 'next' | 'back';
+    };
   };
 }
 
@@ -64,6 +79,10 @@ interface AIChatboxProps {
   onUpdateProjectFrameworks?: (projectType: string, frameworks: Record<string, string[]>) => void;
   onUpdateProjectName?: (projectType: string, name: string) => void;
   onUpdateProjectIndustry?: (projectType: string, industry: string) => void;
+  onNavigateToProfessionalStep?: () => void;
+  onShowPricing?: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  injectMessage?: { text: string; seq: number; action?: any } | null;
 }
 
 export default function AIChatbox({
@@ -82,6 +101,9 @@ export default function AIChatbox({
   onUpdateProjectFrameworks,
   onUpdateProjectName,
   onUpdateProjectIndustry,
+  onNavigateToProfessionalStep,
+  onShowPricing,
+  injectMessage,
 }: AIChatboxProps) {
   const [isBarOpen, setIsBarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -123,7 +145,8 @@ export default function AIChatbox({
   // Scroll to latest message when a new message arrives or history is toggled open
   useEffect(() => {
     if (historyOpen) {
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      // Use a slightly longer delay so tall cards (e.g. sanity check) have time to fully render
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 120);
     }
   }, [messages, historyOpen]);
 
@@ -134,6 +157,15 @@ export default function AIChatbox({
     const t = setTimeout(() => inputRef.current?.focus(), 0);
     return () => clearTimeout(t);
   }, [isLoading]);
+
+  // Inject an assistant message from outside (e.g. info icon click)
+  useEffect(() => {
+    if (!injectMessage) return;
+    const msg: Message = { id: Date.now().toString(), role: 'assistant', content: injectMessage.text, ...(injectMessage.action ? { action: injectMessage.action } : {}) };
+    setMessages(prev => [...prev, msg]);
+    setIsBarOpen(true);
+    setHistoryOpen(true);
+  }, [injectMessage?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const handleSend = useCallback(async () => {
@@ -257,6 +289,29 @@ export default function AIChatbox({
         m.id === msgId ? { ...m, action: { ...m.action!, industryCardDismissed: true } } : m
       )
     ), []);
+
+  const advanceSanityCheck = useCallback((msgId: string, onLast?: () => void) => {
+    setMessages(prev =>
+      prev.map(m => {
+        if (m.id !== msgId || !m.action?.sanityData) return m;
+        const next = m.action.sanityData.currentIndex + 1;
+        if (next >= m.action.sanityData.issues.length && onLast) onLast();
+        return { ...m, action: { ...m.action, sanityData: { ...m.action.sanityData, currentIndex: next, animDir: 'next' as const } } };
+      })
+    );
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 80);
+  }, []);
+
+  const retreatSanityCheck = useCallback((msgId: string) => {
+    setMessages(prev =>
+      prev.map(m => {
+        if (m.id !== msgId || !m.action?.sanityData) return m;
+        const prev_idx = Math.max(0, m.action.sanityData.currentIndex - 1);
+        return { ...m, action: { ...m.action, sanityData: { ...m.action.sanityData, currentIndex: prev_idx, animDir: 'back' as const } } };
+      })
+    );
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 80);
+  }, []);
 
   // Send a user message programmatically (used by choice cards)
   const sendChoiceMessage = useCallback(async (text: string) => {
@@ -580,7 +635,7 @@ export default function AIChatbox({
                         >
                           <div className={styles.chatboxCardContent}>
                             <span className={styles.chatboxCardTitle}>Expanding Knowledge</span>
-                            <span className={styles.chatboxCardDesc}>Future Personal Project · Add new</span>
+                            <span className={styles.chatboxCardDesc}>Planned Personal Project · Add new</span>
                           </div>
                           <div className={styles.chatboxCardArrow}><ArrowUp /></div>
                         </button>
@@ -650,7 +705,47 @@ export default function AIChatbox({
                         >
                           <div className={styles.chatboxCardContent}>
                             <span className={styles.chatboxCardTitle}>Expanding Knowledge</span>
-                            <span className={styles.chatboxCardDesc}>Future Professional Project · Add new</span>
+                            <span className={styles.chatboxCardDesc}>Planned Professional Project · Add new</span>
+                          </div>
+                          <div className={styles.chatboxCardArrow}><ArrowUp /></div>
+                        </button>
+                      </div>
+                    );
+
+                  // ── Navigate: Professional Step ──
+                  } else if (msg.action.type === 'navigate_to_professional_step') {
+                    cardElements.push(
+                      <div key={`${msg.id}-card`} className={styles.chatboxCardRow}>
+                        <button
+                          className={`${styles.chatboxCard}${isClicked ? ` ${styles.chatboxCardInactive}` : ''}`}
+                          disabled={isClicked}
+                          onClick={() => {
+                            dismissCard(msg.id);
+                            onNavigateToProfessionalStep?.();
+                          }}
+                        >
+                          <div className={styles.chatboxCardContent}>
+                            <span className={styles.chatboxCardTitle}>Add Work Experience</span>
+                          </div>
+                          <div className={styles.chatboxCardArrow}><ArrowUp /></div>
+                        </button>
+                      </div>
+                    );
+
+                  // ── Show Pricing Modal ──
+                  } else if (msg.action.type === 'show_pricing') {
+                    cardElements.push(
+                      <div key={`${msg.id}-card`} className={styles.chatboxCardRow}>
+                        <button
+                          className={`${styles.chatboxCard}${isClicked ? ` ${styles.chatboxCardInactive}` : ''}`}
+                          disabled={isClicked}
+                          onClick={() => {
+                            dismissCard(msg.id);
+                            onShowPricing?.();
+                          }}
+                        >
+                          <div className={styles.chatboxCardContent}>
+                            <span className={styles.chatboxCardTitle}>Plan Pricing</span>
                           </div>
                           <div className={styles.chatboxCardArrow}><ArrowUp /></div>
                         </button>
@@ -660,19 +755,26 @@ export default function AIChatbox({
                   // ── Choice: Project Type ──
                   } else if (msg.action.type === 'ask_project_type') {
                     const selected = msg.action.selectedChoice;
-                    const typeChoices = ['Personal Project', 'Work Experience', 'Research Project'];
+                    const typeRow1 = ['Personal Project', 'Side Project'];
+                    const typeRow2 = ['Work Project', 'Research Project'];
+                    const renderTypeCard = (label: string) => (
+                      <button
+                        key={label}
+                        className={`${styles.chatboxCard} ${styles.chatboxCardHalf}${selected ? ` ${styles.chatboxCardInactive}` : ''}`}
+                        disabled={!!selected}
+                        onClick={() => selectChoice(msg.id, label)}
+                      >
+                        <span className={styles.chatboxCardTitle}>{label}</span>
+                      </button>
+                    );
                     cardElements.push(
-                      <div key={`${msg.id}-type-row`} className={styles.chatboxCardRowTriple}>
-                        {typeChoices.map(label => (
-                          <button
-                            key={label}
-                            className={`${styles.chatboxCard} ${styles.chatboxCardThird}${selected ? ` ${styles.chatboxCardInactive}` : ''}`}
-                            disabled={!!selected}
-                            onClick={() => selectChoice(msg.id, label)}
-                          >
-                            <span className={styles.chatboxCardTitle}>{label}</span>
-                          </button>
-                        ))}
+                      <div key={`${msg.id}-type-row-1`} className={styles.chatboxCardRowDouble}>
+                        {typeRow1.map(renderTypeCard)}
+                      </div>
+                    );
+                    cardElements.push(
+                      <div key={`${msg.id}-type-row-2`} className={styles.chatboxCardRowDouble}>
+                        {typeRow2.map(renderTypeCard)}
                       </div>
                     );
 
@@ -855,6 +957,59 @@ export default function AIChatbox({
                         )}
                       </div>
                     );
+                  // ── Sanity Check Sequence ──
+                  } else if (msg.action.type === 'sanity_check_sequence' && msg.action.sanityData) {
+                    const { issues, currentIndex, matchedCount, animDir } = msg.action.sanityData;
+                    if (currentIndex < issues.length) {
+                      const issue = issues[currentIndex];
+                      const isLast = currentIndex === issues.length - 1;
+                      const isFirst = currentIndex === 0;
+                      const sevColor = issue.severity === 'High' ? '#EF9A9A' : issue.severity === 'Mid' ? '#9FA8DA' : '#FFCC80';
+                      const sevText = issue.severity === 'High' ? '#8B0000' : issue.severity === 'Mid' ? '#1a237e' : '#7c4700';
+                      const contentAnimClass = (animDir || 'next') === 'next'
+                        ? styles.sanitycheckContentNext
+                        : styles.sanitycheckContentBack;
+                      cardElements.push(
+                        <div key={`${msg.id}-sanity`} className={styles.sanitycheckCard}>
+                          <div
+                            key={`${msg.id}-content-${currentIndex}`}
+                            className={`${styles.sanitycheckContent} ${contentAnimClass}`}
+                          >
+                            <div className={styles.sanitycheckHeader}>
+                              <span className={styles.sanitycheckOrdinal}>{issue.ordinal} check</span>
+                              <span className={styles.sanitycheckBadge} style={{ background: sevColor, color: sevText }}>
+                                {issue.severity}
+                              </span>
+                              <span className={styles.sanitycheckCount}>{currentIndex + 1} / {matchedCount}</span>
+                            </div>
+                            <p className={styles.sanitycheckMessage}>{issue.message}</p>
+                          </div>
+                          <div className={styles.sanitycheckFooter}>
+                            <button
+                              className={`${styles.sanitycheckNavBtn} ${isFirst ? styles.sanitycheckNavBtnDisabled : ''}`}
+                              disabled={isFirst}
+                              onClick={() => retreatSanityCheck(msg.id)}
+                            >
+                              ← Back
+                            </button>
+                            <button
+                              className={styles.sanitycheckNavBtn}
+                              onClick={() => advanceSanityCheck(msg.id, () => {
+                                setTimeout(() => {
+                                  setMessages(prev => [...prev, {
+                                    id: Date.now().toString(),
+                                    role: 'assistant',
+                                    content: `Congratulations! You've reviewed all ${matchedCount} sanity check result${matchedCount !== 1 ? 's' : ''}. Keep up the great work improving your resume!`,
+                                  }]);
+                                }, 300);
+                              })}
+                            >
+                              {isLast ? 'Done ✓' : 'Next →'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
                   }
 
                   if (cardElements.length > 0) return [messageEl, ...cardElements];
@@ -897,7 +1052,7 @@ export default function AIChatbox({
           >
             {/* Pulsing online dot */}
             <span className={styles.chatboxTriggerDot} />
-            <span className={styles.chatboxTriggerLabel}>Ask to do</span>
+            <span className={styles.chatboxTriggerLabel}>Let's do it</span>
             {/* Arrow icon */}
             <span className={styles.chatboxTriggerArrow}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">

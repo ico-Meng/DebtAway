@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import React from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from '../dashboard.module.css';
 import { API_ENDPOINT } from '@/app/components/config';
@@ -238,6 +239,7 @@ interface ResumeSectionProps {
   cognitoSub?: string;
   onCraftLimitExceeded?: () => void;
   onDownloadLimitExceeded?: () => void;
+  onInjectChatMessage?: (message: string, action?: { type: string; sanityData?: { issues: Array<{ severity: 'High' | 'Mid' | 'Low'; ordinal: string; message: string }>; currentIndex: number; matchedCount: number } }) => void;
 }
 
 export default function ResumeSection({
@@ -271,7 +273,14 @@ export default function ResumeSection({
   cognitoSub,
   onCraftLimitExceeded,
   onDownloadLimitExceeded,
+  onInjectChatMessage,
 }: ResumeSectionProps) {
+  const [hoveredJobPosLabel, setHoveredJobPosLabel] = useState<string | null>(null);
+  const jobPosHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredIndustrySectorLabelKey, setHoveredIndustrySectorLabelKey] = useState<string | null>(null);
+  const industrySectorLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredKnowledgeScopeKey, setHoveredKnowledgeScopeKey] = useState<string | null>(null);
+  const knowledgeScopeHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [storedResumeFileName, setStoredResumeFileName] = useState<string | null>(null);
   const [showResumePage, setShowResumePage] = useState<boolean>(false);
@@ -299,12 +308,16 @@ export default function ResumeSection({
   const existingResumeCraftButtonRef = useRef<HTMLButtonElement>(null);
   
   // Tooltip state for download and analysis buttons
+  const [showDownloadFormatPopup, setShowDownloadFormatPopup] = useState<boolean>(false);
   const [showDownloadTooltip, setShowDownloadTooltip] = useState<boolean>(false);
   const [showAnalysisTooltip, setShowAnalysisTooltip] = useState<boolean>(false);
+  const [showSanityTooltip, setShowSanityTooltip] = useState<boolean>(false);
   const downloadTooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
   const downloadTooltipHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const analysisTooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
   const analysisTooltipHideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sanityTooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sanityTooltipHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [craftingCardIndex, setCraftingCardIndex] = useState<number>(0);
   const craftButtonRef = useRef<HTMLButtonElement>(null);
   const [isJobUrlBlockedFromExistingResume, setIsJobUrlBlockedFromExistingResume] = useState<boolean>(false);
@@ -3814,27 +3827,68 @@ export default function ResumeSection({
     }
   };
 
-  const handleDownloadResume = async () => {
-    const result = await generateResumePDF();
-    if (result === 'DOWNLOAD_LIMIT_EXCEEDED') {
-      onDownloadLimitExceeded?.();
-      return;
-    }
-    if (!result) {
-      alert('Failed to generate resume PDF. Please try again.');
-      return;
-    }
+  const handleDownloadResume = () => {
+    setShowDownloadFormatPopup(true);
+  };
 
-    // Download the PDF
+  const generateResumeTex = async (): Promise<{ blob: Blob; filename: string } | 'DOWNLOAD_LIMIT_EXCEEDED' | null> => {
+    try {
+      const projectsToInclude = getCurrentSavedProjects();
+      const resumeData = {
+        user_id: cognitoSub || '',
+        name: savedName,
+        contact: savedContactFields.map(f => ({ label: f.label, value: f.value })),
+        professional_experiences: savedProfessionalExperiences,
+        education: savedEducation,
+        projects: projectsToInclude,
+        skills: savedSkills,
+        achievements: savedAchievements
+      };
+      const response = await fetch(`${API_ENDPOINT}/generate_resume_tex`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resumeData)
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const result = await response.json();
+        if (result.error_code === 'DOWNLOAD_LIMIT_EXCEEDED') return 'DOWNLOAD_LIMIT_EXCEEDED';
+        return null;
+      }
+      const blob = await response.blob();
+      const filename = `${savedName.replace(/\s+/g, '_')}_Resume.tex`;
+      return { blob, filename };
+    } catch (error) {
+      console.error('Error generating resume .tex:', error);
+      return null;
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setShowDownloadFormatPopup(false);
+    const result = await generateResumePDF();
+    if (result === 'DOWNLOAD_LIMIT_EXCEEDED') { onDownloadLimitExceeded?.(); return; }
+    if (!result) { alert('Failed to generate resume PDF. Please try again.'); return; }
     const { blob, filename } = result;
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadTex = async () => {
+    setShowDownloadFormatPopup(false);
+    const result = await generateResumeTex();
+    if (result === 'DOWNLOAD_LIMIT_EXCEEDED') { onDownloadLimitExceeded?.(); return; }
+    if (!result) { alert('Failed to generate resume .tex file. Please try again.'); return; }
+    const { blob, filename } = result;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); window.URL.revokeObjectURL(url);
   };
 
   // Tooltip handlers for download button
@@ -3901,6 +3955,293 @@ export default function ResumeSection({
       analysisTooltipHideTimerRef.current = null;
     }
     setShowAnalysisTooltip(false);
+  };
+
+  // Tooltip handlers for sanity check button
+  const handleSanityButtonMouseEnter = () => {
+    if (sanityTooltipTimerRef.current) clearTimeout(sanityTooltipTimerRef.current);
+    if (sanityTooltipHideTimerRef.current) clearTimeout(sanityTooltipHideTimerRef.current);
+    sanityTooltipTimerRef.current = setTimeout(() => {
+      setShowSanityTooltip(true);
+      sanityTooltipHideTimerRef.current = setTimeout(() => setShowSanityTooltip(false), 3000);
+    }, 1000);
+  };
+
+  const handleSanityButtonMouseLeave = () => {
+    if (sanityTooltipTimerRef.current) { clearTimeout(sanityTooltipTimerRef.current); sanityTooltipTimerRef.current = null; }
+    if (sanityTooltipHideTimerRef.current) { clearTimeout(sanityTooltipHideTimerRef.current); sanityTooltipHideTimerRef.current = null; }
+    setShowSanityTooltip(false);
+  };
+
+  // Sanity check function — deterministic rule evaluation
+  const handleSanityCheck = () => {
+    const issues: Array<{ severity: 'High' | 'Mid' | 'Low'; ordinal: string; message: string }> = [];
+    let checkNum = 0;
+
+    const toOrdinal = (n: number): string => {
+      if (11 <= (n % 100) && (n % 100) <= 13) return `${n}th`;
+      return `${n}` + ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] || `${n}th`;
+    };
+
+    const addIssue = (severity: 'High' | 'Mid' | 'Low', message: string) => {
+      checkNum++;
+      issues.push({ severity, ordinal: toOrdinal(checkNum), message });
+    };
+
+    const hasLocationInDate = (dateStr: string): boolean => {
+      const trimmed = (dateStr || '').trim();
+      if (!trimmed) return false;
+      const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const firstWord = trimmed.split(/[\s,]/)[0].toLowerCase();
+      if (months.includes(firstWord)) return false;
+      if (/^\d{4}/.test(trimmed)) return false;
+      return true;
+    };
+
+    const hasDurationInDate = (dateStr: string): boolean => /\d{4}/.test(dateStr || '');
+
+    // ── HIGH SEVERITY ──
+    const emailField = savedContactFields.find(f => f.id === 'email' || f.label.toLowerCase().includes('email'));
+    const phoneField = savedContactFields.find(f => f.id === 'phone' || f.label.toLowerCase().includes('phone'));
+    const locationField = savedContactFields.find(f => f.id === 'location' || f.label.toLowerCase().includes('location') || f.label.toLowerCase().includes('address'));
+    const emailVal = emailField?.value?.trim() || '';
+    const phoneVal = phoneField?.value?.trim() || '';
+    const locationVal = locationField?.value?.trim() || '';
+
+    if (!savedName?.trim() || savedName === 'Your Name') {
+      addIssue('High', 'You are missing name at the top of the resume, please kindly add your name.');
+    }
+    if (!emailVal || emailVal === 'your.email@example.com') {
+      addIssue('High', 'You are missing email address in the resume, please kindly add your email address.');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      addIssue('High', 'Your email address format is invalid, please check and correct.');
+    }
+    if (!phoneVal || phoneVal === '+1 (555) 123-4567') {
+      addIssue('High', 'You are missing phone number in the resume, please kindly add your phone number.');
+    }
+    if (!locationVal || locationVal === 'City, State, Country') {
+      addIssue('High', 'You are missing home address in the resume, please kindly add your home address.');
+    }
+
+    // Row count
+    let rows = 2;
+    if (savedProfessionalExperiences.length > 0) {
+      rows += 1;
+      savedProfessionalExperiences.forEach(exp => {
+        rows += 1;
+        exp.jobTitles.forEach(jt => { rows += 1; rows += jt.bullets.filter(b => b?.trim()).length; });
+      });
+    }
+    if (savedEducation.length > 0) {
+      rows += 1;
+      savedEducation.forEach(edu => { rows += 1; edu.degrees.forEach(deg => { rows += 1; if (deg.description?.trim()) rows += 1; }); });
+    }
+    const allSavedProjects = [...savedProjectsEstablished, ...savedProjectsExpanding];
+    if (allSavedProjects.length > 0) {
+      rows += 1;
+      allSavedProjects.forEach(proj => { rows += 1; if (proj.description?.trim()) rows += 1; rows += proj.bullets.filter(b => b?.trim()).length; });
+    }
+    if (savedSkills.length > 0) rows += 1 + savedSkills.length;
+    if (rows > 65) {
+      addIssue('High', 'Your resume may be over one page, consider trimming lower-priority details to keep it concise.');
+    }
+
+    // Work experience location/duration
+    savedProfessionalExperiences.forEach(exp => {
+      exp.jobTitles.forEach(jt => {
+        if (jt.title && jt.title !== 'Job Title' && !hasLocationInDate(jt.date)) {
+          addIssue('High', `The work experience "${jt.title}" at "${exp.company}" is missing a location city, please add it.`);
+        }
+      });
+    });
+    savedEducation.forEach(edu => {
+      if (edu.university && edu.university !== 'University Name' && !hasLocationInDate(edu.date)) {
+        addIssue('High', `The education at "${edu.university}" is missing a location city, please add it.`);
+      }
+    });
+    allSavedProjects.forEach(proj => {
+      if (proj.name && proj.name !== 'Project Name' && proj.name !== 'Another Project' && !hasLocationInDate(proj.date)) {
+        addIssue('High', `The project "${proj.name}" is missing a location city, please add it.`);
+      }
+    });
+    savedProfessionalExperiences.forEach(exp => {
+      exp.jobTitles.forEach(jt => {
+        if (jt.title && jt.title !== 'Job Title' && !hasDurationInDate(jt.date)) {
+          addIssue('High', `The work experience "${jt.title}" at "${exp.company}" is missing a duration, please add it.`);
+        }
+      });
+    });
+    savedEducation.forEach(edu => {
+      if (edu.university && edu.university !== 'University Name' && !hasDurationInDate(edu.date)) {
+        addIssue('High', `The education at "${edu.university}" is missing a duration, please add it.`);
+      }
+    });
+    allSavedProjects.forEach(proj => {
+      if (proj.name && proj.name !== 'Project Name' && proj.name !== 'Another Project' && !hasDurationInDate(proj.date)) {
+        addIssue('High', `The project "${proj.name}" is missing a duration, please add it.`);
+      }
+    });
+
+    const hasRealEdu = savedEducation.some(e => e.university && e.university !== 'University Name');
+    if (!hasRealEdu) addIssue('High', "Your resume doesn't include any education experience, please add at least one education experience.");
+
+    const hasRealProj = allSavedProjects.some(p => p.name && p.name !== 'Project Name' && p.name !== 'Another Project');
+    const hasWorkBullets = savedProfessionalExperiences.some(exp => exp.jobTitles.some(jt => jt.bullets.some(b => b?.trim())));
+    if (!hasRealProj && !hasWorkBullets) {
+      addIssue('High', "Your resume doesn't include any project experience, please add at least one project experience to demonstrate your professional skills.");
+    }
+
+    // Text checks — exclude internal PROJECT_HEADER_PREFIX markers from all checks.
+    // proj.description is intentionally excluded: AI-generated projects store overview_content in
+    // both description AND bullets[0], so including it here always causes a false duplicate positive.
+    const allTexts: string[] = [];
+    savedProfessionalExperiences.forEach(exp => exp.jobTitles.forEach(jt => jt.bullets.forEach(b => {
+      if (b?.trim() && !b.trim().startsWith(PROJECT_HEADER_PREFIX)) allTexts.push(b);
+    })));
+    allSavedProjects.forEach(proj => {
+      proj.bullets.forEach(b => { if (b?.trim() && !b.trim().startsWith(PROJECT_HEADER_PREFIX)) allTexts.push(b); });
+    });
+    savedEducation.forEach(edu => edu.degrees.forEach(deg => { if (deg.description?.trim()) allTexts.push(deg.description); }));
+
+    const spaceSentences = allTexts.filter(b => / {2,}/.test(b));
+    if (spaceSentences.length > 0) {
+      addIssue('High', `The following text has multiple continuous spaces, please remove the duplicated ones: "${spaceSentences[0].trim()}"`);
+    }
+
+    const incompleteEnds = ['the', 'a', 'an', 'of', 'in', 'at', 'for', 'and', 'but', 'or', 'with', 'to', 'by', 'from', 'on', 'that'];
+    const incompleteSentences = allTexts.filter(b => {
+      const t = b.trim();
+      if (t.endsWith(',') || t.endsWith(';') || t.endsWith(':')) return true;
+      const lastWord = t.split(/\s+/).pop()?.toLowerCase() || '';
+      return incompleteEnds.includes(lastWord) && t.split(/\s+/).length > 3;
+    });
+    if (incompleteSentences.length > 0) {
+      addIssue('High', `The following sentence appears to be incomplete, please complete it: "${incompleteSentences[0].trim()}"`);
+    }
+
+    const syntaxErrors = allTexts.filter(b => {
+      const t = b.trim();
+      if (/[.,!?]{2,}/.test(t)) return true;
+      if (/\bi [a-z]/.test(t)) return true;
+      if ((t.match(/\(/g) || []).length !== (t.match(/\)/g) || []).length) return true;
+      return false;
+    });
+    if (syntaxErrors.length > 0) {
+      addIssue('High', `There's a syntax error in the following sentence, please correct it. Consider revising: "${syntaxErrors[0].trim()}"`);
+    }
+
+    const seenTexts = new Set<string>();
+    const dupeTexts: string[] = [];
+    allTexts.forEach(b => {
+      const trimmed = b.trim();
+      // Skip internal project-name markers and short phrases (<20 chars) to avoid false positives
+      if (trimmed.startsWith(PROJECT_HEADER_PREFIX)) return;
+      if (trimmed.length < 20) return;
+      const lower = trimmed.toLowerCase();
+      if (seenTexts.has(lower)) { if (!dupeTexts.includes(trimmed)) dupeTexts.push(trimmed); }
+      else seenTexts.add(lower);
+    });
+    if (dupeTexts.length > 0) {
+      addIssue('High', `The following sentence is duplicated in the resume, please remove the duplicate: "${dupeTexts[0]}"`);
+    }
+
+    savedEducation.forEach(edu => {
+      if (!edu.university?.trim() || edu.university === 'University Name') {
+        addIssue('High', 'One of the education experiences is missing a college name, please add it.');
+      }
+      edu.degrees.forEach(deg => {
+        if (!deg.degree?.trim() || deg.degree === 'Degree Name') {
+          addIssue('High', `The education at "${edu.university}" is missing a college degree, please add it.`);
+        }
+      });
+    });
+
+    // ── MID SEVERITY ──
+    const hasCoursework = savedEducation.some(edu =>
+      edu.degrees.some(deg => /coursework|course work|courses/i.test(deg.description || ''))
+    );
+    if (!hasCoursework && hasRealEdu) {
+      addIssue('Mid', "Recommend to have some coursework listed for the college major, which doesn't have the coursework.");
+    }
+
+    savedContactFields.forEach(field => {
+      const lowerLabel = (field.label || '').toLowerCase();
+      const isLink = lowerLabel.includes('link') || lowerLabel.includes('website') || lowerLabel.includes('github') || lowerLabel.includes('portfolio') || lowerLabel.includes('linkedin');
+      if (isLink && (field.value || '').trim().length > 35) {
+        addIssue('Mid', `The link "${field.label}: ${field.value.trim()}" is too long (over 35 characters), recommend to use a shorter URL.`);
+      }
+    });
+
+    allSavedProjects.forEach(proj => {
+      if (!proj.name || proj.name === 'Project Name' || proj.name === 'Another Project') return;
+      const techFromArr = proj.technologies?.length || 0;
+      const techBullet = proj.bullets.find(b => /^technologies?\s*:/i.test(b));
+      const techFromBullet = techBullet ? techBullet.replace(/^technologies?\s*:\s*/i, '').split(/[,;]/).filter(t => t.trim()).length : 0;
+      const techCount = Math.max(techFromArr, techFromBullet);
+      if (techCount > 0 && techCount < 4) {
+        const techStr = techBullet || (proj.technologies?.join(', ') || '');
+        addIssue('Mid', `The project "${proj.name}" has fewer than 4 technologies listed (${techStr}), recommend adding more technical keywords to demonstrate your skills in the project.`);
+      }
+    });
+
+    allSavedProjects.forEach(proj => {
+      if (!proj.name || proj.name === 'Project Name' || proj.name === 'Another Project') return;
+      proj.bullets.forEach(bullet => {
+        if (!bullet?.trim()) return;
+        const wc = bullet.trim().split(/\s+/).length;
+        if (wc > 30) {
+          addIssue('Mid', `The project "${proj.name}" has a bullet point with ${wc} words, recommend shortening it or splitting it into multiple: "${bullet.trim()}"`);
+        }
+      });
+    });
+
+    const skillKeywordCount: Record<string, number> = {};
+    savedSkills.forEach(skill => {
+      (skill.keywords || '').split(/[,;]/).forEach(kw => {
+        const norm = kw.trim().toLowerCase();
+        if (norm) skillKeywordCount[norm] = (skillKeywordCount[norm] || 0) + 1;
+      });
+    });
+    const dupeSkills = Object.entries(skillKeywordCount).filter(([, c]) => c > 1).map(([k]) => k);
+    if (dupeSkills.length > 0) {
+      addIssue('Mid', `The following keywords appear multiple times in your technical skill section, recommend removing duplicates: ${dupeSkills.slice(0, 3).join(', ')}.`);
+    }
+
+    allSavedProjects.forEach(proj => {
+      if (!proj.name || proj.name === 'Project Name' || proj.name === 'Another Project') return;
+      const techs = (proj.technologies || []).map(t => t.toLowerCase());
+      const techCount: Record<string, number> = {};
+      techs.forEach(t => { techCount[t] = (techCount[t] || 0) + 1; });
+      const dupes = Object.entries(techCount).filter(([, c]) => c > 1).map(([t]) => t);
+      if (dupes.length > 0) {
+        addIssue('Mid', `The project "${proj.name}" has duplicate technical keywords in its bullet points. Recommend listing unique technical keywords: ${dupes.join(', ')}.`);
+      }
+    });
+
+    allSavedProjects.forEach(proj => {
+      if (!proj.name || proj.name === 'Project Name' || proj.name === 'Another Project') return;
+      const bulletCount = proj.bullets.filter(b => b?.trim()).length;
+      if (bulletCount > 5) {
+        addIssue('Mid', `The project "${proj.name}" has ${bulletCount} bullet points. Recommend having less than 4 bullet points for a project.`);
+      }
+    });
+
+    // ── LOW SEVERITY ──
+    const hasGPA = savedEducation.some(edu => edu.degrees.some(deg => /gpa/i.test(deg.description || '')));
+    if (!hasGPA && hasRealEdu) {
+      addIssue('Low', "Recommend to have GPA if it's over 3.5.");
+    }
+
+    // Send results
+    const matchedCount = issues.length;
+    if (matchedCount === 0) {
+      onInjectChatMessage?.('Great news! Your resume passed all sanity checks. It looks complete and well-structured — keep up the excellent work!');
+      return;
+    }
+    onInjectChatMessage?.(
+      `Sanity check complete! Found ${matchedCount} issue${matchedCount !== 1 ? 's' : ''} to review. Click "Next →" to go through each one:`,
+      { type: 'sanity_check_sequence', sanityData: { issues, currentIndex: 0, matchedCount } }
+    );
   };
 
   // Handle navigation to Analysis page with auto-populated data
@@ -4112,12 +4453,15 @@ export default function ResumeSection({
         <div className={`${styles.sectionContent} ${styles.companyTypeSectionContent}`}>
           <h2 className={styles.companyTypePageTitle}>From Existing Resume</h2>
           <p className={styles.companyTypePageDescription}>
-            Choose either your interested industry sector or job position, and upload your existing resume.
+            Build your resume around your goal and your existing resume.
           </p>
 
           <div className={styles.companyTypeForm}>
             <div className={styles.formField}>
-              <label className={styles.formLabel}>Interested Job Position</label>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('existing'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+                <span>Interested Job Position</span>
+                <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'existing' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'existing' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+              </label>
               {jobUrlFetchFailed ? (
                 <>
                   <textarea
@@ -4302,7 +4646,10 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField}>
-              <label className={styles.formLabel}>Interested Industry Sector</label>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('existing-form'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                <span>Interested Industry Sector</span>
+                <button type="button" aria-label="Interested Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'existing-form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'existing-form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+              </label>
               <div className={styles.customDropdown} ref={companyTypeDropdownRef}>
                 <button
                   ref={companyTypeDropdownTriggerRef}
@@ -4440,7 +4787,7 @@ export default function ResumeSection({
                     </div>
                     <div className={styles.resumeUploadContent}>
                       <span className={styles.resumeUploadTitle}>
-                        {resumeFile ? resumeFile.name : storedResumeFileName || 'Upload Resume'}
+                        {resumeFile ? resumeFile.name : storedResumeFileName || 'Upload resume for crafting'}
                       </span>
                       <span className={styles.resumeUploadSubtitle}>
                         {resumeFile
@@ -4450,6 +4797,11 @@ export default function ResumeSection({
                             : 'PDF, DOC, or DOCX (Max 10MB)'}
                       </span>
                     </div>
+                    {isExistingResumeCrafting && (
+                      <div className={styles.slidingLightContainer}>
+                        <div className={styles.slidingLightDot}></div>
+                      </div>
+                    )}
                     {(resumeFile || storedResumeFileName) && (
                       <button
                         type="button"
@@ -4634,12 +4986,15 @@ export default function ResumeSection({
         <div ref={knowledgeBaseSectionContentRef} className={`${styles.sectionContent} ${styles.companyTypeSectionContent}`}>
           <h2 className={styles.companyTypePageTitle}>From Knowledge Base</h2>
           <p className={styles.companyTypePageDescription}>
-            Choose either your interested industry sector or job position, along with knowledge scope to generate your resume.
+          Build your resume around your goal and your knowledge base.
           </p>
 
           <div className={styles.companyTypeForm}>
             <div className={styles.formField}>
-              <label className={styles.formLabel}>Interested Job Position</label>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('knowledge'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+                <span>Interested Job Position</span>
+                <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'knowledge' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'knowledge' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+              </label>
               {jobUrlFetchFailed ? (
                 <>
                   <textarea
@@ -4828,7 +5183,10 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField}>
-              <label className={styles.formLabel}>Interested Industry Sector</label>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('knowledge-form'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                <span>Interested Industry Sector</span>
+                <button type="button" aria-label="Interested Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'knowledge-form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'knowledge-form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+              </label>
               <div className={styles.customDropdown} ref={companyTypeDropdownRef}>
                 <button
                   ref={companyTypeDropdownTriggerRef}
@@ -4898,7 +5256,10 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField} style={{ position: 'relative', overflow: 'visible' }}>
-              <label className={styles.formLabel}>Knowledge Scope</label>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); setHoveredKnowledgeScopeKey('form'); }} onMouseLeave={() => { knowledgeScopeHideTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey(null), 2000); }}>
+                <span>Knowledge Scope</span>
+                <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Tailor your resume using the items you've selected from your knowledge scope, including your projects and skills.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredKnowledgeScopeKey === 'form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredKnowledgeScopeKey === 'form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+              </label>
               <div className={styles.knowledgeScopeCheckboxes}>
                 <div
                   className={styles.establishedExpertiseContainer}
@@ -5145,7 +5506,7 @@ export default function ResumeSection({
                       <div className={styles.projectSelectionPopupContent}>
                         <div className={`${styles.projectSelectionSection} ${styles.projectSelectionSectionPersonal}`}>
                           <div className={styles.projectSelectionSectionHeader}>
-                            <h3 className={styles.projectSelectionSectionTitle}>Future Personal Project</h3>
+                            <h3 className={styles.projectSelectionSectionTitle}>Planned Personal Project</h3>
                             <span className={styles.projectSelectionCount}>
                               {selectedFuturePersonalProjectIds.size}/4
                             </span>
@@ -5172,7 +5533,7 @@ export default function ResumeSection({
                         </div>
                         <div className={`${styles.projectSelectionSection} ${styles.projectSelectionSectionProfessional}`}>
                           <div className={styles.projectSelectionSectionHeader}>
-                            <h3 className={styles.projectSelectionSectionTitle}>Future Professional Project</h3>
+                            <h3 className={styles.projectSelectionSectionTitle}>Planned Professional Project</h3>
                             <span className={styles.projectSelectionCount}>
                               {selectedFutureProfessionalProjectIds.size}/4
                             </span>
@@ -5199,7 +5560,7 @@ export default function ResumeSection({
                         </div>
                         <div className={`${styles.projectSelectionSection} ${styles.projectSelectionSectionTechnical}`}>
                           <div className={styles.projectSelectionSectionHeader}>
-                            <h3 className={styles.projectSelectionSectionTitle}>Future Technical Skills</h3>
+                            <h3 className={styles.projectSelectionSectionTitle}>Planned Technical Skills</h3>
                             <span className={styles.projectSelectionCount}>
                               {selectedFutureTechnicalSkillIds.size}/20
                             </span>
@@ -5358,6 +5719,19 @@ export default function ResumeSection({
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
               type="button"
+              className={`${styles.resumeSanityButton} ${showSanityTooltip ? styles.tooltipVisible : ''}`}
+              onClick={handleSanityCheck}
+              onMouseEnter={handleSanityButtonMouseEnter}
+              onMouseLeave={handleSanityButtonMouseLeave}
+              aria-label="Sanity Check"
+              data-tooltip="Sanity Check"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="currentColor">
+                <path d="M200-200v-560 454-85 191Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v320h-80v-320H200v560h280v80H200Zm494 40L552-222l57-56 85 85 170-170 56 57L694-80ZM348.5-451.5Q360-463 360-480t-11.5-28.5Q337-520 320-520t-28.5 11.5Q280-497 280-480t11.5 28.5Q303-440 320-440t28.5-11.5Zm0-160Q360-623 360-640t-11.5-28.5Q337-680 320-680t-28.5 11.5Q280-657 280-640t11.5 28.5Q303-600 320-600t28.5-11.5ZM440-440h240v-80H440v80Zm0-160h240v-80H440v80Z"/>
+              </svg>
+            </button>
+            <button
+              type="button"
               className={`${styles.resumeDownloadButton} ${showDownloadTooltip ? styles.tooltipVisible : ''}`}
               onClick={handleDownloadResume}
               onMouseEnter={handleDownloadButtonMouseEnter}
@@ -5375,6 +5749,42 @@ export default function ResumeSection({
                 <path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/>
               </svg>
             </button>
+            {showDownloadFormatPopup && createPortal(
+              <div className={styles.downloadFormatOverlay} onClick={() => setShowDownloadFormatPopup(false)}>
+                <div className={styles.downloadFormatPopup} onClick={e => e.stopPropagation()}>
+                  <button className={styles.downloadFormatClose} onClick={() => setShowDownloadFormatPopup(false)} aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </button>
+                  <div className={styles.downloadFormatHeader}>
+                    <p className={styles.downloadFormatTitle}>Download Resume</p>
+                    <p className={styles.downloadFormatSubtitle}>Select your preferred format</p>
+                  </div>
+                  <div className={styles.downloadFormatButtons}>
+                    <button className={styles.downloadFormatBtn} onClick={handleDownloadTex} title="Download LaTeX source (.tex)">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+                      </svg>
+                      <div className={styles.downloadFormatBtnLabel}>
+                        <span className={styles.downloadFormatBtnExt}>.tex</span>
+                        <span className={styles.downloadFormatBtnDesc}>LaTeX source</span>
+                      </div>
+                    </button>
+                    <button className={styles.downloadFormatBtn} onClick={handleDownloadPdf} title="Download PDF">
+                      <svg width="40" height="40" viewBox="0 -960 960 960" fill="currentColor">
+                        <path d="M360-460h40v-80h40q17 0 28.5-11.5T480-580v-40q0-17-11.5-28.5T440-660h-80v200Zm40-120v-40h40v40h-40Zm120 120h80q17 0 28.5-11.5T640-500v-120q0-17-11.5-28.5T600-660h-80v200Zm40-40v-120h40v40h-40Zm120 40h40v-80h40v-40h-40v-40h40v-40h-80v200ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z"/>
+                      </svg>
+                      <div className={styles.downloadFormatBtnLabel}>
+                        <span className={styles.downloadFormatBtnExt}>.pdf</span>
+                        <span className={styles.downloadFormatBtnDesc}>PDF document</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
             <button
               type="button"
               className={`${styles.resumeAnalysisButton} ${showAnalysisTooltip ? styles.tooltipVisible : ''}`}
@@ -5418,7 +5828,10 @@ export default function ResumeSection({
                   {/* Show Interested Job Position when industry sector is selected */}
                   {(resumeMode === 'existing' ? interestedJobPositionFromExistingResume : interestedJobPositionFromKnowledgeBase) && (
                     <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                      <label className={styles.resumeLeftLabel}>Interested Job Position</label>
+                      <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('display'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+                        <span>Interested Job Position</span>
+                        <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'display' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'display' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                      </label>
                       <div className={styles.resumeLeftDisplayText}>
                         {activeJobData ? (
                           <>
@@ -5435,7 +5848,10 @@ export default function ResumeSection({
                   )}
                   {/* Industry Sector - Read-only display */}
                   <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                    <label className={styles.resumeLeftLabel}>Industry Sector</label>
+                    <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('display-readonly'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                      <span>Industry Sector</span>
+                      <button type="button" aria-label="Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'display-readonly' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'display-readonly' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                    </label>
                     <div className={styles.resumeLeftDisplayText}>
                       <div className={styles.resumeLeftJobTitle}>
                         {companyTypeOptions.find(opt => opt.value === industrySector)?.label || industrySector}
@@ -5461,7 +5877,10 @@ export default function ResumeSection({
                 </div>
               ) : (
                 <div className={styles.resumeLeftField}>
-                  <label className={styles.resumeLeftLabel}>Industry Sector</label>
+                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('display-dropdown'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                    <span>Industry Sector</span>
+                    <button type="button" aria-label="Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'display-dropdown' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'display-dropdown' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                  </label>
                   <div className={styles.customDropdown} ref={resumeLeftCompanyTypeDropdownRef}>
                     <button
                       ref={resumeLeftCompanyTypeDropdownTriggerRef}
@@ -5593,7 +6012,7 @@ export default function ResumeSection({
                         </div>
                         <div className={styles.resumeLeftUploadContent}>
                           <span className={styles.resumeLeftUploadTitle}>
-                            {resumeFile ? resumeFile.name : storedResumeFileName || 'Upload Resume'}
+                            {resumeFile ? resumeFile.name : storedResumeFileName || 'Upload resume for craft'}
                           </span>
                           {!resumeFile && !storedResumeFileName && (
                             <span className={styles.resumeLeftUploadSubtitle}>
@@ -5610,7 +6029,10 @@ export default function ResumeSection({
               {/* Knowledge scope selection for "From Knowledge Base" mode */}
               {resumeMode === 'industry' && (
                 <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                  <label className={styles.resumeLeftLabel}>Knowledge Scope</label>
+                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); setHoveredKnowledgeScopeKey('panel'); }} onMouseLeave={() => { knowledgeScopeHideTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey(null), 2000); }}>
+                    <span>Knowledge Scope</span>
+                    <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Tailor your resume using the items you've selected from your knowledge scope, including your projects and skills.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredKnowledgeScopeKey === 'panel' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredKnowledgeScopeKey === 'panel' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                  </label>
                   <div className={styles.resumeLeftDisplayText}>
                     {[
                       knowledgeScope.establishedExpertise && 'Established Expertise',
@@ -7494,6 +7916,12 @@ export default function ResumeSection({
                                   {group.bullets.map((bullet, idx) => (
                                     <li key={idx}>
                                       <textarea
+                                        ref={(el) => {
+                                          if (el) {
+                                            el.style.height = 'auto';
+                                            el.style.height = `${el.scrollHeight}px`;
+                                          }
+                                        }}
                                         className={styles.resumeBulletInput}
                                         value={bullet}
                                         readOnly
@@ -7723,6 +8151,12 @@ export default function ResumeSection({
                         {bullets.map((bullet: string, idx: number) => (
                           <li key={idx}>
                             <textarea
+                              ref={(el) => {
+                                if (el) {
+                                  el.style.height = 'auto';
+                                  el.style.height = `${el.scrollHeight}px`;
+                                }
+                              }}
                               className={styles.resumeBulletInput}
                               value={bullet}
                               readOnly

@@ -15,7 +15,7 @@ from aws_lambda_powertools import Logger
 from decimal import Decimal
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, Query, HTTPException, File, UploadFile, Form, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response, JSONResponse
 from mangum import Mangum  # type: ignore
 import asyncio
 from pydantic import BaseModel
@@ -4900,7 +4900,6 @@ async def generate_resume_pdf(
         download_count = int(usage_item.get('download_count', 0))
 
         if plan == 'free' and download_count >= 3:
-            from fastapi.responses import JSONResponse
             return JSONResponse(content={
                 "status": "error",
                 "error_code": "DOWNLOAD_LIMIT_EXCEEDED",
@@ -4945,6 +4944,51 @@ async def generate_resume_pdf(
             status_code=500,
             detail=f"Error generating resume PDF: {str(e)}"
         )
+
+
+@app.post("/generate_resume_tex")
+async def generate_resume_tex(request: GenerateResumePDFRequest):
+    """Return the LaTeX .tex source file used to generate the resume PDF."""
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table = dynamodb.Table('ambit-dashboard-application-data')
+        timestamp = datetime.utcnow().isoformat()
+
+        sub_response = table.get_item(Key={'PK': request.user_id, 'SK': 'SUBSCRIPTION'})
+        plan = sub_response.get('Item', {}).get('plan', 'free')
+
+        usage_response = table.get_item(Key={'PK': request.user_id, 'SK': 'USAGE'})
+        usage_item = usage_response.get('Item')
+
+        if not usage_item:
+            usage_item = {'PK': request.user_id, 'SK': 'USAGE', 'craft_count': 0,
+                          'analysis_count': 0, 'download_count': 0,
+                          'createdAt': timestamp, 'updatedAt': timestamp}
+            table.put_item(Item=usage_item)
+
+        download_count = int(usage_item.get('download_count', 0))
+        if plan == 'free' and download_count >= 3:
+            return JSONResponse(content={"status": "error",
+                                         "error_code": "DOWNLOAD_LIMIT_EXCEEDED",
+                                         "message": "Free plan download limit reached."})
+
+        table.update_item(
+            Key={'PK': request.user_id, 'SK': 'USAGE'},
+            UpdateExpression='SET download_count = if_not_exists(download_count, :zero) + :inc, updatedAt = :ts',
+            ExpressionAttributeValues={':inc': 1, ':zero': 0, ':ts': timestamp}
+        )
+
+        latex_content = generate_latex_content(request)
+        safe_filename = request.name.replace(' ', '_').replace('/', '_')
+
+        return Response(
+            content=latex_content.encode('utf-8'),
+            media_type="application/x-tex",
+            headers={"Content-Disposition": f'attachment; filename="{safe_filename}_Resume.tex"'}
+        )
+    except Exception as e:
+        logger.error(f"Error generating resume .tex: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating resume .tex: {str(e)}")
 
 
 @app.post("/get_bullet_points_from_project_source")
@@ -5143,11 +5187,34 @@ RESUME_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "show_pricing",
+            "description": (
+                "Use this when the user asks about plans, pricing, cost, subscription, upgrade, or feature access. "
+                "Trigger examples: 'What plans do you have?', 'What's the price for pro?', 'What does the free plan include?', "
+                "'What does the pro plan include?', 'How can I upgrade?', 'My usage is blocked', "
+                "'How many free uses do I get?', 'Do I have unlimited usage?'. "
+                "Always call this tool — never describe pricing in plain text."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": "A short intro line before the pricing card appears (e.g. 'Here's an overview of our plans.'). Keep it under 15 words."
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ask_project_type",
             "description": (
                 "Use this in STEP 1 of the project analysis flow to ask the user what kind of project "
                 "they want to analyze. Always call this tool — never ask as plain text. "
-                "The UI will present three clickable cards: Personal Project, Work Experience, Research Project."
+                "The UI will present four clickable cards: Personal Project, Side Project, Work Project, Research Project."
             ),
             "parameters": {
                 "type": "object",
@@ -5218,7 +5285,7 @@ RESUME_TOOLS = [
                 "Use this when the user has confirmed they want to analyze a personal project "
                 "that is planned for the future (not yet started) — to generate bullet points, "
                 "find technologies, tools, or technical keywords for that project. Navigate them to "
-                "Knowledge Base > Expanding Knowledge Base > Future Personal Project and create a new project page."
+                "Knowledge Base > Expanding Knowledge Base > Planned Personal Project and create a new project page."
             ),
             "parameters": {
                 "type": "object",
@@ -5227,7 +5294,7 @@ RESUME_TOOLS = [
                         "type": "string",
                         "description": (
                             "A warm, concise reply (1-2 sentences) confirming you're taking them to "
-                            "the Expanding Knowledge Base > Future Personal Project page to add a new project. "
+                            "the Expanding Knowledge Base > Planned Personal Project page to add a new project. "
                             "Then ask them to provide the project URL or paste the project details "
                             "so you can generate the best description."
                         )
@@ -5272,7 +5339,7 @@ RESUME_TOOLS = [
                 "Use this when the user has confirmed they want to analyze a professional or work-related "
                 "project that is planned for the future (not yet started) — to generate bullet points, "
                 "find technologies, tools, or technical keywords for that project. Navigate them to "
-                "Knowledge Base > Expanding Knowledge Base > Future Professional Project and create a new project page."
+                "Knowledge Base > Expanding Knowledge Base > Planned Professional Project and create a new project page."
             ),
             "parameters": {
                 "type": "object",
@@ -5281,7 +5348,7 @@ RESUME_TOOLS = [
                         "type": "string",
                         "description": (
                             "A warm, concise reply (1-2 sentences) confirming you're taking them to "
-                            "the Expanding Knowledge Base > Future Professional Project page to add a new project. "
+                            "the Expanding Knowledge Base > Planned Professional Project page to add a new project. "
                             "Then ask them to provide the project URL or paste the project details "
                             "so you can generate the best description."
                         )
@@ -5362,6 +5429,9 @@ async def ai_chat(request: Request):
                     "RESUME CRAFTING:\n"
                     "- User wants to improve/polish/fix their resume → use navigate_to_existing_resume.\n"
                     "- User wants to craft/create/generate a resume from knowledge base → use navigate_to_knowledge_base_resume.\n\n"
+                    "PLAN PRICING:\n"
+                    "- User asks about plans, pricing, cost, subscription, upgrade, feature access, usage limits, or how to unblock a feature → use show_pricing.\n"
+                    "- Never answer pricing questions in plain text — always use the show_pricing tool.\n\n"
                     "PROJECT ANALYSIS FLOW (follow steps in order, never skip):\n"
                     "Trigger this flow when the user asks about ANY of the following:\n"
                     "• How to write project bullet points or project descriptions\n"
@@ -5373,10 +5443,10 @@ async def ai_chat(request: Request):
                     "STEP 1 — Use ask_project_type tool (never ask as plain text).\n"
                     "STEP 2 — Use ask_project_status tool (never ask as plain text).\n"
                     "STEP 3 — Use matching navigation tool based on the user's card selections:\n"
-                    "  Personal Project + In Progress/Completed → navigate_to_established_personal_project\n"
-                    "  Personal Project + Planning Ahead → navigate_to_expanding_personal_project\n"
-                    "  Work Experience or Research Project + In Progress/Completed → navigate_to_established_professional_project\n"
-                    "  Work Experience or Research Project + Planning Ahead → navigate_to_expanding_professional_project\n"
+                    "  Personal Project or Side Project + In Progress/Completed → navigate_to_established_personal_project\n"
+                    "  Personal Project or Side Project + Planning Ahead → navigate_to_expanding_personal_project\n"
+                    "  Work Project, Work Experience, or Research Project + In Progress/Completed → navigate_to_established_professional_project\n"
+                    "  Work Project, Work Experience, or Research Project + Planning Ahead → navigate_to_expanding_professional_project\n"
                     "STEP 4 — Ask: 'Share a project URL or paste the project details.'\n"
                     "STEP 5 — User provides URL or details → use analyze_project tool.\n\n"
                     "Do NOT call a navigation tool before STEP 1 and STEP 2 are both answered."
@@ -5556,3 +5626,347 @@ async def ai_chat(request: Request):
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
+
+
+# ── Resume Sanity Check ──────────────────────────────────────────────────────
+
+class SanityContactField(BaseModel):
+    label: str
+    value: str
+
+class SanityJobTitle(BaseModel):
+    title: str
+    date: str
+    bullets: List[str]
+
+class SanityExperience(BaseModel):
+    company: str
+    job_titles: List[SanityJobTitle]
+
+class SanityDegree(BaseModel):
+    degree: str
+    description: str
+
+class SanityEducation(BaseModel):
+    university: str
+    date: str
+    degrees: List[SanityDegree]
+
+class SanityProject(BaseModel):
+    name: str
+    date: str
+    description: str
+    bullets: List[str]
+    technologies: List[str] = []
+
+class SanitySkill(BaseModel):
+    topic: str
+    keywords: str
+
+class ResumeSanityCheckRequest(BaseModel):
+    name: str
+    contact_fields: List[SanityContactField]
+    professional_experiences: List[SanityExperience]
+    education: List[SanityEducation]
+    projects_established: List[SanityProject]
+    projects_expanding: List[SanityProject]
+    skills: List[SanitySkill]
+
+
+def _format_resume_for_sanity(req: ResumeSanityCheckRequest) -> str:
+    lines = []
+    lines.append(f"NAME: {req.name}")
+    lines.append("")
+    lines.append("CONTACT FIELDS:")
+    for f in req.contact_fields:
+        lines.append(f"  {f.label}: {f.value}")
+    lines.append("")
+
+    if req.professional_experiences:
+        lines.append("PROFESSIONAL EXPERIENCE:")
+        for exp in req.professional_experiences:
+            lines.append(f"  Company: {exp.company}")
+            for jt in exp.job_titles:
+                lines.append(f"    Job Title: {jt.title}")
+                lines.append(f"    Date/Location Field: {jt.date}")
+                for b in jt.bullets:
+                    if b.strip():
+                        lines.append(f"      - {b}")
+        lines.append("")
+
+    if req.education:
+        lines.append("EDUCATION:")
+        for edu in req.education:
+            lines.append(f"  University: {edu.university}")
+            lines.append(f"  Date/Location Field: {edu.date}")
+            for deg in edu.degrees:
+                lines.append(f"    Degree: {deg.degree}")
+                if deg.description.strip():
+                    lines.append(f"    Description: {deg.description}")
+        lines.append("")
+
+    all_projects = req.projects_established + req.projects_expanding
+    if all_projects:
+        lines.append("PROJECTS:")
+        for proj in all_projects:
+            lines.append(f"  Project Name: {proj.name}")
+            lines.append(f"  Date/Location Field: {proj.date}")
+            if proj.description.strip():
+                lines.append(f"  Description: {proj.description}")
+            if proj.technologies:
+                lines.append(f"  Technologies Array: {', '.join(proj.technologies)}")
+            for b in proj.bullets:
+                if b.strip():
+                    lines.append(f"    - {b}")
+        lines.append("")
+
+    if req.skills:
+        lines.append("SKILLS:")
+        for sk in req.skills:
+            lines.append(f"  {sk.topic}: {sk.keywords}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+_SANITY_RULES_PROMPT = """
+Evaluate the resume against ALL of the following rules. For each rule that IS triggered (the issue exists), include it in the output JSON.
+Only include rules that are actually triggered. Be specific — mention the exact name, company, text, or section involved.
+
+HIGH SEVERITY RULES:
+H1. NAME_MISSING: Name is blank, 'Your Name', or any obvious placeholder. → "You are missing name at the top of the resume, please kindly add your name."
+H2. EMAIL_MISSING: Email contact field is blank or placeholder (e.g. 'your.email@example.com'). → "You are missing email address in the resume, please kindly add your email address."
+H3. EMAIL_INVALID: Email exists but lacks @ or domain (invalid format). → "Your email address format is invalid, please check and correct."
+H4. PHONE_MISSING: Phone field is blank or placeholder like '+1 (555) 123-4567'. → "You are missing phone number in the resume, please kindly add your phone number."
+H5. LOCATION_MISSING: Location/address field is blank or placeholder like 'City, State, Country'. → "You are missing home address in the resume, please kindly add your home address."
+H6. RESUME_TOO_LONG: Estimate if content would exceed one page (many sections, 10+ bullet points across all work/projects). → "Your resume may be over one page, consider trimming lower-priority details to keep it concise."
+H7. WORK_EXP_MISSING_LOCATION: For each job title whose Date/Location field does NOT contain any character string text. → "The work experience '{title}' at '{company}' is missing a location city, please add it." (one issue per affected job)
+H8. EDUCATION_MISSING_LOCATION: Education Date/Location field has no text string. → "The education at '{university}' is missing a location city, please add it."
+H9. PROJECT_MISSING_LOCATION: Project Date/Location field has no text string. → "The project '{name}' is missing a location city, please add it."
+H10. WORK_EXP_MISSING_DURATION: Job title Date/Location field has no year (no 4-digit year). → "The work experience '{title}' at '{company}' is missing a duration, please add it."
+H11. EDUCATION_MISSING_DURATION: Education Date/Location has no year (no 4-digit year). → "The education at '{university}' is missing a duration, please add it."
+H12. PROJECT_MISSING_DURATION: Project Date/Location has no year (no 4-digit year). → "The project '{name}' is missing a duration, please add it."
+H13. NO_EDUCATION: No non-placeholder education entries exist. → "Your resume doesn't include any education experience, please add at least one education experience."
+H14. NO_PROJECTS_AND_NO_WORK_BULLETS: No real projects exist AND no work experience bullet points exist. → "Your resume doesn't include any project experience, please add at least one project experience to demonstrate your professional skills."
+H15. DOUBLE_SPACES: Any bullet or description has 2+ consecutive spaces. → "The following text has multiple continuous spaces, please remove the duplicated ones: '{snippet}'"
+H16. INCOMPLETE_SENTENCE: A bullet ends with a preposition (of, in, at, for, to, by, on, from), conjunction (and, but, or), comma, semicolon, or colon. → "The following sentence appears to be incomplete, please complete it: '{sentence}'"
+H17. SYNTAX_ERROR: A bullet has double punctuation (.., !!, ??), lowercase standalone 'i', incompleted sentence, or mismatched parentheses. → "There's a syntax error in the following sentence, please correct it. Consider revising: '{sentence}'"
+H19. EDUCATION_MISSING_COLLEGE_NAME: A university field is blank or a placeholder ('University Name'). → "One of the education experiences is missing a college name, please add it."
+H20. EDUCATION_MISSING_DEGREE: A degree field is blank or placeholder ('Degree Name'). → "The education at '{university}' is missing a college degree, please add it."
+
+MID SEVERITY RULES:
+M1. NO_COURSEWORK: Real education exists but no degree description mentions 'coursework', 'course work', or 'courses'. → "Recommend to have some coursework listed for the college major, which doesn't have the coursework."
+M2. LINK_TOO_LONG: A link-type contact field (label contains link/website/github/portfolio/linkedin) has value longer than 35 characters. → "The link '{label}: {value}' is too long (over 35 characters), recommend to use a shorter URL."
+M3. PROJECT_FEW_TECHNOLOGIES: A project has some technologies listed (in Technologies Array or bullets) but fewer than 4 total. → "The project '{name}' has fewer than 4 technologies listed ({tech_list}), recommend adding more technical keywords to demonstrate your skills in the project."
+M4. PROJECT_BULLET_TOO_LONG: A project bullet point has more than 30 words. → "The project '{name}' has a bullet point with {N} words, recommend shortening it or splitting it into multiple: '{bullet}'"
+M5. DUPLICATE_SKILLS: A keyword appears more than once across all skill entries. → "The following keywords appear multiple times in your technical skill section, recommend removing duplicates: {keywords}."
+M6. PROJECT_DUPLICATE_TECHNOLOGIES: A project's Technologies Array has repeated items. → "The project '{name}' has duplicate technical keywords in its bullet points. Recommend listing unique technical keywords: {dupes}."
+M7. PROJECT_TOO_MANY_BULLETS: A project has more than 5 non-empty bullets. → "The project '{name}' has {N} bullet points. Recommend having less than 4 bullet points for a project."
+
+LOW SEVERITY RULES:
+L1. NO_GPA: Real education exists but no degree description mentions 'GPA'. → "Recommend to have GPA if it's over 3.5."
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+{"issues": [{"severity": "High", "message": "..."}, ...]}
+"""
+
+
+def _to_ordinal(n: int) -> str:
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+@app.post("/resume-sanity-check")
+async def resume_sanity_check(request: ResumeSanityCheckRequest):
+    try:
+        resume_text = _format_resume_for_sanity(request)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": _SANITY_RULES_PROMPT},
+                {"role": "user", "content": f"Resume data:\n{resume_text}"},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0,
+        )
+
+        raw = json.loads(response.choices[0].message.content)
+        raw_issues = raw.get("issues", [])
+
+        formatted = [
+            {
+                "severity": issue.get("severity", "Mid"),
+                "ordinal": _to_ordinal(i + 1),
+                "message": issue.get("message", ""),
+            }
+            for i, issue in enumerate(raw_issues)
+            if issue.get("message", "").strip()
+        ]
+
+        return {"issues": formatted, "matched_count": len(formatted)}
+
+    except Exception as e:
+        logger.error(f"Error in resume_sanity_check: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error processing sanity check: {str(e)}")
+
+
+# ambitology
+@app.get("/get_usage/{cognito_sub}")
+async def get_usage(cognito_sub: str):
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table = dynamodb.Table('ambit-dashboard-application-data')
+        response = table.get_item(Key={'PK': cognito_sub, 'SK': 'USAGE'})
+        item = response.get('Item', {})
+        return {
+            "craft_count": int(item.get('craft_count', 0)),
+            "analysis_count": int(item.get('analysis_count', 0)),
+            "download_count": int(item.get('download_count', 0)),
+        }
+    except Exception as e:
+        logger.error(f"Error in get_usage: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching usage: {str(e)}")
+
+
+# ambitology
+@app.post("/get_payment_history")
+async def get_payment_history(request: Request):
+    try:
+        data = await request.json()
+        email = data.get('email', '').strip().lower()
+        cognito_sub = data.get('cognito_sub', '').strip()
+        if not email and not cognito_sub:
+            raise HTTPException(status_code=400, detail="email or cognito_sub is required")
+
+        original_key = stripe.api_key
+        stripe.api_key = STRIPE_SECRET_KEY_AMBITOLOGY
+        try:
+            customer_id = None
+
+            # Strategy 1: look up customer by exact email
+            if email:
+                customers = stripe.Customer.list(email=email, limit=10)
+                if customers.data:
+                    customer_id = customers.data[0].id
+                    logger.info(f"Found Stripe customer {customer_id} by email")
+
+            # Strategy 2: search recent checkout sessions by cognito_sub metadata
+            if not customer_id and cognito_sub:
+                sessions = stripe.checkout.Session.list(limit=100)
+                for session in sessions.auto_paging_iter():
+                    meta = session.get('metadata') or {}
+                    if meta.get('cognito_sub') == cognito_sub and session.get('customer'):
+                        customer_id = session['customer']
+                        logger.info(f"Found Stripe customer {customer_id} via checkout session metadata")
+                        break
+
+            if not customer_id:
+                logger.info(f"No Stripe customer found for email={email} cognito_sub={cognito_sub}")
+                return {"payments": [], "subscription": None}
+
+            # Fetch invoices (main payment history source for subscriptions)
+            invoices = stripe.Invoice.list(customer=customer_id, limit=50, expand=['data.subscription'])
+            payments = []
+            for inv in invoices.data:
+                # Build a human-readable description with fallbacks
+                description = None
+                if inv.get('description'):
+                    description = inv['description']
+                elif inv.lines and inv.lines.data:
+                    line = inv.lines.data[0]
+                    description = line.get('description') or None
+                if not description:
+                    description = "Ambitology Subscription"
+
+                amount = inv.get('amount_paid') or inv.get('amount_due') or 0
+                payments.append({
+                    "id": inv.id,
+                    "amount": amount,
+                    "currency": inv.get('currency', 'usd'),
+                    "status": inv.get('status', 'unknown'),
+                    "date": inv.get('created', 0),
+                    "description": description,
+                    "invoice_url": inv.get('hosted_invoice_url'),
+                    "invoice_pdf": inv.get('invoice_pdf'),
+                })
+
+            # Sort by date descending (most recent first)
+            payments.sort(key=lambda p: p['date'], reverse=True)
+
+            # Get subscription info — check both active and trialing; also include
+            # subscriptions with cancel_at_period_end set (still technically active)
+            subscription_info = None
+            for status in ('active', 'trialing', 'past_due'):
+                subs = stripe.Subscription.list(customer=customer_id, status=status, limit=1)
+                if subs.data:
+                    sub = subs.data[0]
+                    sub_dict = sub if isinstance(sub, dict) else sub.to_dict_recursive() if hasattr(sub, 'to_dict_recursive') else dict(sub)
+                    subscription_info = {
+                        "id": sub_dict.get("id"),
+                        "status": sub_dict.get("status"),
+                        "current_period_end": sub_dict.get("current_period_end"),
+                        "cancel_at_period_end": sub_dict.get("cancel_at_period_end", False),
+                    }
+                    break
+
+            return {"payments": payments, "subscription": subscription_info}
+        finally:
+            stripe.api_key = original_key
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_payment_history: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching payment history: {str(e)}")
+
+
+# ambitology
+@app.post("/cancel_subscription")
+async def cancel_subscription(request: Request):
+    try:
+        data = await request.json()
+        email = data.get('email', '')
+        cognito_sub = data.get('cognito_sub', '')
+        if not email:
+            raise HTTPException(status_code=400, detail="email is required")
+
+        original_key = stripe.api_key
+        stripe.api_key = STRIPE_SECRET_KEY_AMBITOLOGY
+        stripe_cancelled = False
+        try:
+            customers = stripe.Customer.list(email=email, limit=5)
+            if customers.data:
+                customer_id = customers.data[0].id
+                subscriptions = stripe.Subscription.list(customer=customer_id, status='active', limit=1)
+                if subscriptions.data:
+                    sub_id = subscriptions.data[0].id
+                    stripe.Subscription.modify(sub_id, cancel_at_period_end=True)
+                    stripe_cancelled = True
+        finally:
+            stripe.api_key = original_key
+
+        # Always update DynamoDB plan to 'free' and mark cancellation
+        if cognito_sub:
+            dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+            table = dynamodb.Table('ambit-dashboard-application-data')
+            table.update_item(
+                Key={'PK': cognito_sub, 'SK': 'SUBSCRIPTION'},
+                UpdateExpression='SET #p = :free, cancel_at_period_end = :v',
+                ExpressionAttributeNames={'#p': 'plan'},
+                ExpressionAttributeValues={':free': 'free', ':v': True}
+            )
+
+        msg = "Subscription cancelled at period end" if stripe_cancelled else "Plan downgraded to free"
+        return {"status": "success", "message": msg}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in cancel_subscription: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error cancelling subscription: {str(e)}")

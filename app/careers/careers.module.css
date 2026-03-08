@@ -1,0 +1,321 @@
+/* Careers Page */
+
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: #faf9f6;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== HEADER ===== */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(250, 249, 246, 0.88);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.headerInner {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: 1.25rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.875rem;
+  font-weight: 800;
+  font-family: var(--font-orbitron), 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-decoration: none;
+  background: linear-gradient(
+    135deg,
+    #6B5344 0%,
+    #8B6914 20%,
+    #C4A052 45%,
+    #BBA870 55%,
+    #C4A052 70%,
+    #8B6914 85%,
+    #6B5344 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.logoIcon {
+  width: 3rem;
+  height: auto;
+  -webkit-text-fill-color: initial;
+  flex-shrink: 0;
+}
+
+.backLink {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #9B6A10;
+}
+
+/* ===== HERO ===== */
+
+.hero {
+  background: linear-gradient(160deg, #faf9f6 0%, #f3ede0 50%, #faf9f6 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 6rem 2rem 5rem;
+}
+
+.heroInner {
+  max-width: 60rem;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(196, 160, 82, 0.15), rgba(155, 106, 16, 0.12));
+  border: 1px solid rgba(196, 160, 82, 0.35);
+  color: #8B6914;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.4rem 1rem;
+  border-radius: 100px;
+}
+
+.heroHeading {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.heroSubheading {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #5a5a5a;
+  max-width: 52rem;
+  margin: 0;
+}
+
+/* ===== JOBS SECTION ===== */
+
+.jobsSection {
+  flex: 1;
+  padding: 5rem 2rem 6rem;
+}
+
+.jobsInner {
+  max-width: 84rem;
+  margin: 0 auto;
+}
+
+.sectionTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.4rem;
+}
+
+.sectionSub {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0 0 2.5rem;
+}
+
+.jobsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ===== JOB CARD ===== */
+
+.jobCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 1rem;
+  padding: 1.75rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  gap: 1.25rem;
+}
+
+.jobCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(155, 106, 16, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: rgba(196, 160, 82, 0.4);
+}
+
+.jobCardTop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.jobBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 100px;
+}
+
+.badgeFullTime {
+  background: rgba(196, 160, 82, 0.14);
+  color: #7a5210;
+  border: 1px solid rgba(196, 160, 82, 0.3);
+}
+
+.badgeInternship {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.badgeLevel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 0.25rem 0.65rem;
+  border-radius: 100px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.jobTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.jobDesc {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ===== CARD BOTTOM ===== */
+
+.jobCardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.applyLink {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #9B6A10;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: gap 0.2s ease;
+}
+
+.jobCard:hover .applyLink {
+  gap: 0.55rem;
+}
+
+/* ===== FOOTER ===== */
+
+.footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 640px) {
+  .headerInner {
+    padding: 1rem 1.25rem;
+  }
+
+  .hero {
+    padding: 4rem 1.25rem 3.5rem;
+  }
+
+  .jobsSection {
+    padding: 3rem 1.25rem 4rem;
+  }
+
+  .jobsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -30,6 +30,7 @@ interface AnalysisSectionProps {
   onNavigateToProfile?: () => void;
   onNavigateToKnowledge?: () => void;
   onAnalysisLimitExceeded?: () => void;
+  onInjectChatMessage?: (message: string) => void;
 }
 
 // Job input type detection
@@ -74,6 +75,7 @@ export default function AnalysisSection({
   onNavigateToProfile,
   onNavigateToKnowledge,
   onAnalysisLimitExceeded,
+  onInjectChatMessage,
 }: AnalysisSectionProps) {
   const [analysisKnowledgeScope, setAnalysisKnowledgeScope] = useState<{
     establishedExpertise: boolean;
@@ -107,6 +109,10 @@ export default function AnalysisSection({
   const [fetchedJobData, setFetchedJobData] = useState<FetchedJobData | null>(null);
   const [isCheckmarkFadingOut, setIsCheckmarkFadingOut] = useState<boolean>(false);
   const [showJobTooltipAuto, setShowJobTooltipAuto] = useState<boolean>(false);
+  const [isTargetJobLabelHovered, setIsTargetJobLabelHovered] = useState(false);
+  const targetJobLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isKnowledgeScopeLabelHovered, setIsKnowledgeScopeLabelHovered] = useState(false);
+  const knowledgeScopeLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isTooltipHovered, setIsTooltipHovered] = useState<boolean>(false);
   const [currentTipIndex, setCurrentTipIndex] = useState<number>(() => Math.floor(Math.random() * RESUME_TIPS.length));
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -944,7 +950,10 @@ export default function AnalysisSection({
           <div className={styles.analysisLeftLower}>
             <div className={styles.basicInfoSubPanel}>
               <div className={styles.formField}>
-                <label className={styles.formLabel}>Target Job Position</label>
+                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (targetJobLabelHideTimer.current) clearTimeout(targetJobLabelHideTimer.current); setIsTargetJobLabelHovered(true); }} onMouseLeave={() => { targetJobLabelHideTimer.current = setTimeout(() => setIsTargetJobLabelHovered(false), 2000); }}>
+                  <span>Target Job Position</span>
+                  <button type="button" aria-label="Target Job Position info" onClick={() => onInjectChatMessage?.("To begin your career fit analysis, share your target role in one of the following ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for a more accurate analysis.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isTargetJobLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isTargetJobLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                </label>
                 <div 
                   className={styles.jobUrlInputWrapper}
                   onMouseEnter={() => {
@@ -1102,7 +1111,10 @@ export default function AnalysisSection({
               </div>
 
               <div className={styles.formField}>
-                <label className={styles.formLabel}>Knowledge Scope</label>
+                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeLabelHideTimer.current) clearTimeout(knowledgeScopeLabelHideTimer.current); setIsKnowledgeScopeLabelHovered(true); }} onMouseLeave={() => { knowledgeScopeLabelHideTimer.current = setTimeout(() => setIsKnowledgeScopeLabelHovered(false), 2000); }}>
+                  <span>Knowledge Scope</span>
+                  <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Start your career fit analysis using your selected knowledge scope to evaluate your personal capabilities.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isKnowledgeScopeLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isKnowledgeScopeLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+                </label>
                 <div className={styles.knowledgeScopeCheckboxes}>
                   <label className={styles.presentCheckboxLabel}>
                     <input
@@ -1224,7 +1236,7 @@ export default function AnalysisSection({
                             ? analysisResumeFile.name
                             : cachedResumeFileName
                             ? cachedResumeFileName
-                            : 'Upload Resume'}
+                            : 'Upload resume for analysis'}
                         </span>
                         <span className={styles.resumeUploadSubtitle}>
                           {analysisResumeFile

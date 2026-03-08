@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Comfortaa, Orbitron, Lato, Nunito, Plus_Jakarta_Sans } from "next/font/google";
 import "./app.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 const comfortaa = Comfortaa({ 
   subsets: ["latin"],
   weight: ["600", "700"],

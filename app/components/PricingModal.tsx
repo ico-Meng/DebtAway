@@ -102,12 +102,14 @@ export default function PricingModal({ isOpen, onClose, cognitoSub, email }: Pri
                 <p className={styles.planSubtitle}>To unleash your full potential by building knowledge base and 1-click AI resume craft and career power analysis.</p>
               </div>
               <ul className={styles.planFeatures}>
-                <li>Basic use case to build personal profile</li>
-                <li>Unlimited knowledge base build up for established and expanding scope</li>
-                <li>Unlimited existing resume edit</li>
-                <li>Up to 3 times intelligent resume craft</li>
+                <li>Unlimited profile and knowledge AI auto-fill</li>
+                <li>Unlimited AI agent knowledge base build up</li>
+                <li>Unlimited AI mentoring chat, trained on hiring insights + real-industryexperience</li>
+                <li>Unlimited AI agent actions to build and expand your knowledge base (and beyond)</li>
+                <li>Unlimited resume sanity checks + improvement advice</li>
+                <li>Up to 3 times AI resume craft: Tailored from your resume or knowledge base</li>
+                <li>Up to 3 times smart resume download for LaTex and PDF formats</li>
                 <li>Up to 3 times personal capability and resume power analysis</li>
-                <li>Up to 3 times smart download</li>
               </ul>
             </div>
             <div className={`${styles.planCard} ${styles.planCardPro}`}>
@@ -117,10 +119,9 @@ export default function PricingModal({ isOpen, onClose, cognitoSub, email }: Pri
               </div>
               <ul className={styles.planFeatures}>
                 <li>Everything in Free plan</li>
-                <li>Unlimited intelligent resume craft</li>
-                <li>Unlimited smart download</li>
+                <li>Unlimited AI resume craft: Tailored from your resume or knowledge base</li>
+                <li>Unlimited smart resume download for LaTex and PDF formats</li>
                 <li>Unlimited personal capability and resume power analysis</li>
-                <li>Unlimited AI powered career consulting chat regarding to your knowledge base (Coming soon)</li>
               </ul>
             </div>
           </div>

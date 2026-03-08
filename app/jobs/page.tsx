@@ -586,7 +586,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a technology startup specializing in delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, offers expert coaching and career development support for aspiring professionals in the tech industry.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
@@ -653,7 +653,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a technology startup specializing in delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, offers expert coaching and career development support for aspiring professionals in the tech industry.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
@@ -724,7 +724,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a technology startup specializing in delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, offers expert coaching and career development support for aspiring professionals in the tech industry.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
@@ -787,7 +787,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a technology startup specializing in delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, offers expert coaching and career development support for aspiring professionals in the tech industry.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
@@ -861,7 +861,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a fast-growing technology startup specializing in delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, provides expert coaching and career development support for aspiring professionals in the tech industry. We leverage data to drive product innovation, optimize user experiences, and help clients achieve career success.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
@@ -936,7 +936,7 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                                                 <div className={styles.jobSection}>
                                                     <h5 className={styles.sectionHeading}>Company Description</h5>
                                                     <p className={styles.sectionText}>
-                                                        Ambit Technology Group, LLC is a fast-growing technology startup delivering high-end career coaching solutions powered by AI, Cloud Computing, and PaaS technology. Our flagship platform, Career Landing Group, provides expert coaching and career development support for aspiring professionals in the tech industry. We rely on data science and machine learning to power insights, personalize user experiences, and drive impactful outcomes for our clients.
+                                                        Ambit Technology Group, LLC is a technology-driven company specializing in premium career coaching solutions enabled by AI, cloud computing, and PaaS technologies. Our flagship platform, Ambitology, utilizes AI agents to deliver end-to-end career support, helping young professionals navigate the job market and succeed in the AI era.
                                                     </p>
                                                 </div>
 
