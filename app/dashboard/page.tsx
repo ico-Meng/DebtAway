@@ -4555,6 +4555,9 @@ export default function DashboardPage() {
                       } catch (error) {
                         console.error("Logout error:", error);
                       }
+                      // Hard redirect to landing page — runs if signOutRedirect
+                      // didn't navigate away (e.g. Cognito logout_uri misconfigured)
+                      window.location.href = '/';
                     }}
                   >
                     <svg
