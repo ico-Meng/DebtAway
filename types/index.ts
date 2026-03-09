@@ -180,7 +180,7 @@ export async function signOutRedirect(): Promise<void> {
   // but the user will already be logged out locally
   const clientId = "1ff46n1liq6r0nlaets9m02grr";
   const logoutUri = window.location.origin; // No trailing slash - MUST match Cognito config exactly
-  const cognitoDomain = "https://us-east-1omje8blbk.auth.us-east-1.amazoncognito.com";
+  const cognitoDomain = "https://auth.ambitology.com";
   
   // Build logout URL
   // Note: logout_uri MUST be registered in Cognito App Client settings under "Sign-out URLs"
