@@ -239,6 +239,7 @@ interface ResumeSectionProps {
   cognitoSub?: string;
   onCraftLimitExceeded?: () => void;
   onDownloadLimitExceeded?: () => void;
+  careerFocus?: string;
   onInjectChatMessage?: (message: string, action?: { type: string; sanityData?: { issues: Array<{ severity: 'High' | 'Mid' | 'Low'; ordinal: string; message: string }>; currentIndex: number; matchedCount: number } }) => void;
 }
 
@@ -273,6 +274,7 @@ export default function ResumeSection({
   cognitoSub,
   onCraftLimitExceeded,
   onDownloadLimitExceeded,
+  careerFocus,
   onInjectChatMessage,
 }: ResumeSectionProps) {
   const [hoveredJobPosLabel, setHoveredJobPosLabel] = useState<string | null>(null);
@@ -281,6 +283,8 @@ export default function ResumeSection({
   const industrySectorLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredKnowledgeScopeKey, setHoveredKnowledgeScopeKey] = useState<string | null>(null);
   const knowledgeScopeHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isKnowledgeScopeGateHovered, setIsKnowledgeScopeGateHovered] = useState(false);
+  const knowledgeScopeGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [storedResumeFileName, setStoredResumeFileName] = useState<string | null>(null);
   const [showResumePage, setShowResumePage] = useState<boolean>(false);
@@ -359,10 +363,10 @@ export default function ResumeSection({
     establishedExpertise: boolean;
     expandingKnowledgeBase: boolean;
   }>({
-    establishedExpertise: true,
+    establishedExpertise: false,
     expandingKnowledgeBase: false,
   });
-  
+
   // Saved resume data state (what's displayed on the resume document)
   const [savedName, setSavedName] = useState('Your Name');
   const [savedContactFields, setSavedContactFields] = useState<ContactField[]>([
@@ -5260,11 +5264,18 @@ export default function ResumeSection({
                 <span>Knowledge Scope</span>
                 <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Tailor your resume using the items you've selected from your knowledge scope, including your projects and skills.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredKnowledgeScopeKey === 'form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredKnowledgeScopeKey === 'form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
+              <div
+                className={styles.careerFocusGateWrapper}
+                style={{ display: 'block' }}
+                onMouseEnter={() => { if (!careerFocus) { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); setIsKnowledgeScopeGateHovered(true); } }}
+                onMouseLeave={() => { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); knowledgeScopeGateHideTimer.current = setTimeout(() => setIsKnowledgeScopeGateHovered(false), 200); }}
+                onClick={() => { if (!careerFocus) onInjectChatMessage?.('To use the Knowledge Scope, please set your Career Focus first.', { type: 'navigate_to_career_focus' }); }}
+              >
               <div className={styles.knowledgeScopeCheckboxes}>
                 <div
                   className={styles.establishedExpertiseContainer}
                   onMouseEnter={() => {
-                    if (knowledgeScope.establishedExpertise) {
+                    if (knowledgeScope.establishedExpertise && careerFocus) {
                       // Clear any pending close timer
                       if (projectSelectionPopupTimerRef.current) {
                         clearTimeout(projectSelectionPopupTimerRef.current);
@@ -5289,6 +5300,7 @@ export default function ResumeSection({
                       type="checkbox"
                       className={styles.presentCheckbox}
                       checked={knowledgeScope.establishedExpertise}
+                      disabled={!careerFocus}
                       onChange={(e) =>
                         setKnowledgeScope({
                           ...knowledgeScope,
@@ -5453,6 +5465,7 @@ export default function ResumeSection({
                       type="checkbox"
                       className={styles.presentCheckbox}
                       checked={knowledgeScope.expandingKnowledgeBase}
+                      disabled={!careerFocus}
                       onChange={(e) =>
                         setKnowledgeScope({
                           ...knowledgeScope,
@@ -5589,6 +5602,10 @@ export default function ResumeSection({
                     </div>
                   )}
                 </div>
+              </div>
+              {isKnowledgeScopeGateHovered && !careerFocus && (
+                <div className={styles.careerFocusRequiredTooltip}>Please choose your Career Focus first.</div>
+              )}
               </div>
             </div>
           </div>

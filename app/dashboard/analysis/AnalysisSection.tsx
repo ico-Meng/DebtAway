@@ -30,7 +30,8 @@ interface AnalysisSectionProps {
   onNavigateToProfile?: () => void;
   onNavigateToKnowledge?: () => void;
   onAnalysisLimitExceeded?: () => void;
-  onInjectChatMessage?: (message: string) => void;
+  careerFocus?: string;
+  onInjectChatMessage?: (message: string, action?: { type: string }) => void;
 }
 
 // Job input type detection
@@ -75,13 +76,14 @@ export default function AnalysisSection({
   onNavigateToProfile,
   onNavigateToKnowledge,
   onAnalysisLimitExceeded,
+  careerFocus,
   onInjectChatMessage,
 }: AnalysisSectionProps) {
   const [analysisKnowledgeScope, setAnalysisKnowledgeScope] = useState<{
     establishedExpertise: boolean;
     expandingKnowledgeBase: boolean;
   }>({
-    establishedExpertise: true,
+    establishedExpertise: false,
     expandingKnowledgeBase: false,
   });
   const [analysisResumeFile, setAnalysisResumeFile] = useState<File | null>(null);
@@ -113,6 +115,8 @@ export default function AnalysisSection({
   const targetJobLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isKnowledgeScopeLabelHovered, setIsKnowledgeScopeLabelHovered] = useState(false);
   const knowledgeScopeLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isKnowledgeScopeGateHovered, setIsKnowledgeScopeGateHovered] = useState(false);
+  const knowledgeScopeGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isTooltipHovered, setIsTooltipHovered] = useState<boolean>(false);
   const [currentTipIndex, setCurrentTipIndex] = useState<number>(() => Math.floor(Math.random() * RESUME_TIPS.length));
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1115,11 +1119,19 @@ export default function AnalysisSection({
                   <span>Knowledge Scope</span>
                   <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Start your career fit analysis using your selected knowledge scope to evaluate your personal capabilities.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isKnowledgeScopeLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isKnowledgeScopeLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                 </label>
+                <div
+                  className={styles.careerFocusGateWrapper}
+                  style={{ display: 'block' }}
+                  onMouseEnter={() => { if (!careerFocus) { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); setIsKnowledgeScopeGateHovered(true); } }}
+                  onMouseLeave={() => { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); knowledgeScopeGateHideTimer.current = setTimeout(() => setIsKnowledgeScopeGateHovered(false), 200); }}
+                  onClick={() => { if (!careerFocus) onInjectChatMessage?.('To use the Knowledge Scope, please set your Career Focus first.', { type: 'navigate_to_career_focus' }); }}
+                >
                 <div className={styles.knowledgeScopeCheckboxes}>
                   <label className={styles.presentCheckboxLabel}>
                     <input
                       type="checkbox"
                       checked={analysisKnowledgeScope.establishedExpertise}
+                      disabled={!careerFocus}
                       onChange={(e) => {
                         const newScope = {
                           ...analysisKnowledgeScope,
@@ -1141,6 +1153,7 @@ export default function AnalysisSection({
                     <input
                       type="checkbox"
                       checked={analysisKnowledgeScope.expandingKnowledgeBase}
+                      disabled={!careerFocus}
                       onChange={(e) => {
                         const newScope = {
                           ...analysisKnowledgeScope,
@@ -1158,6 +1171,10 @@ export default function AnalysisSection({
                       Expanding Knowledge Base
                     </span>
                   </label>
+                </div>
+                {isKnowledgeScopeGateHovered && !careerFocus && (
+                  <div className={styles.careerFocusRequiredTooltip}>Please choose your Career Focus first.</div>
+                )}
                 </div>
               </div>
 

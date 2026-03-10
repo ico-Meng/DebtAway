@@ -2477,6 +2477,10 @@ export default function DashboardPage() {
   const prevCareerFocusRef = useRef<string>('');
   const [isCareerFocusHovered, setIsCareerFocusHovered] = useState(false);
   const careerFocusHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isEstablishedButtonGateHovered, setIsEstablishedButtonGateHovered] = useState(false);
+  const [isExpandingButtonGateHovered, setIsExpandingButtonGateHovered] = useState(false);
+  const establishedButtonGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandingButtonGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredProjDescKey, setHoveredProjDescKey] = useState<string | null>(null);
   const projDescHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredIndustrySectorKey, setHoveredIndustrySectorKey] = useState<string | null>(null);
@@ -6849,36 +6853,58 @@ export default function DashboardPage() {
                     Manage and organize your knowledge base assets and resources.
                   </p>
                   <div className={styles.knowledgeButtonContainer}>
-                    <button
-                      type="button"
-                      className={styles.knowledgeButton}
-                      onClick={() => {
-                        setShowEstablishedExpertise(true);
-                        // Only reset to first step if no step is currently set or if it's invalid
-                        // Otherwise, keep the current step (restored from localStorage)
-                        if (!activeExpertiseStep || !expertiseSteps.includes(activeExpertiseStep)) {
-                          setActiveExpertiseStep('Personal Project');
-                        }
-                      }}
-                      aria-label="Established Expertise"
+                    <div
+                      className={styles.careerFocusGateWrapper}
+                      onMouseEnter={() => { if (!careerFocus) { if (establishedButtonGateHideTimer.current) clearTimeout(establishedButtonGateHideTimer.current); setIsEstablishedButtonGateHovered(true); } }}
+                      onMouseLeave={() => { if (establishedButtonGateHideTimer.current) clearTimeout(establishedButtonGateHideTimer.current); establishedButtonGateHideTimer.current = setTimeout(() => setIsEstablishedButtonGateHovered(false), 200); }}
+                      onClick={() => { if (!careerFocus) setChatboxInject(prev => ({ text: 'To use the Knowledge Base, please set your Career Focus first.', seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_career_focus' } })); }}
                     >
-                      <span className={styles.knowledgeButtonText}>Established Expertise</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.knowledgeButton}
-                      onClick={() => {
-                        setShowExpandingKnowledgeBase(true);
-                        // Only reset to first step if no step is currently set or if it's invalid
-                        // Otherwise, keep the current step (restored from localStorage)
-                        if (!activeExpandingKnowledgeStep || !expandingKnowledgeSteps.includes(activeExpandingKnowledgeStep)) {
-                          setActiveExpandingKnowledgeStep('Planned Personal Project');
-                        }
-                      }}
-                      aria-label="Expanding Knowledge Base"
+                      <button
+                        type="button"
+                        className={`${styles.knowledgeButton}${!careerFocus ? ` ${styles.knowledgeButtonDisabled}` : ''}`}
+                        disabled={!careerFocus}
+                        onClick={() => {
+                          setShowEstablishedExpertise(true);
+                          // Only reset to first step if no step is currently set or if it's invalid
+                          // Otherwise, keep the current step (restored from localStorage)
+                          if (!activeExpertiseStep || !expertiseSteps.includes(activeExpertiseStep)) {
+                            setActiveExpertiseStep('Personal Project');
+                          }
+                        }}
+                        aria-label="Established Expertise"
+                      >
+                        <span className={styles.knowledgeButtonText}>Established Expertise</span>
+                      </button>
+                      {isEstablishedButtonGateHovered && !careerFocus && (
+                        <div className={styles.careerFocusRequiredTooltip}>Please choose your Career Focus first.</div>
+                      )}
+                    </div>
+                    <div
+                      className={styles.careerFocusGateWrapper}
+                      onMouseEnter={() => { if (!careerFocus) { if (expandingButtonGateHideTimer.current) clearTimeout(expandingButtonGateHideTimer.current); setIsExpandingButtonGateHovered(true); } }}
+                      onMouseLeave={() => { if (expandingButtonGateHideTimer.current) clearTimeout(expandingButtonGateHideTimer.current); expandingButtonGateHideTimer.current = setTimeout(() => setIsExpandingButtonGateHovered(false), 200); }}
+                      onClick={() => { if (!careerFocus) setChatboxInject(prev => ({ text: 'To use the Knowledge Base, please set your Career Focus first.', seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_career_focus' } })); }}
                     >
-                      <span className={styles.knowledgeButtonText}>Expanding Knowledge Base</span>
-                    </button>
+                      <button
+                        type="button"
+                        className={`${styles.knowledgeButton}${!careerFocus ? ` ${styles.knowledgeButtonDisabled}` : ''}`}
+                        disabled={!careerFocus}
+                        onClick={() => {
+                          setShowExpandingKnowledgeBase(true);
+                          // Only reset to first step if no step is currently set or if it's invalid
+                          // Otherwise, keep the current step (restored from localStorage)
+                          if (!activeExpandingKnowledgeStep || !expandingKnowledgeSteps.includes(activeExpandingKnowledgeStep)) {
+                            setActiveExpandingKnowledgeStep('Planned Personal Project');
+                          }
+                        }}
+                        aria-label="Expanding Knowledge Base"
+                      >
+                        <span className={styles.knowledgeButtonText}>Expanding Knowledge Base</span>
+                      </button>
+                      {isExpandingButtonGateHovered && !careerFocus && (
+                        <div className={styles.careerFocusRequiredTooltip}>Please choose your Career Focus first.</div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
@@ -15921,6 +15947,7 @@ onClick={() => {
                     }
                     setActiveSection('analyzer');
                   }}
+                  careerFocus={careerFocus}
                   cognitoSub={user?.profile?.sub}
                   onCraftLimitExceeded={() => {
                     setIsUpgradeModalOpen(true);
@@ -15963,7 +15990,8 @@ onClick={() => {
                     setShowAnalysisLimitToast(true);
                     setTimeout(() => setShowAnalysisLimitToast(false), 9000);
                   }}
-                  onInjectChatMessage={(message) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1 }))}
+                  careerFocus={careerFocus}
+                  onInjectChatMessage={(message, action) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1, ...(action ? { action: action as Record<string, unknown> } : {}) }))}
                 />
               )}
             </div>
@@ -16316,6 +16344,11 @@ onClick={() => {
         onNavigateToProfessionalStep={() => {
           setActiveSection('profile');
           setActiveProfileStep('Professional');
+        }}
+        onNavigateToCareerFocus={() => {
+          setActiveSection('profile');
+          setShowProfileIntro(false);
+          setActiveProfileStep('Career Focus');
         }}
         onShowPricing={() => setIsUpgradeModalOpen(true)}
         injectMessage={chatboxInject}

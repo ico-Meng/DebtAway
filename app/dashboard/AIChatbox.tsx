@@ -45,7 +45,8 @@ interface Message {
       | 'update_project_description'
       | 'ask_project_meta'
       | 'show_pricing'
-      | 'sanity_check_sequence';
+      | 'sanity_check_sequence'
+      | 'navigate_to_career_focus';
     data?: ProjectAnalysisData;
     choices?: string[];
     cardDismissed?: boolean;
@@ -80,6 +81,7 @@ interface AIChatboxProps {
   onUpdateProjectName?: (projectType: string, name: string) => void;
   onUpdateProjectIndustry?: (projectType: string, industry: string) => void;
   onNavigateToProfessionalStep?: () => void;
+  onNavigateToCareerFocus?: () => void;
   onShowPricing?: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   injectMessage?: { text: string; seq: number; action?: any } | null;
@@ -102,6 +104,7 @@ export default function AIChatbox({
   onUpdateProjectName,
   onUpdateProjectIndustry,
   onNavigateToProfessionalStep,
+  onNavigateToCareerFocus,
   onShowPricing,
   injectMessage,
 }: AIChatboxProps) {
@@ -726,6 +729,27 @@ export default function AIChatbox({
                         >
                           <div className={styles.chatboxCardContent}>
                             <span className={styles.chatboxCardTitle}>Add Work Experience</span>
+                          </div>
+                          <div className={styles.chatboxCardArrow}><ArrowUp /></div>
+                        </button>
+                      </div>
+                    );
+
+                  // ── Navigate: Career Focus ──
+                  } else if (msg.action.type === 'navigate_to_career_focus') {
+                    cardElements.push(
+                      <div key={`${msg.id}-card`} className={styles.chatboxCardRow}>
+                        <button
+                          className={`${styles.chatboxCard}${isClicked ? ` ${styles.chatboxCardInactive}` : ''}`}
+                          disabled={isClicked}
+                          onClick={() => {
+                            dismissCard(msg.id);
+                            onNavigateToCareerFocus?.();
+                          }}
+                        >
+                          <div className={styles.chatboxCardContent}>
+                            <span className={styles.chatboxCardTitle}>Set Career Focus</span>
+                            <span className={styles.chatboxCardDesc}>Profile · Career Focus</span>
                           </div>
                           <div className={styles.chatboxCardArrow}><ArrowUp /></div>
                         </button>
