@@ -408,3 +408,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .headerInner {
+    padding: 0.875rem 1rem;
+  }
+
+  .logo {
+    font-size: 1.375rem;
+  }
+
+  .logoIcon {
+    width: 2.25rem;
+  }
+
+  .hero {
+    padding: 3rem 1rem 2.5rem;
+  }
+
+  .content {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .diffSection {
+    padding: 2.5rem 1rem;
+  }
+}

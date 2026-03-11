@@ -431,6 +431,7 @@ export default function ResumeSection({
   const [collapsedJobTitleIds, setCollapsedJobTitleIds] = useState<string[]>([]);
   // Collapsed state for project groups (expId-jobTitleId-projectName)
   const [collapsedProjectGroupIds, setCollapsedProjectGroupIds] = useState<Set<string>>(new Set());
+  const [editingProjectNameKey, setEditingProjectNameKey] = useState<string | null>(null);
   // Collapsed state for education sections in the left panel
   const [collapsedEducationIds, setCollapsedEducationIds] = useState<string[]>([]);
   // Track if education section has been initialized (to collapse all except first)
@@ -833,6 +834,26 @@ export default function ResumeSection({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedName, savedContactFields, savedProfessionalExperiences, savedEducation, savedProjectsEstablished, savedProjectsExpanding, savedSkills, savedAchievements]);
 
+  // Keep the mode-specific localStorage cache current after any edit.
+  // This ensures that when the user later loads from cache (e.g. switches modes),
+  // they get the most recent data including in-session edits.
+  useEffect(() => {
+    if (!showResumePage || !resumeMode) return;
+    const cacheKey = resumeMode === 'existing' ? RESUME_CACHE_EXISTING_KEY : RESUME_CACHE_KB_KEY;
+    try {
+      const existing = localStorage.getItem(cacheKey);
+      const parsed = existing ? JSON.parse(existing) : {};
+      localStorage.setItem(cacheKey, JSON.stringify({
+        ...parsed,
+        savedName, savedContactFields, savedProfessionalExperiences, savedEducation,
+        savedProjectsEstablished, savedProjectsExpanding, savedSkills, savedAchievements,
+      }));
+    } catch { /* ignore storage errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedName, savedContactFields, savedProfessionalExperiences, savedEducation,
+      savedProjectsEstablished, savedProjectsExpanding, savedSkills, savedAchievements,
+      showResumePage, resumeMode]);
+
   // Save state whenever relevant state changes
   useEffect(() => {
     saveResumeState();
@@ -1065,6 +1086,39 @@ export default function ResumeSection({
         )
       } : exp
     ));
+  };
+
+  const updateProfessionalProjectName = (expId: string, jobTitleId: string, oldName: string, newName: string) => {
+    const oldHeader = `${PROJECT_HEADER_PREFIX}${oldName}`;
+    const newHeader = `${PROJECT_HEADER_PREFIX}${newName}`;
+    setProfessionalExperiences(prev => prev.map(exp =>
+      exp.id === expId ? {
+        ...exp,
+        jobTitles: exp.jobTitles.map(jt =>
+          jt.id === jobTitleId ? {
+            ...jt,
+            bullets: jt.bullets.map(bullet => bullet === oldHeader ? newHeader : bullet),
+            projectTechnologies: jt.projectTechnologies
+              ? Object.fromEntries(
+                  Object.entries(jt.projectTechnologies).map(([name, tech]) =>
+                    name === oldName ? [newName, tech] : [name, tech]
+                  )
+                )
+              : undefined,
+          } : jt
+        )
+      } : exp
+    ));
+    // Migrate the collapse-state key to the new name
+    const oldKey = `${expId}-${jobTitleId}-${oldName}`;
+    const newKey = `${expId}-${jobTitleId}-${newName}`;
+    setCollapsedProjectGroupIds(prev => {
+      if (!prev.has(oldKey)) return prev;
+      const next = new Set(prev);
+      next.delete(oldKey);
+      next.add(newKey);
+      return next;
+    });
   };
 
   const removeProfessionalExperience = (expId: string) => {
@@ -3211,6 +3265,27 @@ export default function ResumeSection({
     }
   }, [showCompanyTypePage, resumeMode]);
 
+  // Update URL to reflect current resume sub-page
+  useEffect(() => {
+    if (showResumePage) {
+      const path = resumeMode === 'existing'
+        ? '/dashboard/resume/existing-resume/resume_document'
+        : '/dashboard/resume/knowledge-base/resume_document';
+      window.history.replaceState(null, '', path);
+    } else if (showCompanyTypePage) {
+      window.history.replaceState(null, '', '/dashboard/resume/knowledge-base');
+    } else if (showExistingResumePage) {
+      window.history.replaceState(null, '', '/dashboard/resume/existing-resume');
+    } else {
+      window.history.replaceState(null, '', '/dashboard');
+    }
+  }, [showResumePage, showCompanyTypePage, showExistingResumePage, resumeMode]);
+
+  // Reset URL to /dashboard on unmount (user navigated away from resume section)
+  useEffect(() => {
+    return () => { window.history.replaceState(null, '', '/dashboard'); };
+  }, []);
+
   // Auto-select first 4 projects from each section and first 20 technical skills when Established Expertise is checked
   useEffect(() => {
     if (knowledgeScope.establishedExpertise) {
@@ -3780,22 +3855,36 @@ export default function ResumeSection({
 
   // Generate PDF and return blob and filename (without downloading)
   // Returns 'DOWNLOAD_LIMIT_EXCEEDED' when free plan quota is used up
+  // Always collect the most up-to-date data visible in the resume document.
+  // Mirrors the document display logic: use the live editing state for the
+  // section currently open, saved state for everything else.
+  const getDownloadResumePayload = () => {
+    const resolvedName = editingSection === 'name' ? name : savedName;
+    const resolvedContact = (editingSection === 'contact' ? contactFields : savedContactFields)
+      .map(f => ({ label: f.label, value: f.value }));
+    const resolvedProfessional = editingSection === 'professional'
+      ? professionalExperiences
+      : savedProfessionalExperiences;
+    const resolvedEducation = editingSection === 'education' ? educationData : savedEducation;
+    const resolvedProjects = editingSection === 'project'
+      ? getCurrentProjects()
+      : getCurrentSavedProjects();
+    const resolvedSkills = editingSection === 'technical' ? skills : savedSkills;
+    return {
+      user_id: cognitoSub || '',
+      name: resolvedName,
+      contact: resolvedContact,
+      professional_experiences: resolvedProfessional,
+      education: resolvedEducation,
+      projects: resolvedProjects,
+      skills: resolvedSkills,
+      achievements: savedAchievements,
+    };
+  };
+
   const generateResumePDF = async (): Promise<{ blob: Blob; filename: string } | 'DOWNLOAD_LIMIT_EXCEEDED' | null> => {
     try {
-      // Prepare projects based on knowledge scope (frontend decides)
-      const projectsToInclude = getCurrentSavedProjects();
-
-      // Prepare resume data for API
-      const resumeData = {
-        user_id: cognitoSub || '',
-        name: savedName,
-        contact: savedContactFields.map(f => ({ label: f.label, value: f.value })),
-        professional_experiences: savedProfessionalExperiences,
-        education: savedEducation,
-        projects: projectsToInclude,
-        skills: savedSkills,
-        achievements: savedAchievements
-      };
+      const resumeData = getDownloadResumePayload();
 
       // Call backend API to generate PDF
       const response = await fetch(`${API_ENDPOINT}/generate_resume_pdf`, {
@@ -3822,7 +3911,8 @@ export default function ResumeSection({
 
       // Get the PDF blob
       const blob = await response.blob();
-      const filename = `resume_${savedName.replace(/\s+/g, '_')}.pdf`;
+      const resolvedName = editingSection === 'name' ? name : savedName;
+      const filename = `resume_${resolvedName.replace(/\s+/g, '_')}.pdf`;
       
       return { blob, filename };
     } catch (error) {
@@ -3837,17 +3927,7 @@ export default function ResumeSection({
 
   const generateResumeTex = async (): Promise<{ blob: Blob; filename: string } | 'DOWNLOAD_LIMIT_EXCEEDED' | null> => {
     try {
-      const projectsToInclude = getCurrentSavedProjects();
-      const resumeData = {
-        user_id: cognitoSub || '',
-        name: savedName,
-        contact: savedContactFields.map(f => ({ label: f.label, value: f.value })),
-        professional_experiences: savedProfessionalExperiences,
-        education: savedEducation,
-        projects: projectsToInclude,
-        skills: savedSkills,
-        achievements: savedAchievements
-      };
+      const resumeData = getDownloadResumePayload();
       const response = await fetch(`${API_ENDPOINT}/generate_resume_tex`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3861,7 +3941,8 @@ export default function ResumeSection({
         return null;
       }
       const blob = await response.blob();
-      const filename = `${savedName.replace(/\s+/g, '_')}_Resume.tex`;
+      const resolvedName = editingSection === 'name' ? name : savedName;
+      const filename = `${resolvedName.replace(/\s+/g, '_')}_Resume.tex`;
       return { blob, filename };
     } catch (error) {
       console.error('Error generating resume .tex:', error);
@@ -5776,7 +5857,10 @@ export default function ResumeSection({
                   </button>
                   <div className={styles.downloadFormatHeader}>
                     <p className={styles.downloadFormatTitle}>Download Resume</p>
-                    <p className={styles.downloadFormatSubtitle}>Select your preferred format</p>
+                    <p className={styles.downloadFormatSubtitle}>
+                      {resumeMode === 'existing' ? 'From Existing Resume · ' : 'From Knowledge Base · '}
+                      Select your preferred format
+                    </p>
                   </div>
                   <div className={styles.downloadFormatButtons}>
                     <button className={styles.downloadFormatBtn} onClick={handleDownloadTex} title="Download LaTeX source (.tex)">
@@ -6635,7 +6719,28 @@ export default function ResumeSection({
                                                 setDragOverProfessionalProjectGroup(null);
                                               }}
                                             >
-                                              <span>{group.name}</span>
+                                              {editingProjectNameKey === `${exp.id}-${jobTitle.id}-${groupIdx}` ? (
+                                                <input
+                                                  autoFocus
+                                                  className={styles.resumeLeftInput}
+                                                  style={{ flex: 1, fontWeight: 700, fontSize: '1.15rem', minWidth: 0, marginRight: '0.5rem', padding: '2px 6px' }}
+                                                  value={group.name}
+                                                  onChange={(e) => updateProfessionalProjectName(exp.id, jobTitle.id, group.name, e.target.value)}
+                                                  onBlur={() => setEditingProjectNameKey(null)}
+                                                  onKeyDown={(e) => { if (e.key === 'Enter') setEditingProjectNameKey(null); }}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onMouseDown={(e) => e.stopPropagation()}
+                                                  placeholder="Project name"
+                                                />
+                                              ) : (
+                                                <span
+                                                  style={{ flex: 1, minWidth: 0, marginRight: '0.5rem', cursor: 'text' }}
+                                                  onDoubleClick={(e) => { e.stopPropagation(); setEditingProjectNameKey(`${exp.id}-${jobTitle.id}-${groupIdx}`); }}
+                                                  title="Double-click to edit project name"
+                                                >
+                                                  {group.name}
+                                                </span>
+                                              )}
                                               <div className={styles.resumeProfessionalOperationButton}>
                                                 <div className={styles.resumeProfessionalOperationButtons}>
                                                   <button

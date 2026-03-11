@@ -1083,7 +1083,7 @@ export default function AnalysisSection({
                             tooltipHoverTimerRef.current = setTimeout(() => {
                               setIsTooltipHovered(false);
                               tooltipHoverTimerRef.current = null;
-                            }, 1000); // 1 second delay before hiding
+                            }, 2000); // 2 second delay before hiding
                           }}
                         >
                           <div className={styles.jobUrlFetchTooltipHeader}>

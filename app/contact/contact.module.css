@@ -228,3 +228,25 @@
     height: 300px;
   }
 }
+
+@media (max-width: 480px) {
+  .headerInner {
+    padding: 0.875rem 1rem;
+  }
+
+  .logo {
+    font-size: 1.375rem;
+  }
+
+  .logoIcon {
+    width: 2.25rem;
+  }
+
+  .main {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .mapWrapper {
+    height: 240px;
+  }
+}

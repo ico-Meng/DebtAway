@@ -1342,7 +1342,7 @@
 /* ========== COMPANY LOGOS ========== */
 
 .logoSection {
-  padding: 5rem 0 15rem;
+  padding: 5rem 0 6rem;
   background: #faf9f6;
   overflow: hidden;
 }
@@ -1527,6 +1527,26 @@
     font-size: 0.875rem !important;
   }
 
+  .servicesDropdown {
+    width: min(680px, calc(100vw - 2rem));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .servicesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .servicesDivider {
+    width: 100%;
+    height: 1px;
+    margin: 0.25rem 0;
+  }
+
+  .aboutDropdown {
+    width: min(340px, calc(100vw - 2rem));
+  }
+
   .hero {
     padding: 3.5rem 1.5rem 3rem;
   }
@@ -1601,16 +1621,53 @@
   }
 
   .logo {
-    font-size: 1.375rem;
+    font-size: 1.25rem;
+  }
+
+  .logoIcon {
+    width: 2.25rem;
   }
 
   .nav {
     order: 3;
     width: 100%;
     justify-content: flex-start !important;
-    gap: 1.25rem;
-    padding-top: 0.625rem !important;
+    gap: 1rem;
+    padding-top: 0.5rem !important;
     border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .navLink {
+    font-size: 0.875rem;
+  }
+
+  .signInButton {
+    font-size: 0.8125rem !important;
+    padding: 0.4375rem 0.875rem !important;
+  }
+
+  .servicesDropdown {
+    width: calc(100vw - 2.5rem);
+    left: 0;
+    transform: none;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .servicesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .servicesDivider {
+    width: 100%;
+    height: 1px;
+    margin: 0.25rem 0;
+  }
+
+  .aboutDropdown {
+    width: calc(100vw - 2.5rem);
+    left: 0;
+    transform: none;
   }
 
   .hero {
