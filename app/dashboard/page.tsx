@@ -2378,6 +2378,205 @@ export default function DashboardPage() {
   };
 
   // UI/UX & Product Design specific technical skill focus sections (recruitment-focused skills per layer)
+  // Financial Engineering specific technology sections (abstract concepts per layer)
+  const financialEngineeringTechnologySections = {
+    'Quantitative Finance & Derivatives Modeling': [
+      'Stochastic Calculus', 'Black-Scholes-Merton', 'Monte Carlo Methods',
+      'Finite Difference Methods (FDM)', 'Volatility Modeling (GARCH/Heston)',
+      'Interest Rate Models (Hull-White/Vasicek)', 'Other',
+    ],
+    'Algorithmic Trading & Market Microstructure': [
+      'Market Microstructure Theory', 'Order Book Dynamics', 'High-Frequency Trading (HFT)',
+      'Statistical Arbitrage', 'Smart Order Routing (SOR)', 'Latency-Sensitive Execution', 'Other',
+    ],
+    'Risk Analytics & Portfolio Management': [
+      'Value at Risk (VaR)', 'Expected Shortfall (CVaR/ES)', 'Portfolio Optimization (Mean-Variance)',
+      'Factor Models (CAPM/Fama-French)', 'Greeks (Delta/Gamma/Vega/Theta)',
+      'Stress Testing & Scenario Analysis', 'Other',
+    ],
+    'Financial Data Engineering & Market Data': [
+      'Tick Data Processing', 'Time-Series Data Management', 'Alternative Data Analytics',
+      'Real-time Market Data Streaming', 'Financial Data Normalization', 'Backtesting Infrastructure', 'Other',
+    ],
+    'RegTech, Compliance & Financial Infrastructure': [
+      'MiFID II / Dodd-Frank Compliance', 'Basel III/IV Capital Framework',
+      'FRTB (Fundamental Review of Trading Book)', 'AML/KYC Compliance',
+      'Trade Reporting (EMIR/CFTC)', 'Financial Messaging (FIX Protocol/SWIFT)', 'Other',
+    ],
+  };
+
+  // Financial Engineering specific framework sections (hands-on tools per layer)
+  const financialEngineeringFrameworkSections = {
+    'Quantitative Finance & Derivatives Modeling': [
+      'QuantLib', 'NumPy / SciPy (Scientific Python)', 'MATLAB', 'Jupyter Notebook', 'pandas', 'Excel (Financial Modeling)', 'Other',
+    ],
+    'Algorithmic Trading & Market Microstructure': [
+      'Zipline / Backtrader (Backtesting)', 'Interactive Brokers API (IBKR)', 'QuickFIX (FIX Engine)',
+      'Alpaca API', 'ccxt (Crypto Exchange)', 'Bloomberg Terminal API', 'Other',
+    ],
+    'Risk Analytics & Portfolio Management': [
+      'PyPortfolioOpt', 'Riskfolio-Lib', 'Bloomberg PORT', 'MSCI RiskMetrics', 'FactSet Analytics', 'Axioma Risk', 'Other',
+    ],
+    'Financial Data Engineering & Market Data': [
+      'Bloomberg B-PIPE / BLPAPI', 'Refinitiv Eikon (LSEG)', 'Apache Kafka', 'kdb+ / Q', 'Databricks', 'Snowflake', 'Other',
+    ],
+    'RegTech, Compliance & Financial Infrastructure': [
+      'Murex', 'Calypso (Broadridge)', 'SWIFT Messaging', 'FIX Protocol Engine', 'Finastra (Kondor)', 'Axiom Regulatory Reporting', 'Other',
+    ],
+  };
+
+  // Financial Engineering specific technical skill focus sections (recruitment-focused skills per layer)
+  const financialEngineeringTechnicalSkillFocusSections = {
+    'Quantitative Finance & Derivatives Modeling': [
+      'Stochastic Calculus & Itô\'s Lemma', 'Black-Scholes-Merton Model Implementation',
+      'Monte Carlo Simulation for Derivatives Pricing',
+      'Finite Difference Methods (Explicit/Implicit/Crank-Nicolson)',
+      'Binomial & Trinomial Tree Pricing', 'Interest Rate Curve Bootstrapping (Yield Curve Construction)',
+      'Hull-White & Vasicek Interest Rate Models', 'SABR & Heston Model Calibration',
+      'Volatility Surface Construction & Calibration',
+      'Exotic Options Pricing (Barrier, Asian, Lookback)',
+      'Fixed Income Analytics (Duration, Convexity, DV01)',
+      'Credit Default Swap (CDS) Pricing & Spread Analysis',
+      'Interest Rate Swap (IRS) & Cross-Currency Swap Valuation',
+      'Structured Products Modeling (CDO, CLO, MBS)',
+      'Jump-Diffusion Models (Merton, Kou)', 'Local Volatility Model (Dupire)',
+      'XVA Computation (CVA/DVA/FVA/MVA)', 'Multi-factor Short Rate Models',
+      'OIS Discounting & CSA Pricing', 'FX Derivatives Pricing (Garman-Kohlhagen)',
+      'Variance Swap & Volatility Derivatives Pricing', 'Commodity Derivatives Pricing',
+      'Convertible Bond & Callable Bond Valuation', 'MBS Prepayment Modeling',
+      'Real Options Valuation', 'Copula Models & Correlation Products',
+      'Swaption Pricing & Volatility Cube', 'Greeks Calculation & Sensitivities',
+      'Model Risk Assessment & Validation', 'Numerical Methods Performance Optimization', 'Other',
+    ],
+    'Algorithmic Trading & Market Microstructure': [
+      'Limit Order Book (LOB) Analysis & Reconstruction',
+      'High-Frequency Trading (HFT) Strategy Design',
+      'Statistical Arbitrage & Pairs Trading',
+      'Market Making Strategy Design & Implementation',
+      'Execution Algorithm Design (TWAP/VWAP/IS/POV)',
+      'Smart Order Routing (SOR) Logic Design',
+      'Backtesting Framework Architecture',
+      'Transaction Cost Analysis (TCA)',
+      'Market Impact Modeling (Almgren-Chriss)',
+      'Latency Measurement & Low-latency Optimization',
+      'Co-location & Infrastructure Optimization',
+      'FIX Protocol Implementation & Messaging',
+      'Order Management System (OMS) Design',
+      'Execution Management System (EMS) Integration',
+      'Alpha Signal Research & Factor Construction',
+      'Mean-Reversion & Momentum Strategy Development',
+      'Event-driven Trading Strategies',
+      'Tick Data Feature Engineering',
+      'Order Flow Toxicity Analysis (VPIN)',
+      'Kyle Lambda & Adverse Selection Metrics',
+      'Intraday Liquidity & Bid-Ask Spread Analysis',
+      'Alternative Data Signal Research',
+      'Algorithmic Risk Controls & Pre-trade Checks',
+      'Strategy Performance Attribution & Sharpe Analysis',
+      'Machine Learning for Alpha Signal Generation',
+      'Dark Pool Routing & Venue Analysis',
+      'Regulatory Compliance for Algo Trading (MiFID II/Reg NMS)',
+      'Portfolio Execution Optimization',
+      'Market Regime Detection', 'Cross-asset Strategy Development', 'Other',
+    ],
+    'Risk Analytics & Portfolio Management': [
+      'VaR Calculation (Historical/Parametric/Monte Carlo)',
+      'Expected Shortfall (CVaR/ES) Computation',
+      'Portfolio Optimization (Markowitz Mean-Variance)',
+      'Black-Litterman Portfolio Construction',
+      'Risk Factor Decomposition & Attribution',
+      'Fama-French 3/5-Factor Model Analysis',
+      'Tracking Error & Information Ratio Computation',
+      'Stress Testing & Scenario Analysis (CCAR/DFAST)',
+      'Greeks Aggregation & Risk Ladder Management',
+      'PnL Attribution (Delta/Gamma/Vega/Theta Explain)',
+      'Counterparty Credit Risk (CCR) & CVA',
+      'Credit VaR & Credit Portfolio Modeling',
+      'Liquidity Risk & Market Depth Analysis',
+      'Asset-Liability Management (ALM)',
+      'Duration, DV01 & Convexity Risk Management',
+      'Beta Hedging & Correlation Management',
+      'Risk Budgeting & Risk Parity Portfolios',
+      'Volatility Risk (Vega/Vanna/Volga) Management',
+      'Backtesting & Model Validation for VaR',
+      'Basel III/IV Capital Adequacy (RWA/FRTB)',
+      'Regulatory Capital Calculation & Reporting',
+      'Concentration Risk & Correlation Breakdown Analysis',
+      'Maximum Drawdown & Tail Risk Analysis',
+      'Leverage & Margin Management',
+      'Coherent Risk Measures (Spectral/Distortion)',
+      'Brinson Attribution Model Implementation',
+      'FX Risk Hedging & Overlay Management',
+      'Commodity Risk Analytics',
+      'Regime-based Asset Allocation',
+      'Model Risk Management & Governance', 'Other',
+    ],
+    'Financial Data Engineering & Market Data': [
+      'Tick Data Processing Pipeline Design',
+      'Time-Series Financial Database Architecture (kdb+/TimescaleDB)',
+      'Bloomberg B-PIPE / BLPAPI Integration',
+      'Refinitiv Eikon / LSEG Data Services Integration',
+      'Alternative Data Ingestion & Signal Extraction',
+      'Real-time Market Data Streaming (WebSocket/FIX)',
+      'Historical Backtesting Data Infrastructure',
+      'Point-in-time Database Design (Avoiding Look-ahead Bias)',
+      'OHLCV Data Aggregation & Resampling',
+      'Corporate Actions Adjustment (Dividends, Splits)',
+      'Reference Data Management (SEDOL/CUSIP/ISIN)',
+      'Financial Data Normalization & Cross-vendor Reconciliation',
+      'Market Data Quality Validation & Anomaly Detection',
+      'FIX Message Parsing & Order Data Management',
+      'VWAP/TWAP/EMA Derived Data Computation',
+      'Low-latency Data Pipeline Optimization',
+      'Financial Data Lineage & Audit Trail Design',
+      'Multi-asset Class Data Integration',
+      'Regulatory Data Reporting (Transaction Reporting)',
+      'BCBS 239 Risk Data Aggregation Principles',
+      'EOD Batch Processing & Reconciliation',
+      'Market Replay Infrastructure for Backtesting',
+      'Synthetic Market Data Generation',
+      'Financial Metadata & Taxonomy Management',
+      'Cross-exchange Data Feed Normalization',
+      'Trade & Position Data Management',
+      'Data Vendor SLA Monitoring & Management',
+      'Apache Kafka for Market Data Streaming',
+      'Cloud Data Warehouse for Financial Data (Snowflake/BigQuery)',
+      'Financial Data API Design & Rate Limiting', 'Other',
+    ],
+    'RegTech, Compliance & Financial Infrastructure': [
+      'MiFID II / MiFIR Trade Reporting & Best Execution',
+      'Dodd-Frank Act Reporting (CFTC/SEC)',
+      'EMIR (European Market Infrastructure Regulation) Compliance',
+      'Basel III/IV Capital Framework (LCR/NSFR/FRTB)',
+      'AML (Anti-Money Laundering) System Architecture',
+      'KYC (Know Your Customer) Process Automation',
+      'SWIFT Messaging & ISO 20022 Migration',
+      'FIX Protocol Implementation & Certification',
+      'Trade Surveillance & Market Abuse Detection',
+      'Sanctions Screening (OFAC/EU/UN Lists)',
+      'IBOR Transition (LIBOR to SOFR/SONIA/TONAR)',
+      'Initial Margin Calculation (ISDA SIMM)',
+      'Collateral Management & Optimization',
+      'Central Clearing (CCP) Connectivity & CCR Management',
+      'Trade Lifecycle Management (Booking → Settlement)',
+      'Settlement & Post-trade Processing (T+1/T+2)',
+      'Securities Lending & Repo Operations',
+      'DTCC / CLS Integration',
+      'Prime Brokerage Systems Integration',
+      'LEI (Legal Entity Identifier) Management',
+      'SOX (Sarbanes-Oxley) Internal Controls',
+      'SFTR (Securities Financing Transactions Regulation)',
+      'PSD2 Open Banking API Compliance',
+      'Regulatory Reporting Automation (Axiom/Regnology)',
+      'Reconciliation Systems Design (Break Management)',
+      'Audit Trail & Immutable Record Design',
+      'Data Privacy Compliance (GDPR for Financial Data)',
+      'Financial Crime Risk Framework',
+      'CCAR/DFAST Stress Testing Reporting',
+      'Model Risk Management Policy Implementation', 'Other',
+    ],
+  };
+
   const uiUxTechnicalSkillFocusSections = {
     'UX Research & Strategy': [
       'Usability Testing (Moderated & Unmoderated)', 'User Interviews & Discussion Guides',
@@ -2500,6 +2699,7 @@ export default function DashboardPage() {
     if (careerFocus === 'data-engineering') return dataEngineeringTechnologySections;
     if (careerFocus === 'cybersecurity') return cybersecurityTechnologySections;
     if (careerFocus === 'ui-ux') return uiUxTechnologySections;
+    if (careerFocus === 'financial-engineering') return financialEngineeringTechnologySections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
@@ -2510,6 +2710,7 @@ export default function DashboardPage() {
     if (careerFocus === 'data-engineering') return dataEngineeringTechnicalSkillFocusSections;
     if (careerFocus === 'cybersecurity') return cybersecurityTechnicalSkillFocusSections;
     if (careerFocus === 'ui-ux') return uiUxTechnicalSkillFocusSections;
+    if (careerFocus === 'financial-engineering') return financialEngineeringTechnicalSkillFocusSections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
@@ -2520,6 +2721,7 @@ export default function DashboardPage() {
     if (careerFocus === 'data-engineering') return dataEngineeringFrameworkSections;
     if (careerFocus === 'cybersecurity') return cybersecurityFrameworkSections;
     if (careerFocus === 'ui-ux') return uiUxFrameworkSections;
+    if (careerFocus === 'financial-engineering') return financialEngineeringFrameworkSections;
     return {}; // No sections available until career focus is selected
   }, [careerFocus]);
 
@@ -3833,6 +4035,7 @@ export default function DashboardPage() {
     { value: 'cybersecurity', label: 'Cybersecurity' },
     { value: 'data-science', label: 'Data & Applied Science' },
     { value: 'data-engineering', label: 'Data Engineering' },
+    { value: 'financial-engineering', label: 'Financial Engineering' },
     { value: 'software-engineering', label: 'Software Engineering' },
     { value: 'ui-ux', label: 'UI/UX & Product Design' },
   ];

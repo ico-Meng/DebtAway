@@ -38,6 +38,7 @@ export default function LandingPage() {
   const [pricingOpen, setPricingOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [learnOpen, setLearnOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideTransition, setSlideTransition] = useState(true);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -328,6 +329,69 @@ export default function LandingPage() {
               )}
             </div>
             <a href="#" className={styles.navLink} onClick={(e) => { e.preventDefault(); setPricingOpen(true); }}>Pricing</a>
+            <div
+              className={styles.servicesNavItem}
+              onMouseEnter={() => setLearnOpen(true)}
+              onMouseLeave={() => setLearnOpen(false)}
+            >
+              <a href="#" className={`${styles.navLink} ${learnOpen ? styles.navLinkActive : ""}`}>
+                Learn
+                <svg
+                  className={`${styles.servicesChevron} ${learnOpen ? styles.servicesChevronOpen : ""}`}
+                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </a>
+
+              {learnOpen && (
+                <div className={styles.learnDropdown}>
+                  <div className={styles.learnItem} style={{ opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' }}>
+                    <span className={styles.learnItemIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                      </svg>
+                    </span>
+                    <div className={styles.learnItemContent}>
+                      <span className={styles.learnItemLabel}>
+                        Tutorial
+                        <span className={styles.learnComingSoon}>Soon</span>
+                      </span>
+                      <span className={styles.learnItemDesc}>Step-by-step guides & walkthroughs</span>
+                    </div>
+                  </div>
+                  <div className={styles.learnItem} style={{ opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' }}>
+                    <span className={styles.learnItemIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                        <line x1="8" y1="21" x2="16" y2="21" />
+                        <line x1="12" y1="17" x2="12" y2="21" />
+                      </svg>
+                    </span>
+                    <div className={styles.learnItemContent}>
+                      <span className={styles.learnItemLabel}>
+                        Use Case
+                        <span className={styles.learnComingSoon}>Soon</span>
+                      </span>
+                      <span className={styles.learnItemDesc}>Real-world examples & scenarios</span>
+                    </div>
+                  </div>
+                  <a href="/learn/career-insights" className={styles.learnItem}>
+                    <span className={styles.learnItemIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                      </svg>
+                    </span>
+                    <div className={styles.learnItemContent}>
+                      <span className={styles.learnItemLabel}>Career Insights</span>
+                      <span className={styles.learnItemDesc}>Articles to grow your career</span>
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
             <div
               className={styles.servicesNavItem}
               onMouseEnter={() => setAboutOpen(true)}
