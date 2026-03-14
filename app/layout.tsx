@@ -122,7 +122,7 @@ const organizationSchema = {
     contactType: "customer support",
     url: `${BASE_URL}/contact`,
   },
-  sameAs: [],
+  sameAs: ["https://www.linkedin.com/company/ambitology/"],
 };
 
 const websiteSchema = {
@@ -140,6 +140,54 @@ const websiteSchema = {
     },
     "query-input": "required name=search_term_string",
   },
+};
+
+const siteNavigationSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Ambitology Site Navigation",
+  itemListElement: [
+    {
+      "@type": "SiteNavigationElement",
+      position: 1,
+      name: "Sign In / Dashboard",
+      description:
+        "Access your AI career tools — resume builder, career fit scoring, and mock interviews.",
+      url: `${BASE_URL}/`,
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 2,
+      name: "Browse Tech Jobs",
+      description:
+        "Discover curated software engineering, AI, and data science job opportunities.",
+      url: `${BASE_URL}/jobs`,
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 3,
+      name: "Our Mission",
+      description:
+        "How Ambitology uses AI to bridge the gap between talent and opportunity.",
+      url: `${BASE_URL}/mission`,
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 4,
+      name: "Careers",
+      description:
+        "Join our team and help build the future of AI-powered career development.",
+      url: `${BASE_URL}/careers`,
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 5,
+      name: "Contact",
+      description:
+        "Get in touch with the Ambitology team for questions and support.",
+      url: `${BASE_URL}/contact`,
+    },
+  ],
 };
 
 const softwareSchema = {
@@ -205,6 +253,11 @@ export default function RootLayout({
           id="schema-software"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+        />
+        <Script
+          id="schema-site-navigation"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationSchema) }}
         />
       </head>
       <body className={`${inter.className} ${comfortaa.variable} ${orbitron.variable} ${lato.variable} ${nunito.variable} ${plusJakartaSans.variable}`}>{children}</body>

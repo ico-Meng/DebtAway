@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Careers",
+  title: "Careers at Ambitology",
   description:
-    "Join the Ambitology team and help build the future of AI-powered career development. Explore open roles and opportunities at Ambitology.",
+    "Join a small team building AI-driven career tools. See open roles and apply to work at Ambitology.",
   alternates: {
     canonical: "https://ambitology.com/careers",
   },
   openGraph: {
-    title: "Careers | Ambitology",
+    title: "Careers at Ambitology",
     description:
-      "Join the Ambitology team and help build the future of AI-powered career development. Explore open roles and opportunities.",
+      "Join a small team building AI-driven career tools. See open roles and apply to work at Ambitology.",
     url: "https://ambitology.com/careers",
   },
   twitter: {
-    title: "Careers | Ambitology",
+    title: "Careers at Ambitology",
     description:
-      "Join the Ambitology team and help build the future of AI-powered career development. Explore open roles and opportunities.",
+      "Join a small team building AI-driven career tools. See open roles and apply to work at Ambitology.",
   },
 };
 

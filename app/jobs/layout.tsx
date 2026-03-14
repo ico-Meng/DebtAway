@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Job Board",
+  title: "Browse Tech Jobs",
   description:
-    "Browse and apply to curated tech job listings on Ambitology. Find software engineering, data science, and AI roles matched to your skills.",
+    "Discover curated software engineering, AI/ML, and data science jobs. Filter by role, stack, and experience level.",
   alternates: {
     canonical: "https://ambitology.com/jobs",
   },
   openGraph: {
-    title: "Job Board | Ambitology",
+    title: "Browse Tech Jobs | Ambitology",
     description:
-      "Browse and apply to curated tech job listings on Ambitology. Find software engineering, data science, and AI roles matched to your skills.",
+      "Discover curated software engineering, AI/ML, and data science jobs. Filter by role, stack, and experience level.",
     url: "https://ambitology.com/jobs",
   },
   twitter: {
-    title: "Job Board | Ambitology",
+    title: "Browse Tech Jobs | Ambitology",
     description:
-      "Browse and apply to curated tech job listings on Ambitology. Find software engineering, data science, and AI roles matched to your skills.",
+      "Discover curated software engineering, AI/ML, and data science jobs. Filter by role, stack, and experience level.",
   },
 };
 
