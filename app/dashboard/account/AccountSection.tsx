@@ -242,11 +242,9 @@ export default function AccountSection({ cognitoSub, email, userPlan, onUpgrade 
                     </div>
                     <div className={styles.usageCardCount}>
                       <span className={styles.usageCountNumber}>{item.count}</span>
+                      <span className={styles.usageCountUnlimited}> uses</span>
                       {item.limit !== null && (
-                        <span className={styles.usageCountLimit}> / {item.limit}</span>
-                      )}
-                      {item.limit === null && (
-                        <span className={styles.usageCountUnlimited}> uses</span>
+                        <span className={styles.usageCountLimit}> / {item.limit} total</span>
                       )}
                     </div>
                     {item.limit !== null ? (

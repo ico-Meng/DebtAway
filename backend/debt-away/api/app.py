@@ -5132,11 +5132,40 @@ RESUME_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "ask_resume_intent",
+            "description": (
+                "Use this when the user has a general or ambiguous resume request that could mean "
+                "either building a brand-new resume from their profile OR improving an existing one. "
+                "Trigger examples: 'Make my resume', 'Build my resume', 'Help me with my resume', "
+                "'How do I write a resume?', 'I need a resume', 'Create my resume', 'Write my resume', "
+                "'Can you make me a resume?', 'I want to make a resume', 'How to build a resume'. "
+                "The UI will display two clickable option cards side by side so the user can choose their path. "
+                "Always call this tool for general or ambiguous resume requests — never present options as plain text."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reply": {
+                        "type": "string",
+                        "description": (
+                            "A short intro line before the option cards appear "
+                            "(e.g. 'Here are two ways I can help you build your resume.'). "
+                            "Keep it under 20 words."
+                        )
+                    }
+                },
+                "required": ["reply"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "navigate_to_existing_resume",
             "description": (
-                "Use this when the user asks how to improve, enhance, polish, tailor, fix, "
-                "update, strengthen, or rewrite their resume, or wants help making it better "
-                "for a job application or career move. "
+                "Use this ONLY when the user explicitly and specifically asks to improve, enhance, "
+                "polish, tailor, fix, update, strengthen, or rewrite an existing resume they already have. "
+                "Use navigate_to_existing_resume when intent is clearly about an existing resume they want to improve. "
                 "Ambitology's 'Craft from Existing Resume' service handles this."
             ),
             "parameters": {
@@ -5427,8 +5456,10 @@ async def ai_chat(request: Request):
                     "- Separate distinct thoughts with a blank line.\n"
                     "- No unnecessary filler phrases like 'Great question!' or 'Of course!'.\n\n"
                     "RESUME CRAFTING:\n"
-                    "- User wants to improve/polish/fix their resume → use navigate_to_existing_resume.\n"
-                    "- User wants to craft/create/generate a resume from knowledge base → use navigate_to_knowledge_base_resume.\n\n"
+                    "- User has a general or ambiguous resume request ('make my resume', 'build my resume', 'write a resume', 'help with my resume', 'I need a resume', 'create my resume') → use ask_resume_intent. Show option cards so user can choose their path.\n"
+                    "- User explicitly wants to improve/polish/fix/enhance an existing resume they already have → use navigate_to_existing_resume.\n"
+                    "- User explicitly wants to craft/create/generate a resume from their knowledge base or saved profile → use navigate_to_knowledge_base_resume.\n"
+                    "- When in doubt between the two resume paths, always use ask_resume_intent — never guess.\n\n"
                     "PLAN PRICING:\n"
                     "- User asks about plans, pricing, cost, subscription, upgrade, feature access, usage limits, or how to unblock a feature → use show_pricing.\n"
                     "- Never answer pricing questions in plain text — always use the show_pricing tool.\n\n"

@@ -32,6 +32,7 @@ interface Message {
   content: string;
   action?: {
     type:
+      | 'ask_resume_intent'
       | 'navigate_to_existing_resume'
       | 'navigate_to_knowledge_base_resume'
       | 'navigate_to_established_personal_project'
@@ -484,8 +485,85 @@ export default function AIChatbox({
                   const isClicked = !!msg.action.cardDismissed;
                   const cardElements: JSX.Element[] = [];
 
+                  // ── Choice: Resume Intent (ambiguous — show both options) ──
+                  if (msg.action.type === 'ask_resume_intent') {
+                    const selected = !!msg.action.cardDismissed;
+                    cardElements.push(
+                      <div key={`${msg.id}-resume-intent`} className={styles.chatboxCardRowDouble}>
+                        <button
+                          className={`${styles.chatboxCard} ${styles.chatboxCardHalf}${selected ? ` ${styles.chatboxCardInactive}` : ''}`}
+                          disabled={selected}
+                          onClick={() => {
+                            dismissCard(msg.id);
+                            onNavigateToExistingResume?.();
+                            const w = encourage();
+                            setTimeout(() => {
+                              setMessages(prev => [
+                                ...prev,
+                                { id: Date.now().toString(), role: 'assistant', content: `${w} Taking you to the Craft from Existing Resume page.` },
+                              ]);
+                            }, 400);
+                            setTimeout(() => {
+                              setMessages(prev => [
+                                ...prev,
+                                {
+                                  id: Date.now().toString(),
+                                  role: 'assistant',
+                                  content:
+                                    "Here's what to fill in:\n\n" +
+                                    "① Interested Job Position — paste a job URL, job title, or job description\n" +
+                                    "② Interested Industry Sector — pick the sector that fits your target role\n" +
+                                    "③ Upload Resume — upload your current resume (PDF, DOC, or DOCX)\n\n" +
+                                    "Once all three are filled, hit the Craft button!",
+                                },
+                              ]);
+                            }, 900);
+                          }}
+                        >
+                          <div className={styles.chatboxCardContent}>
+                            <span className={styles.chatboxCardTitle}>Craft from Existing Resume</span>
+                          </div>
+                          <div className={styles.chatboxCardArrow}><ArrowUp /></div>
+                        </button>
+                        <button
+                          className={`${styles.chatboxCard} ${styles.chatboxCardHalf}${selected ? ` ${styles.chatboxCardInactive}` : ''}`}
+                          disabled={selected}
+                          onClick={() => {
+                            dismissCard(msg.id);
+                            onNavigateToKnowledgeBaseResume?.();
+                            const w = encourage();
+                            setTimeout(() => {
+                              setMessages(prev => [
+                                ...prev,
+                                { id: Date.now().toString(), role: 'assistant', content: `${w} Taking you to the Craft from Knowledge Base page.` },
+                              ]);
+                            }, 400);
+                            setTimeout(() => {
+                              setMessages(prev => [
+                                ...prev,
+                                {
+                                  id: Date.now().toString(),
+                                  role: 'assistant',
+                                  content:
+                                    "Here's what to do:\n\n" +
+                                    "① Company Type — select the type of company you're targeting (startup, corporate, FAANG, etc.)\n" +
+                                    "② Interested Job Position — enter the role you're aiming for\n\n" +
+                                    "Hit Craft — we'll use your saved skills, projects, and experience to generate a tailored resume!",
+                                },
+                              ]);
+                            }, 900);
+                          }}
+                        >
+                          <div className={styles.chatboxCardContent}>
+                            <span className={styles.chatboxCardTitle}>Craft from Knowledge Base</span>
+                          </div>
+                          <div className={styles.chatboxCardArrow}><ArrowUp /></div>
+                        </button>
+                      </div>
+                    );
+
                   // ── Navigate: Craft from Existing Resume ──
-                  if (msg.action.type === 'navigate_to_existing_resume') {
+                  } else if (msg.action.type === 'navigate_to_existing_resume') {
                     cardElements.push(
                       <div key={`${msg.id}-card`} className={styles.chatboxCardRow}>
                         <button
