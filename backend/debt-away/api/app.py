@@ -373,8 +373,16 @@ class ProjectBulletPoints(BaseModel):
     showcase2: Optional[str] = None  # ~13 words: second feature (omit if only 3 bullets)
     achievement: str       # ~13 words: quantitative outcome
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse as _JSONResponse
+
 app = FastAPI()
 handler = Mangum(app, lifespan="off")
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"422 Validation Error on {request.method} {request.url}: {exc.errors()}")
+    return _JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 # Add CORS middleware
 app.add_middleware(
@@ -512,7 +520,7 @@ async def resume_analysis_lab(file: UploadFile = File(...), form_data: str = For
 
 @app.post("/instant-mock-interview")
 async def instant_mock_interview(
-    file: UploadFile = File(None),
+    file: Optional[UploadFile] = File(None),
     form_data: str = Form(...)
 ):
     try:
@@ -2614,25 +2622,33 @@ async def lead_sign_up(request: Request):
 
 @app.post("/job_application")
 async def job_application(
-    firstName: str = Form(...),
-    lastName: str = Form(...),
-    email: str = Form(...),
-    phoneNumber: str = Form(...),
-    isStudent: str = Form(...),
-    currentEmployer: str = Form(...),
-    linkedinUrl: str = Form(...),
-    githubUrl: str = Form(...),
-    portfolioUrl: str = Form(...),
-    websiteUrl: str = Form(...),
-    selectedPosition: str = Form(...),
-    resume: UploadFile = File(None)
+    form_data: str = Form(...),
+    resume: Optional[UploadFile] = File(None)
 ):
     try:
         logger.info(f"Received job application request")
-        logger.info(f"Resume parameter: {resume}")
+
+        # Parse JSON text fields from the single form_data field
+        try:
+            data = json.loads(form_data)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid form_data JSON")
+
+        firstName = data.get("firstName", "")
+        lastName = data.get("lastName", "")
+        email = data.get("email", "")
+        phoneNumber = data.get("phoneNumber", "")
+        isStudent = data.get("isStudent", "")
+        currentEmployer = data.get("currentEmployer", "")
+        linkedinUrl = data.get("linkedinUrl", "")
+        githubUrl = data.get("githubUrl", "")
+        portfolioUrl = data.get("portfolioUrl", "")
+        websiteUrl = data.get("websiteUrl", "")
+        selectedPosition = data.get("selectedPosition", "")
+
         logger.info(f"Resume filename: {resume.filename if resume else 'None'}")
         logger.info(f"Resume content_type: {resume.content_type if resume else 'None'}")
-        
+
         full_name = f"{firstName} {lastName}"
         logger.info(f"Processing job application for {full_name} ({email})")
         
@@ -2652,11 +2668,11 @@ async def job_application(
         object_key = None
         
         if resume is not None:
-            logger.info(f"Resume file received: {resume.filename}, size: {resume.size}, type: {resume.content_type}")
+            logger.info(f"Resume file received: {resume.filename}, type: {resume.content_type}")
             file_content = await resume.read()
+            logger.info(f"File content read, size: {len(file_content)} bytes")
             file_name = resume.filename
             object_key = f"job_application/{submission_id}/{file_name}"
-            logger.info(f"File content read, size: {len(file_content)} bytes")
             
             async def upload_file_to_s3():
                 try:

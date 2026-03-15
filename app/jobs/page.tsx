@@ -360,23 +360,22 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
 
         if (Object.keys(errors).length === 0) {
             try {
-                // Create FormData for file upload
+                // Create FormData — pack all text fields as a single JSON string
+                // to avoid multipart field-count issues through API Gateway + Mangum
                 const formData = new FormData();
-                
-                // Add form fields
-                formData.append('firstName', formState.firstName);
-                formData.append('lastName', formState.lastName);
-                formData.append('email', formState.email);
-                formData.append('phoneNumber', formState.phoneNumber);
-                formData.append('isStudent', formState.isStudent);
-                formData.append('currentEmployer', formState.currentEmployer);
-                formData.append('linkedinUrl', formState.linkedinUrl);
-                formData.append('githubUrl', formState.githubUrl);
-                formData.append('portfolioUrl', formState.portfolioUrl);
-                formData.append('websiteUrl', formState.websiteUrl);
-                formData.append('selectedPosition', formState.selectedPosition);
-                
-                // Add resume file if exists
+                formData.append('form_data', JSON.stringify({
+                    firstName: formState.firstName,
+                    lastName: formState.lastName,
+                    email: formState.email,
+                    phoneNumber: formState.phoneNumber,
+                    isStudent: formState.isStudent,
+                    currentEmployer: formState.currentEmployer,
+                    linkedinUrl: formState.linkedinUrl,
+                    githubUrl: formState.githubUrl,
+                    portfolioUrl: formState.portfolioUrl,
+                    websiteUrl: formState.websiteUrl,
+                    selectedPosition: formState.selectedPosition,
+                }));
                 if (formState.resume) {
                     formData.append('resume', formState.resume);
                 }
