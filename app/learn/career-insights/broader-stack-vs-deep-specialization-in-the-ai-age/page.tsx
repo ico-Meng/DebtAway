@@ -238,7 +238,7 @@ export default function ArticlePage() {
               <p className={styles.ambitologyBoxText}>
                 Expanding your stack horizontally is most effective when you have a clear map of what you
                 already know — and a structured plan for what to learn next. Ambitology's{" "}
-                <Link href="/dashboard?tab=knowledge" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ambitologyLink}>
                   Knowledge Base
                 </Link>{" "}
                 is exactly that map.
@@ -252,7 +252,7 @@ export default function ArticlePage() {
               </p>
               <p className={styles.ambitologyBoxText}>
                 When you're ready to apply, the{" "}
-                <Link href="/dashboard?tab=resume" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=resume" className={styles.ambitologyLink}>
                   Résumé Builder
                 </Link>{" "}
                 turns your documented experience into a targeted résumé that highlights exactly the
@@ -266,7 +266,7 @@ export default function ArticlePage() {
               <p className={styles.ctaDesc}>
                 Track your growing technical breadth and generate targeted résumés for every role you want.
               </p>
-              <Link href="/dashboard?tab=knowledge" className={styles.ctaButton}>
+              <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ctaButton}>
                 Start for Free
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />

@@ -217,7 +217,7 @@ export default function ArticlePage() {
               <p className={styles.ambitologyBoxText}>
                 Ambitology's built-in AI agent and structured technical stack help you map where you are, identify
                 where the industry is heading, and build a concrete plan to close the gap. The{" "}
-                <Link href="/dashboard?tab=knowledge" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ambitologyLink}>
                   Knowledge Base
                 </Link>{" "}
                 organizes your skills, projects, and expertise into a living framework that mirrors how high-performing
@@ -226,7 +226,7 @@ export default function ArticlePage() {
               <p className={styles.ambitologyBoxText}>
                 Instead of reacting to job postings, you can proactively identify the skills and projects that align
                 with where the market is heading — then build resume-ready evidence before you even need it. The{" "}
-                <Link href="/dashboard?tab=knowledge" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ambitologyLink}>
                   Expanding Knowledge Base
                 </Link>{" "}
                 feature lets you plan your next 6–12 months of growth: the projects to start, the technologies to
@@ -245,7 +245,7 @@ export default function ArticlePage() {
                 Build your knowledge base, plan your next career chapter, and let AI work <em>for</em> you — not
                 against you.
               </p>
-              <Link href="/dashboard?tab=knowledge" className={styles.ctaButton}>
+              <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ctaButton}>
                 Start for Free
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" />

@@ -248,7 +248,7 @@ export default function ArticlePage() {
               <p className={styles.ambitologyBoxText}>
                 Choosing what to learn next is easier when you have a clear map of what you already know —
                 and a structured view of where the market is heading. That's exactly what Ambitology's{" "}
-                <Link href="/dashboard?tab=knowledge" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ambitologyLink}>
                   Knowledge Base
                 </Link>{" "}
                 is designed to provide.
@@ -264,7 +264,7 @@ export default function ArticlePage() {
                 Over time, your knowledge base becomes a strategic asset — a living map of your capabilities
                 that makes it easy to see exactly where to invest your learning energy next, and equally easy
                 to generate a{" "}
-                <Link href="/dashboard?tab=resume" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=resume" className={styles.ambitologyLink}>
                   targeted résumé
                 </Link>{" "}
                 that tells the story of an engineer with real architectural breadth and hands-on depth.
@@ -276,7 +276,7 @@ export default function ArticlePage() {
               <p className={styles.ctaDesc}>
                 Your broad perspective is an advantage in the AI era. Let Ambitology help you build on it strategically.
               </p>
-              <Link href="/dashboard?tab=knowledge" className={styles.ctaButton}>
+              <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ctaButton}>
                 Start for Free
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />

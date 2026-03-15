@@ -238,7 +238,7 @@ export default function ArticlePage() {
               <p className={styles.ambitologyBoxText}>
                 The four-component formula works best when your project history is already well-documented.
                 Ambitology's{" "}
-                <Link href="/dashboard?tab=knowledge" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=knowledge" className={styles.ambitologyLink}>
                   Knowledge Base
                 </Link>{" "}
                 is the place to record every project as you build it — the technologies used, the problems
@@ -247,7 +247,7 @@ export default function ArticlePage() {
               </p>
               <p className={styles.ambitologyBoxText}>
                 The{" "}
-                <Link href="/dashboard?tab=resume" className={styles.ambitologyLink}>
+                <Link href="https://ambitology.com/dashboard?tab=resume" className={styles.ambitologyLink}>
                   AI-powered Résumé Builder
                 </Link>{" "}
                 takes your documented experience and generates targeted, four-component bullets for each role
@@ -267,7 +267,7 @@ export default function ArticlePage() {
               <p className={styles.ctaDesc}>
                 Document your projects, apply the formula, and generate role-specific bullets — in minutes.
               </p>
-              <Link href="/dashboard?tab=resume" className={styles.ctaButton}>
+              <Link href="https://ambitology.com/dashboard?tab=resume" className={styles.ctaButton}>
                 Start for Free
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
