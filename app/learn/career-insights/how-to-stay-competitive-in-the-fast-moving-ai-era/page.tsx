@@ -50,7 +50,7 @@ export default function ArticlePage() {
             <div className={styles.meta}>
               <span className={styles.category}>Engineering &amp; AI</span>
               <span className={styles.metaDot} />
-              <span className={styles.metaText}>March 14, 2026</span>
+              <span className={styles.metaText}>February 17, 2026</span>
               <span className={styles.metaDot} />
               <span className={styles.metaText}>6 min read</span>
             </div>
