@@ -21,6 +21,16 @@ const globalReset = `
 
 const ARTICLES = [
   {
+    slug: "golden-rules-for-resume-structure-and-content-mistakes",
+    title: "Golden Rules for Resume Structure: The Content Mistakes That Kill Great Candidates",
+    excerpt:
+      "HR sees keywords. Engineers probe depth. Managers look for fit. One resume, three completely different readers — and most candidates write for none of them. Here's how to fix that.",
+    category: "Resume & Career",
+    date: "March 12, 2026",
+    readTime: "8 min read",
+    image: "/images/resume-critique.jpg",
+  },
+  {
     slug: "broader-stack-vs-deep-specialization-in-the-ai-age",
     title: "Should I Go a Broader Technical Stack or Go In Depth into a Technical Area?",
     excerpt:

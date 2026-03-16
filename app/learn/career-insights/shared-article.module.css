@@ -122,17 +122,17 @@
 
 /* ── Title & Lead ── */
 .title {
-  font-size: 2.5rem;
+  font-size: 2.625rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
+  letter-spacing: -0.035em;
+  line-height: 1.18;
   color: #111827;
-  margin: 0 0 1.5rem;
+  margin: 0 0 1.75rem;
 }
 
 .lead {
-  font-size: 1.1875rem;
-  line-height: 1.75;
+  font-size: 1.25rem;
+  line-height: 1.8;
   color: #374151;
   margin: 0 0 2.5rem;
   border-left: 3px solid rgba(196, 160, 82, 0.5);
@@ -180,31 +180,31 @@
 
 /* ── Typography ── */
 .h2 {
-  font-size: 1.5625rem;
+  font-size: 1.625rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   color: #111827;
-  margin: 2.75rem 0 1rem;
-  line-height: 1.3;
+  margin: 3rem 0 1.125rem;
+  line-height: 1.35;
 }
 
 .p {
-  font-size: 1.0625rem;
-  line-height: 1.8;
+  font-size: 1.125rem;
+  line-height: 1.9;
   color: #374151;
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.375rem;
 }
 
 .blockquote {
-  margin: 2rem 0;
-  padding: 1.25rem 1.5rem;
+  margin: 2.25rem 0;
+  padding: 1.375rem 1.625rem;
   background: linear-gradient(135deg, rgba(196, 160, 82, 0.07) 0%, rgba(107, 83, 68, 0.04) 100%);
   border-left: 4px solid #C4A052;
   border-radius: 0 12px 12px 0;
-  font-size: 1.125rem;
+  font-size: 1.1875rem;
   font-style: italic;
   color: #4b5563;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 /* ── Lists — override global app.css black ul/li ── */
@@ -222,8 +222,8 @@
 }
 
 .ul li {
-  font-size: 1.0625rem;
-  line-height: 1.7;
+  font-size: 1.125rem;
+  line-height: 1.8;
   color: #374151;
   padding-left: 1.75rem;
   padding-top: 0;
@@ -271,8 +271,8 @@
 }
 
 .highlightBoxText {
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.75;
   color: #374151;
   margin: 0;
 }
@@ -346,7 +346,7 @@
 }
 
 .pillarTitle {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #1f2937;
   letter-spacing: -0.015em;
@@ -355,9 +355,9 @@
 }
 
 .pillarDesc {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.65;
+  line-height: 1.7;
   margin: 0;
 }
 
@@ -389,18 +389,18 @@
 }
 
 .tipTitle {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.35;
   margin: 0;
 }
 
 .tipDesc {
-  font-size: 0.85rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
 }
 
@@ -444,7 +444,7 @@
 }
 
 .stepTitle {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
@@ -452,9 +452,9 @@
 }
 
 .stepDesc {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
 }
 
@@ -502,16 +502,16 @@
 }
 
 .techName {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
 }
 
 .techDesc {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.55;
+  line-height: 1.65;
 }
 
 /* ── Tools grid (AI tools etc.) ── */
@@ -534,16 +534,16 @@
 }
 
 .toolName {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
 }
 
 .toolDesc {
-  font-size: 0.85rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 /* ── Ambitology box ── */
@@ -576,8 +576,8 @@
 }
 
 .ambitologyBoxText {
-  font-size: 1.0625rem;
-  line-height: 1.75;
+  font-size: 1.125rem;
+  line-height: 1.8;
   color: #374151;
   margin: 0;
 }
@@ -721,18 +721,18 @@
 }
 
 .pathTitle {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.02em;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .pathDesc {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #6b7280;
-  line-height: 1.65;
+  line-height: 1.7;
   margin: 0;
 }
 
@@ -773,16 +773,16 @@
 .compareLabelAfter { color: #059669; }
 
 .compareBullet {
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.75;
   color: #374151;
   font-style: italic;
 }
 
 .compareNote {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: #9ca3af;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* ── Formula callout ── */
@@ -806,10 +806,10 @@
 }
 
 .formulaText {
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   color: #0c4a6e;
-  line-height: 1.65;
+  line-height: 1.7;
   margin: 0;
 }
 
@@ -824,7 +824,10 @@
 }
 
 @media (max-width: 640px) {
-  .title { font-size: 1.875rem; }
+  .title { font-size: 2rem; }
+  .lead { font-size: 1.125rem; }
+  .p { font-size: 1.0625rem; }
+  .h2 { font-size: 1.375rem; }
   .heroImage { height: 240px; }
   .inlineImage { height: 200px; }
   .headerInner { padding: 0 1.25rem; }
