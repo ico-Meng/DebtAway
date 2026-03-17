@@ -21,6 +21,16 @@ const globalReset = `
 
 const ARTICLES = [
   {
+    slug: "do-i-need-to-tailor-resumes-to-specific-roles",
+    title: "Do I Need to Tailor Resumes to Specific Roles? Here's an Easy Way!",
+    excerpt:
+      "Every career coach says tailor your resume — but doing it manually is unsustainable. In the AI era, your skills grow faster than any resume can capture. Here's the smarter, precision-first approach.",
+    category: "Resume & Career",
+    date: "March 14, 2026",
+    readTime: "7 min read",
+    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80",
+  },
+  {
     slug: "golden-rules-for-resume-structure-and-content-mistakes",
     title: "Golden Rules for Resume Structure: The Content Mistakes That Kill Great Candidates",
     excerpt:
