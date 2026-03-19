@@ -108,6 +108,30 @@ export default function CareersPage() {
         <div className={styles.jobsInner}>
           <h2 className={styles.sectionTitle}>Open Positions</h2>
           <p className={styles.sectionSub}>Click any role to start your application.</p>
+
+          {/* Fit Analysis CTA */}
+          <div className={styles.ctaBanner}>
+            <div className={styles.ctaIcon}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <line x1="11" y1="8" x2="11" y2="14" />
+                <line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+            </div>
+            <div className={styles.ctaText}>
+              <p className={styles.ctaTitle}>See exactly how well you match your target role — before you apply.</p>
+              <p className={styles.ctaSubtitle}>Try our AI-powered capability &amp; job position fit analysis — get personalized match insights before you apply.</p>
+            </div>
+            <Link href="/dashboard" className={styles.ctaButton}>
+              Analyze My Fit
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
+
           <div className={styles.jobsGrid}>
             {JOB_POSITIONS.map((job) => (
               <Link

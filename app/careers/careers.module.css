@@ -300,6 +300,86 @@
   color: #9ca3af;
 }
 
+/* ===== CTA BANNER ===== */
+
+.ctaBanner {
+  margin: 0 0 2.5rem;
+  background: linear-gradient(135deg, rgba(196, 160, 82, 0.1) 0%, rgba(155, 106, 16, 0.07) 60%, rgba(107, 83, 68, 0.06) 100%);
+  border: 1px solid rgba(196, 160, 82, 0.3);
+  border-radius: 1.25rem;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.ctaBanner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 160, 82, 0.5), transparent);
+}
+
+.ctaIcon {
+  width: 2.75rem;
+  height: 2.75rem;
+  background: linear-gradient(135deg, rgba(196, 160, 82, 0.22), rgba(155, 106, 16, 0.16));
+  border: 1px solid rgba(196, 160, 82, 0.4);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #8B6914;
+}
+
+.ctaText {
+  flex: 1;
+}
+
+.ctaTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.01em;
+}
+
+.ctaSubtitle {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #9B6A10, #C4A052);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.65rem 1.4rem;
+  border-radius: 100px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.ctaButton:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 16px rgba(155, 106, 16, 0.38);
+  transform: translateY(-1px);
+}
+
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 768px) {
@@ -317,6 +397,22 @@
 
   .jobsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .ctaBanner {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .ctaIcon {
+    margin: 0 auto;
+  }
+
+  .ctaButton {
+    width: 100%;
+    justify-content: center;
   }
 }
 

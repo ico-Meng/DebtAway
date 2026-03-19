@@ -3339,7 +3339,7 @@ export default function DashboardPage() {
 
       // Set timeout to call handleProfileSubmit after remaining time
       profileAutoSaveTimerRef.current = setTimeout(async () => {
-        await handleProfileSubmit();
+        handleProfileSubmit();
         // Note: handleProfileSubmit will update profileFormState to 'profile_saved' on success
       }, timeRemaining);
 
@@ -3369,7 +3369,7 @@ export default function DashboardPage() {
 
       // Set timeout to call handleKnowledgeSubmit after remaining time
       establishedAutoSaveTimerRef.current = setTimeout(async () => {
-        await handleKnowledgeSubmit();
+        handleKnowledgeSubmit();
         // Note: handleKnowledgeSubmit will update establishedFormState to 'established_saved' on success
       }, timeRemaining);
 
@@ -3399,7 +3399,7 @@ export default function DashboardPage() {
 
       // Set timeout to call handleExpandingKnowledgeSubmit after remaining time
       expandingAutoSaveTimerRef.current = setTimeout(async () => {
-        await handleExpandingKnowledgeSubmit();
+        handleExpandingKnowledgeSubmit();
         // Note: handleExpandingKnowledgeSubmit will update expandingFormState to 'expanding_saved' on success
       }, timeRemaining);
 
@@ -5355,7 +5355,7 @@ export default function DashboardPage() {
                             onClick={async () => {
                               // Save profile if dirty before navigating
                               if (profileFormState === 'profile_dirty') {
-                                await handleProfileSubmit();
+                                handleProfileSubmit();
                               }
                               setActiveProfileStep('Basic Info');
                             }}
@@ -5464,7 +5464,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save profile if dirty before navigating
                                   if (profileFormState === 'profile_dirty') {
-                                    await handleProfileSubmit();
+                                    handleProfileSubmit();
                                   }
                                   setActiveProfileStep('Career Focus');
                                 }}
@@ -6008,7 +6008,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save profile if dirty before navigating
                                   if (profileFormState === 'profile_dirty') {
-                                    await handleProfileSubmit();
+                                    handleProfileSubmit();
                                   }
                                   setActiveProfileStep('Education');
                                 }}
@@ -6407,7 +6407,7 @@ export default function DashboardPage() {
                                           onClick={async () => {
                                             // Save profile if dirty before navigating
                                             if (profileFormState === 'profile_dirty') {
-                                              await handleProfileSubmit();
+                                              handleProfileSubmit();
                                             }
                                             if (collegeIndex === 0) {
                                               setActiveProfileStep('Basic Info');
@@ -6444,7 +6444,7 @@ export default function DashboardPage() {
                                           onClick={async () => {
                                             // Save profile if dirty before navigating
                                             if (profileFormState === 'profile_dirty') {
-                                              await handleProfileSubmit();
+                                              handleProfileSubmit();
                                             }
                                             if (isLastCollege) {
                                               setActiveProfileStep('Professional');
@@ -6739,7 +6739,7 @@ export default function DashboardPage() {
                                           onClick={async () => {
                                             // Save profile if dirty before navigating
                                             if (profileFormState === 'profile_dirty') {
-                                              await handleProfileSubmit();
+                                              handleProfileSubmit();
                                             }
                                             const lastCollegeIndex = colleges.length;
                                             setActiveProfileStep('Education');
@@ -6997,7 +6997,7 @@ export default function DashboardPage() {
                                     onClick={async () => {
                                       // Save profile if dirty before navigating
                                       if (profileFormState === 'profile_dirty') {
-                                        await handleProfileSubmit();
+                                        handleProfileSubmit();
                                         if (profileAutoSaveTimerRef.current) {
                                           clearTimeout(profileAutoSaveTimerRef.current);
                                           profileAutoSaveTimerRef.current = null;
@@ -8868,7 +8868,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save established expertise if dirty before navigating
                                   if (establishedFormState === 'established_dirty') {
-                                    await handleKnowledgeSubmit();
+                                    handleKnowledgeSubmit();
                                   }
                                   if (projectIndex === 0) {
                                     setShowEstablishedExpertise(false);
@@ -8903,7 +8903,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save established expertise if dirty before navigating
                                   if (establishedFormState === 'established_dirty') {
-                                    await handleKnowledgeSubmit();
+                                    handleKnowledgeSubmit();
                                   }
                                   if (projectIndex < personalProjects.length - 1) {
                                     setActivePersonalProjectSubPanel(projectIndex + 2);
@@ -10306,7 +10306,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save established expertise if dirty before navigating
                                   if (establishedFormState === 'established_dirty') {
-                                    await handleKnowledgeSubmit();
+                                    handleKnowledgeSubmit();
                                   }
                                   if (projectIndex === 0) {
                                     setActiveExpertiseStep('Personal Project');
@@ -10341,7 +10341,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save established expertise if dirty before navigating
                                   if (establishedFormState === 'established_dirty') {
-                                    await handleKnowledgeSubmit();
+                                    handleKnowledgeSubmit();
                                   }
                                   if (projectIndex < professionalProjects.length - 1) {
                                     setActiveProfessionalProjectSubPanel(projectIndex + 2);
@@ -11712,7 +11712,7 @@ export default function DashboardPage() {
                             onClick={async () => {
                               // Save established expertise if dirty before navigating
                               if (establishedFormState === 'established_dirty') {
-                                await handleKnowledgeSubmit();
+                                handleKnowledgeSubmit();
                               }
                               setActiveExpertiseStep('Professional Project');
                             }}
@@ -11743,7 +11743,7 @@ export default function DashboardPage() {
                             onClick={async () => {
                               // Save established expertise if dirty before navigating
                               if (establishedFormState === 'established_dirty') {
-                                await handleKnowledgeSubmit();
+                                handleKnowledgeSubmit();
                                 if (establishedAutoSaveTimerRef.current) {
                                   clearTimeout(establishedAutoSaveTimerRef.current);
                                   establishedAutoSaveTimerRef.current = null;
@@ -13494,7 +13494,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save expanding knowledge if dirty before navigating
                                   if (expandingFormState === 'expanding_dirty') {
-                                    await handleExpandingKnowledgeSubmit();
+                                    handleExpandingKnowledgeSubmit();
                                   }
                                   if (projectIndex === 0) {
                                     setShowExpandingKnowledgeBase(false);
@@ -13529,7 +13529,7 @@ export default function DashboardPage() {
                                 onClick={async () => {
                                   // Save expanding knowledge if dirty before navigating
                                   if (expandingFormState === 'expanding_dirty') {
-                                    await handleExpandingKnowledgeSubmit();
+                                    handleExpandingKnowledgeSubmit();
                                   }
                                   if (projectIndex < futurePersonalProjects.length - 1) {
                                     setActiveFuturePersonalProjectSubPanel(projectIndex + 2);
@@ -14934,7 +14934,7 @@ onClick={() => {
                                 onClick={async () => {
                                   // Save expanding knowledge if dirty before navigating
                                   if (expandingFormState === 'expanding_dirty') {
-                                    await handleExpandingKnowledgeSubmit();
+                                    handleExpandingKnowledgeSubmit();
                                   }
                                   if (projectIndex === 0) {
                                     setActiveExpandingKnowledgeStep('Planned Personal Project');
@@ -14969,7 +14969,7 @@ onClick={() => {
                                 onClick={async () => {
                                   // Save expanding knowledge if dirty before navigating
                                   if (expandingFormState === 'expanding_dirty') {
-                                    await handleExpandingKnowledgeSubmit();
+                                    handleExpandingKnowledgeSubmit();
                                   }
                                   if (projectIndex < futureProfessionalProjects.length - 1) {
                                     setActiveFutureProfessionalProjectSubPanel(projectIndex + 2);
@@ -16018,7 +16018,7 @@ onClick={() => {
                             onClick={async () => {
                               // Save expanding knowledge if dirty before navigating
                               if (expandingFormState === 'expanding_dirty') {
-                                await handleExpandingKnowledgeSubmit();
+                                handleExpandingKnowledgeSubmit();
                               }
                               setActiveExpandingKnowledgeStep('Planned Professional Project');
                             }}
@@ -16049,7 +16049,7 @@ onClick={() => {
                             onClick={async () => {
                               // Save expanding knowledge if dirty before navigating
                               if (expandingFormState === 'expanding_dirty') {
-                                await handleExpandingKnowledgeSubmit();
+                                handleExpandingKnowledgeSubmit();
                                 if (expandingAutoSaveTimerRef.current) {
                                   clearTimeout(expandingAutoSaveTimerRef.current);
                                   expandingAutoSaveTimerRef.current = null;

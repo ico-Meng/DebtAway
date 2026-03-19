@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import styles from './JobsForm.module.css';
 import '../globals.css';
@@ -14,48 +15,40 @@ export const dynamic = 'force-dynamic';
 // Add global styles to ensure proper rendering
 const globalStyles = `
   html, body {
-    overflow-y: auto !important;
-    height: 100% !important;
-    max-height: 100vh;
-    background-color: #edece3 !important;
-    padding: 0;
-    margin: 0;
+    height: auto !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+    display: block !important;
+    background: #faf9f6 !important;
+    background-image: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  
-  body {
-    overflow: auto;
-    overflow-x: hidden;
-  }
-  
+
+  a { font-weight: inherit !important; }
+
   input, select, textarea, button:not(.submitButton), label {
     background-color: #ffffff !important;
     color: #333 !important;
   }
-  
+
   .submitButton,
   button[class*="submitButton"] {
     background-color: #9B6A10 !important;
     color: white !important;
   }
-  
+
   .submitButton:hover,
   button[class*="submitButton"]:hover {
     background-color: #9B6A10 !important;
     box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
   }
-  
+
   .submitButton:disabled,
   button[class*="submitButton"]:disabled {
     background-color: #ccc !important;
     color: white !important;
   }
-  
-  body.jobs-page {
-    background: #edece3 !important;
-    background-color: #edece3 !important;
-    background-image: none !important;
-  }
-  
 `;
 
 interface JobFormState {
@@ -441,42 +434,61 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
       }, []);
 
     return (
-        <div className={styles.container} style={{ backgroundColor: '#edece3' }}>
-            <Head>
-                <title>Job Application</title>
-                <meta name="description" content="Apply for job positions at our company" />
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{globalStyles}</style>
-                <style>{`
-                    body {
-                        background: #edece3 !important;
-                        background-color: #edece3 !important;
-                        background-image: none !important;
-                    }
-                    
-                    /* CRITICAL: Force submit button background */
-                    button[class*="submitButton"] {
-                        background-color: #9B6A10 !important;
-                        color: white !important;
-                        border: none !important;
-                    }
-                    
-                    button[class*="submitButton"]:hover {
-                        background-color: #9B6A10 !important;
-                        box-shadow: 0 0 8px 4px rgba(227, 197, 124, 1) !important;
-                    }
-                    
-                    button[class*="submitButton"]:disabled {
-                        background-color: #ccc !important;
-                        color: white !important;
-                    }
-                `}</style>
-            </Head>
+        <div className={styles.pageWrapper}>
+            <style>{globalStyles}</style>
 
-            <main className={styles.main} style={{ backgroundColor: '#edece3' }}>
-                <div className={styles.formContainer}>
-                    <h1 className={styles.title} style={{ backgroundColor: '#ffffff' }}>Job Application</h1>
-                    <br/>
+            {/* Header */}
+            <header className={styles.pageHeader}>
+                <div className={styles.pageHeaderInner}>
+                    <Link href="/" className={styles.pageLogo}>
+                        <img src="/images/atg-logo.svg" alt="Ambitology" className={styles.pageLogoIcon} />
+                        Ambitology
+                    </Link>
+                    <Link href="/careers" className={styles.pageBackLink}>
+                        ← Back to Careers
+                    </Link>
+                </div>
+            </header>
+
+            {/* Hero */}
+            <section className={styles.pageHero}>
+                <div className={styles.pageHeroInner}>
+                    <span className={styles.pageHeroBadge}>Now Hiring</span>
+                    <h1 className={styles.pageHeroHeading}>Apply for a Position</h1>
+                    <p className={styles.pageHeroSubheading}>
+                        Join the Ambitology team and help shape the future of AI-powered career intelligence. Fill out the form below to submit your application.
+                    </p>
+                </div>
+            </section>
+
+            {/* Form Section */}
+            <section className={styles.pageFormOuter}>
+                <div className={styles.pageFormInner}>
+
+                    {/* Fit Analysis CTA */}
+                    <div className={styles.ctaBanner}>
+                        <div className={styles.ctaIcon}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                <line x1="11" y1="8" x2="11" y2="14" />
+                                <line x1="8" y1="11" x2="14" y2="11" />
+                            </svg>
+                        </div>
+                        <div className={styles.ctaText}>
+                            <p className={styles.ctaTitle}>Want to know if this role matches your profile?</p>
+                            <p className={styles.ctaSubtitle}>Try our AI-powered capability &amp; job position fit analysis — get personalized match insights before you apply.</p>
+                        </div>
+                        <Link href="/dashboard" className={styles.ctaLink}>
+                            Analyze My Fit
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </Link>
+                    </div>
+
+                    <div className={styles.formContainer}>
 
                     {submitSuccess ? (
                         <div className={styles.successMessage} style={{ 
@@ -1326,8 +1338,14 @@ function JobsFormContent({ defaultPosition }: { defaultPosition: string }) {
                             </div>
                         </form>
                     )}
+                    </div>
                 </div>
-            </main>
+            </section>
+
+            {/* Footer */}
+            <footer className={styles.pageFooter}>
+                <span>&copy; {new Date().getFullYear()} Ambit Technology Group, L.L.C. All rights reserved.</span>
+            </footer>
         </div>
     );
 }
