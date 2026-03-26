@@ -3564,6 +3564,30 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+.jobUrlFetchTooltipUrlRow {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(214, 191, 154, 0.3);
+}
+
+.jobUrlFetchTooltipUrlLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #9B6A10;
+  text-decoration: none;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: color 0.15s ease;
+  word-break: break-all;
+}
+
+.jobUrlFetchTooltipUrlLink:hover {
+  color: #7a5208;
+  text-decoration: underline;
+}
+
 .fieldWarning {
   display: block;
   font-size: 0.9rem;

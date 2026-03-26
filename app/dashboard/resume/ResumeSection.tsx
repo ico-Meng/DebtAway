@@ -60,6 +60,7 @@ export interface FetchedJobData {
   target_job_company: string;
   target_job_description: string;
   target_job_skill_keywords: string[];
+  target_job_url?: string;
 }
 
 // Project interfaces matching the parent component
@@ -279,10 +280,13 @@ export default function ResumeSection({
 }: ResumeSectionProps) {
   const [hoveredJobPosLabel, setHoveredJobPosLabel] = useState<string | null>(null);
   const jobPosHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jobPosShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredIndustrySectorLabelKey, setHoveredIndustrySectorLabelKey] = useState<string | null>(null);
   const industrySectorLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const industrySectorLabelShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredKnowledgeScopeKey, setHoveredKnowledgeScopeKey] = useState<string | null>(null);
   const knowledgeScopeHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const knowledgeScopeShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isKnowledgeScopeGateHovered, setIsKnowledgeScopeGateHovered] = useState(false);
   const knowledgeScopeGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -2886,7 +2890,7 @@ export default function ResumeSection({
         result = await response.json();
 
         if (result.success) {
-          setFetchedJobDataFromExistingResume(result.data);
+          setFetchedJobDataFromExistingResume({ ...result.data, target_job_url: interestedJobPositionFromExistingResume });
           setJobUrlFetchFailed(false);
           setJobUrlError('');
           setIsCheckmarkFadingOut(false);
@@ -3032,9 +3036,9 @@ export default function ResumeSection({
           body: JSON.stringify({ url: interestedJobPositionFromKnowledgeBase })
         });
         result = await response.json();
-        
+
         if (result.success) {
-          setFetchedJobDataFromKnowledgeBase(result.data);
+          setFetchedJobDataFromKnowledgeBase({ ...result.data, target_job_url: interestedJobPositionFromKnowledgeBase });
           setJobUrlFetchFailed(false);
           setJobUrlError('');
           setIsCheckmarkFadingOut(false);
@@ -3043,7 +3047,7 @@ export default function ResumeSection({
           
           // Cache the job data and URL to localStorage
           try {
-            localStorage.setItem('cachedJobDataFromKnowledgeBase', JSON.stringify(result.data));
+            localStorage.setItem('cachedJobDataFromKnowledgeBase', JSON.stringify({ ...result.data, target_job_url: interestedJobPositionFromKnowledgeBase }));
             localStorage.setItem('cachedJobUrlFromKnowledgeBase', interestedJobPositionFromKnowledgeBase);
           } catch (error) {
             console.error('Failed to cache job data:', error);
@@ -4543,7 +4547,7 @@ export default function ResumeSection({
 
           <div className={styles.companyTypeForm}>
             <div className={styles.formField}>
-              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('existing'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); if (jobPosShowTimer.current) clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = setTimeout(() => setHoveredJobPosLabel('existing'), 1000); }} onMouseLeave={() => { if (jobPosShowTimer.current) { clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = null; } setHoveredJobPosLabel(null); }}>
                 <span>Interested Job Position</span>
                 <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'existing' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'existing' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
@@ -4713,6 +4717,18 @@ export default function ResumeSection({
                               <span key={index} className={styles.jobUrlFetchTooltipSkillTag}>{skill}</span>
                             ))}
                           </div>
+                          {fetchedJobDataFromExistingResume.target_job_url && (
+                            <div className={styles.jobUrlFetchTooltipUrlRow}>
+                              <a
+                                href={fetchedJobDataFromExistingResume.target_job_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.jobUrlFetchTooltipUrlLink}
+                              >
+                                View Job Posting ↗
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -4731,7 +4747,7 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField}>
-              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('existing-form'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); if (industrySectorLabelShowTimer.current) clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey('existing-form'), 1000); }} onMouseLeave={() => { if (industrySectorLabelShowTimer.current) { clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = null; } setHoveredIndustrySectorLabelKey(null); }}>
                 <span>Interested Industry Sector</span>
                 <button type="button" aria-label="Interested Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'existing-form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'existing-form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
@@ -5076,7 +5092,7 @@ export default function ResumeSection({
 
           <div className={styles.companyTypeForm}>
             <div className={styles.formField}>
-              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('knowledge'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); if (jobPosShowTimer.current) clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = setTimeout(() => setHoveredJobPosLabel('knowledge'), 1000); }} onMouseLeave={() => { if (jobPosShowTimer.current) { clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = null; } setHoveredJobPosLabel(null); }}>
                 <span>Interested Job Position</span>
                 <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'knowledge' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'knowledge' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
@@ -5250,6 +5266,18 @@ export default function ResumeSection({
                               <span key={index} className={styles.jobUrlFetchTooltipSkillTag}>{skill}</span>
                             ))}
                           </div>
+                          {fetchedJobDataFromKnowledgeBase.target_job_url && (
+                            <div className={styles.jobUrlFetchTooltipUrlRow}>
+                              <a
+                                href={fetchedJobDataFromKnowledgeBase.target_job_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.jobUrlFetchTooltipUrlLink}
+                              >
+                                View Job Posting ↗
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -5268,7 +5296,7 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField}>
-              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('knowledge-form'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); if (industrySectorLabelShowTimer.current) clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey('knowledge-form'), 1000); }} onMouseLeave={() => { if (industrySectorLabelShowTimer.current) { clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = null; } setHoveredIndustrySectorLabelKey(null); }}>
                 <span>Interested Industry Sector</span>
                 <button type="button" aria-label="Interested Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'knowledge-form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'knowledge-form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
@@ -5341,13 +5369,13 @@ export default function ResumeSection({
             </div>
 
             <div className={styles.formField} style={{ position: 'relative', overflow: 'visible' }}>
-              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); setHoveredKnowledgeScopeKey('form'); }} onMouseLeave={() => { knowledgeScopeHideTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey(null), 2000); }}>
+              <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); if (knowledgeScopeShowTimer.current) clearTimeout(knowledgeScopeShowTimer.current); knowledgeScopeShowTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey('form'), 1000); }} onMouseLeave={() => { if (knowledgeScopeShowTimer.current) { clearTimeout(knowledgeScopeShowTimer.current); knowledgeScopeShowTimer.current = null; } setHoveredKnowledgeScopeKey(null); }}>
                 <span>Knowledge Scope</span>
                 <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Tailor your resume using the items you've selected from your knowledge scope, including your projects and skills.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredKnowledgeScopeKey === 'form' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredKnowledgeScopeKey === 'form' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
               </label>
               <div
                 className={styles.careerFocusGateWrapper}
-                style={{ display: 'block' }}
+                style={{ display: 'block', width: '100%' }}
                 onMouseEnter={() => { if (!careerFocus) { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); setIsKnowledgeScopeGateHovered(true); } }}
                 onMouseLeave={() => { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); knowledgeScopeGateHideTimer.current = setTimeout(() => setIsKnowledgeScopeGateHovered(false), 200); }}
                 onClick={() => { if (!careerFocus) onInjectChatMessage?.('To use the Knowledge Scope, please set your Career Focus first.', { type: 'navigate_to_career_focus' }); }}
@@ -5929,7 +5957,7 @@ export default function ResumeSection({
                   {/* Show Interested Job Position when industry sector is selected */}
                   {(resumeMode === 'existing' ? interestedJobPositionFromExistingResume : interestedJobPositionFromKnowledgeBase) && (
                     <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                      <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); setHoveredJobPosLabel('display'); }} onMouseLeave={() => { jobPosHideTimer.current = setTimeout(() => setHoveredJobPosLabel(null), 2000); }}>
+                      <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (jobPosHideTimer.current) clearTimeout(jobPosHideTimer.current); if (jobPosShowTimer.current) clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = setTimeout(() => setHoveredJobPosLabel('display'), 1000); }} onMouseLeave={() => { if (jobPosShowTimer.current) { clearTimeout(jobPosShowTimer.current); jobPosShowTimer.current = null; } setHoveredJobPosLabel(null); }}>
                         <span>Interested Job Position</span>
                         <button type="button" aria-label="Interested Job Position info" onClick={() => onInjectChatMessage?.("Your resume will be tailored to your target role. You can provide the job info in any of these ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for more precise resume crafting.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredJobPosLabel === 'display' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredJobPosLabel === 'display' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                       </label>
@@ -5949,7 +5977,7 @@ export default function ResumeSection({
                   )}
                   {/* Industry Sector - Read-only display */}
                   <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                    <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('display-readonly'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                    <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); if (industrySectorLabelShowTimer.current) clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey('display-readonly'), 1000); }} onMouseLeave={() => { if (industrySectorLabelShowTimer.current) { clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = null; } setHoveredIndustrySectorLabelKey(null); }}>
                       <span>Industry Sector</span>
                       <button type="button" aria-label="Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'display-readonly' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'display-readonly' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                     </label>
@@ -5978,7 +6006,7 @@ export default function ResumeSection({
                 </div>
               ) : (
                 <div className={styles.resumeLeftField}>
-                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); setHoveredIndustrySectorLabelKey('display-dropdown'); }} onMouseLeave={() => { industrySectorLabelHideTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey(null), 2000); }}>
+                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorLabelHideTimer.current) clearTimeout(industrySectorLabelHideTimer.current); if (industrySectorLabelShowTimer.current) clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = setTimeout(() => setHoveredIndustrySectorLabelKey('display-dropdown'), 1000); }} onMouseLeave={() => { if (industrySectorLabelShowTimer.current) { clearTimeout(industrySectorLabelShowTimer.current); industrySectorLabelShowTimer.current = null; } setHoveredIndustrySectorLabelKey(null); }}>
                     <span>Industry Sector</span>
                     <button type="button" aria-label="Industry Sector info" onClick={() => onInjectChatMessage?.("Enter the industry sector you're targeting, and we'll craft your resume using best practices tailored to that industry.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorLabelKey === 'display-dropdown' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorLabelKey === 'display-dropdown' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                   </label>
@@ -6130,7 +6158,7 @@ export default function ResumeSection({
               {/* Knowledge scope selection for "From Knowledge Base" mode */}
               {resumeMode === 'industry' && (
                 <div className={`${styles.resumeLeftField} ${styles.resumeLeftFieldCompact}`}>
-                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); setHoveredKnowledgeScopeKey('panel'); }} onMouseLeave={() => { knowledgeScopeHideTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey(null), 2000); }}>
+                  <label className={styles.resumeLeftLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeHideTimer.current) clearTimeout(knowledgeScopeHideTimer.current); if (knowledgeScopeShowTimer.current) clearTimeout(knowledgeScopeShowTimer.current); knowledgeScopeShowTimer.current = setTimeout(() => setHoveredKnowledgeScopeKey('panel'), 1000); }} onMouseLeave={() => { if (knowledgeScopeShowTimer.current) { clearTimeout(knowledgeScopeShowTimer.current); knowledgeScopeShowTimer.current = null; } setHoveredKnowledgeScopeKey(null); }}>
                     <span>Knowledge Scope</span>
                     <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Tailor your resume using the items you've selected from your knowledge scope, including your projects and skills.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredKnowledgeScopeKey === 'panel' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredKnowledgeScopeKey === 'panel' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                   </label>

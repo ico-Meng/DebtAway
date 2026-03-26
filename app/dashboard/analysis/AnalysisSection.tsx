@@ -12,6 +12,7 @@ interface FetchedJobData {
   target_job_company: string;
   target_job_description: string;
   target_job_skill_keywords: string[];
+  target_job_url?: string;
 }
 
 interface AnalysisSectionProps {
@@ -113,8 +114,10 @@ export default function AnalysisSection({
   const [showJobTooltipAuto, setShowJobTooltipAuto] = useState<boolean>(false);
   const [isTargetJobLabelHovered, setIsTargetJobLabelHovered] = useState(false);
   const targetJobLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targetJobLabelShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isKnowledgeScopeLabelHovered, setIsKnowledgeScopeLabelHovered] = useState(false);
   const knowledgeScopeLabelHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const knowledgeScopeLabelShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isKnowledgeScopeGateHovered, setIsKnowledgeScopeGateHovered] = useState(false);
   const knowledgeScopeGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isTooltipHovered, setIsTooltipHovered] = useState<boolean>(false);
@@ -273,25 +276,25 @@ export default function AnalysisSection({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: jobPosition })
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unable to read error response');
           console.error('API Error:', response.status, response.statusText, errorText);
           setJobUrlError(`Server error (${response.status}): ${response.statusText}. Please try again.`);
           return;
         }
-        
+
         result = await response.json();
-        
+
         if (result.success) {
-          setFetchedJobData(result.data);
+          setFetchedJobData({ ...result.data, target_job_url: jobPosition });
           setJobUrlError('');
           setIsCheckmarkFadingOut(false);
           setInputsChangedSinceLastAnalysis(true);
 
           // Cache the job data and URL to localStorage
           try {
-            localStorage.setItem('cachedJobDataAnalysis', JSON.stringify(result.data));
+            localStorage.setItem('cachedJobDataAnalysis', JSON.stringify({ ...result.data, target_job_url: jobPosition }));
             localStorage.setItem('cachedJobPositionAnalysis', jobPosition);
           } catch (error) {
             console.error('Failed to cache job data:', error);
@@ -954,7 +957,7 @@ export default function AnalysisSection({
           <div className={styles.analysisLeftLower}>
             <div className={styles.basicInfoSubPanel}>
               <div className={styles.formField}>
-                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (targetJobLabelHideTimer.current) clearTimeout(targetJobLabelHideTimer.current); setIsTargetJobLabelHovered(true); }} onMouseLeave={() => { targetJobLabelHideTimer.current = setTimeout(() => setIsTargetJobLabelHovered(false), 2000); }}>
+                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (targetJobLabelHideTimer.current) clearTimeout(targetJobLabelHideTimer.current); if (targetJobLabelShowTimer.current) clearTimeout(targetJobLabelShowTimer.current); targetJobLabelShowTimer.current = setTimeout(() => setIsTargetJobLabelHovered(true), 1000); }} onMouseLeave={() => { if (targetJobLabelShowTimer.current) { clearTimeout(targetJobLabelShowTimer.current); targetJobLabelShowTimer.current = null; } setIsTargetJobLabelHovered(false); }}>
                   <span>Target Job Position</span>
                   <button type="button" aria-label="Target Job Position info" onClick={() => onInjectChatMessage?.("To begin your career fit analysis, share your target role in one of the following ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for a more accurate analysis.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isTargetJobLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isTargetJobLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                 </label>
@@ -1098,6 +1101,18 @@ export default function AnalysisSection({
                               <span key={index} className={styles.jobUrlFetchTooltipSkillTag}>{skill}</span>
                             ))}
                           </div>
+                          {fetchedJobData.target_job_url && (
+                            <div className={styles.jobUrlFetchTooltipUrlRow}>
+                              <a
+                                href={fetchedJobData.target_job_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.jobUrlFetchTooltipUrlLink}
+                              >
+                                View Job Posting ↗
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -1115,13 +1130,13 @@ export default function AnalysisSection({
               </div>
 
               <div className={styles.formField}>
-                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeLabelHideTimer.current) clearTimeout(knowledgeScopeLabelHideTimer.current); setIsKnowledgeScopeLabelHovered(true); }} onMouseLeave={() => { knowledgeScopeLabelHideTimer.current = setTimeout(() => setIsKnowledgeScopeLabelHovered(false), 2000); }}>
+                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (knowledgeScopeLabelHideTimer.current) clearTimeout(knowledgeScopeLabelHideTimer.current); if (knowledgeScopeLabelShowTimer.current) clearTimeout(knowledgeScopeLabelShowTimer.current); knowledgeScopeLabelShowTimer.current = setTimeout(() => setIsKnowledgeScopeLabelHovered(true), 1000); }} onMouseLeave={() => { if (knowledgeScopeLabelShowTimer.current) { clearTimeout(knowledgeScopeLabelShowTimer.current); knowledgeScopeLabelShowTimer.current = null; } setIsKnowledgeScopeLabelHovered(false); }}>
                   <span>Knowledge Scope</span>
                   <button type="button" aria-label="Knowledge Scope info" onClick={() => onInjectChatMessage?.("Start your career fit analysis using your selected knowledge scope to evaluate your personal capabilities.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isKnowledgeScopeLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isKnowledgeScopeLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                 </label>
                 <div
                   className={styles.careerFocusGateWrapper}
-                  style={{ display: 'block' }}
+                  style={{ display: 'block', width: '100%' }}
                   onMouseEnter={() => { if (!careerFocus) { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); setIsKnowledgeScopeGateHovered(true); } }}
                   onMouseLeave={() => { if (knowledgeScopeGateHideTimer.current) clearTimeout(knowledgeScopeGateHideTimer.current); knowledgeScopeGateHideTimer.current = setTimeout(() => setIsKnowledgeScopeGateHovered(false), 200); }}
                   onClick={() => { if (!careerFocus) onInjectChatMessage?.('To use the Knowledge Scope, please set your Career Focus first.', { type: 'navigate_to_career_focus' }); }}

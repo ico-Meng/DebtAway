@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 html {
-  font-size: 87.5%;
+  font-size: 75%; /* 12px base — scales all rem/em values ~14% smaller than before */
 }
 
 body {
