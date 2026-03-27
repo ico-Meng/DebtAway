@@ -2810,6 +2810,35 @@ async def referral_application(file: UploadFile = File(...), form_data: str = Fo
         raise HTTPException(status_code=500, detail=f"Error processing referral application: {str(e)}")
 
 
+@app.get("/job-recommendations")
+async def get_job_recommendations(position_name: str = Query(...)):
+    """
+    Query the jobCache DynamoDB table using the position-index GSI.
+    Returns up to 30 job listings (title, company, url) for the given position name.
+    The position_name is normalised the same way the scheduler does it.
+    """
+    try:
+        normalized = (
+            position_name.strip()
+            .lower()
+            .replace(" ", "_")
+            .replace("/", "_")
+            .replace("&", "and")
+        )
+        job_cache_table = boto3.resource("dynamodb", region_name="us-east-1").Table("jobCache")
+        response = job_cache_table.query(
+            IndexName="position-index",
+            KeyConditionExpression=Key("position_name").eq(normalized),
+            ProjectionExpression="job_title, company_name, job_url",
+            Limit=30,
+        )
+        jobs = response.get("Items", [])
+        return {"success": True, "jobs": jobs}
+    except Exception as e:
+        logger.error(f"Error fetching job recommendations for '{position_name}': {e}")
+        return {"success": False, "jobs": [], "error": str(e)}
+
+
 async def extract_text_from_pdf(file_content: bytes) -> str:
     """
     Extract text content from PDF file bytes

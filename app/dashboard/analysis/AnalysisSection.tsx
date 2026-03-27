@@ -5,6 +5,7 @@ import Image from 'next/image';
 import styles from '../dashboard.module.css';
 import HexGraph from './HexGraph';
 import { API_ENDPOINT } from '@/app/components/config';
+import JobRecommendPanel from '../JobRecommendPanel';
 
 // Type for fetched job data
 interface FetchedJobData {
@@ -129,6 +130,12 @@ export default function AnalysisSection({
   const hasAutoTriggeredRef = useRef<boolean>(false);
   const previousInitialDataRef = useRef<{ fetchedJobData: FetchedJobData | null; resumeFile: File | null; navigationId?: number } | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
+
+  // Job recommendation panel state
+  const [showJobRecommendPanel, setShowJobRecommendPanel] = useState(false);
+  const [pendingAutoFetch, setPendingAutoFetch] = useState(false);
+  const panelWrapperRefAnalysis = useRef<HTMLDivElement>(null);
+
   const previousInitialPropsRef = useRef<{
     initialResumeFile: File | null | undefined;
     initialFetchedJobData: FetchedJobData | null | undefined;
@@ -254,6 +261,14 @@ export default function AnalysisSection({
       setIsJobUrlValid(false);
       setJobInputType(null);
     }
+  };
+
+  // Fill input from recommendation panel and auto-trigger Look Up
+  const handleJobSelectFromPanel = (title: string, company: string) => {
+    const text = `${title} at ${company}`;
+    handleJobPositionChange(text);
+    setShowJobRecommendPanel(false);
+    setPendingAutoFetch(true);
   };
 
   // Fetch job handler - handles 3 input types: URL, job title (<150 chars), job description (>150 chars)
@@ -816,6 +831,29 @@ export default function AnalysisSection({
   // Button is enabled only when all inputs are present AND something changed since last analysis
   const isAnalysisButtonEnabled = allInputsPresent && inputsChangedSinceLastAnalysis;
 
+  // Auto-trigger Look Up after a job is selected from the recommendation panel.
+  // Uses an effect so we wait until React has flushed the state update from
+  // handleJobPositionChange (which sets isJobUrlValid = true).
+  useEffect(() => {
+    if (pendingAutoFetch && isJobUrlValid && !isJobUrlFetching) {
+      setPendingAutoFetch(false);
+      handleFetchJob();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoFetch, isJobUrlValid, isJobUrlFetching]);
+
+  // Dismiss panel when user clicks outside the input + panel wrapper
+  useEffect(() => {
+    if (!showJobRecommendPanel) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (panelWrapperRefAnalysis.current && !panelWrapperRefAnalysis.current.contains(e.target as Node)) {
+        setShowJobRecommendPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showJobRecommendPanel]);
+
   // Extract analysis logic into reusable function
   const runAnalysis = async () => {
     if (!fetchedJobData || !user?.profile?.sub) {
@@ -961,7 +999,8 @@ export default function AnalysisSection({
                   <span>Target Job Position</span>
                   <button type="button" aria-label="Target Job Position info" onClick={() => onInjectChatMessage?.("To begin your career fit analysis, share your target role in one of the following ways:\n1. Paste the job posting URL;\n2. Enter a short job title (e.g., \"AI Engineer at Meta\");\n3. Paste the full job description.\n\nThen click Look Up to extract and structure the role details for a more accurate analysis.")} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: isTargetJobLabelHovered ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: isTargetJobLabelHovered ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                 </label>
-                <div 
+                <div ref={panelWrapperRefAnalysis} className={styles.jobRecommendWrapper}>
+                <div
                   className={styles.jobUrlInputWrapper}
                   onMouseEnter={() => {
                     if (fetchedJobData) {
@@ -987,7 +1026,11 @@ export default function AnalysisSection({
                     type="text"
                     className={styles.formInput}
                     value={jobPosition}
-                    onChange={(e) => handleJobPositionChange(e.target.value)}
+                    onChange={(e) => {
+                      handleJobPositionChange(e.target.value);
+                      if (e.target.value) setShowJobRecommendPanel(false);
+                    }}
+                    onFocus={() => { if (!jobPosition) setShowJobRecommendPanel(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
                   />
                   {(isJobUrlValid || fetchedJobData) && !isCheckmarkFadingOut ? (
@@ -1117,6 +1160,13 @@ export default function AnalysisSection({
                       )}
                     </>
                   )}
+                </div>
+                <JobRecommendPanel
+                  show={showJobRecommendPanel}
+                  careerFocus={careerFocus || ''}
+                  onJobSelect={handleJobSelectFromPanel}
+                  onClose={() => setShowJobRecommendPanel(false)}
+                />
                 </div>
                 {jobUrlError && (
                   <div className={styles.fieldWarningErrorBox}>

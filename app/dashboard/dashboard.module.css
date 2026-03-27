@@ -30,7 +30,7 @@
 }
 
 /* Override global CSS to prevent interference with dashboard, but allow fully custom-styled buttons */
-.dashboardContainer button:not(.submitButton):not(.customDropdownTrigger):not(.dropdownOption):not(.nextButton):not(.backButton):not(.technologyItem):not(.sectionClearButton):not(.modalDoneButton):not(.industryButton):not(.interviewReadyButton):not(.knowledgeButton):not(.constructResumeButton):not(.resumeSaveButton):not(.resumeAddJobButton):not(.resumeBulletAddButton):not(.resumeDeleteFieldButton):not(.analysisSwitchButton):not(.getStartedButton):not(.settingsButton):not(.upgradePlanButton):not(.logoutButton):not(.buildProfileButton):not(.buildKnowledgeButton):not(.lookUpButton):not(.descriptionModeBtn):not(.bulletPointRemoveBtn):not(.bulletPointAddBtn):not(.chatboxBarSendBtn):not(.chatboxBarSendBtnActive):not(.chatboxCloseBtn):not(.chatboxHistoryPill):not(.chatboxTrigger):not(.chatboxBarCloseBtn):not(.chatboxCard):not(.sidebarToggleBtn):not(.addProjectLoadBackBtn):not(.addProjectLoadItem) {
+.dashboardContainer button:not(.submitButton):not(.customDropdownTrigger):not(.dropdownOption):not(.nextButton):not(.backButton):not(.technologyItem):not(.sectionClearButton):not(.modalDoneButton):not(.industryButton):not(.interviewReadyButton):not(.knowledgeButton):not(.constructResumeButton):not(.resumeSaveButton):not(.resumeAddJobButton):not(.resumeBulletAddButton):not(.resumeDeleteFieldButton):not(.analysisSwitchButton):not(.getStartedButton):not(.settingsButton):not(.upgradePlanButton):not(.logoutButton):not(.buildProfileButton):not(.buildKnowledgeButton):not(.lookUpButton):not(.descriptionModeBtn):not(.bulletPointRemoveBtn):not(.bulletPointAddBtn):not(.chatboxBarSendBtn):not(.chatboxBarSendBtnActive):not(.chatboxCloseBtn):not(.chatboxHistoryPill):not(.chatboxTrigger):not(.chatboxBarCloseBtn):not(.chatboxCard):not(.sidebarToggleBtn):not(.addProjectLoadBackBtn):not(.addProjectLoadItem):not(.jobRecommendPositionBtn):not(.jobRecommendBackBtn):not(.jobRecommendLinkBtn) {
   background-color: transparent !important;
   background: transparent !important;
   border: none !important;
@@ -13150,4 +13150,232 @@ textarea.resumeItemCompanyInput {
   .knowledgePanelSection {
     padding-bottom: 4rem;
   }
+}
+
+/* ============================================================
+   Job Recommendation Panel
+   Position mode  → transparent backdrop, individual card buttons
+   Jobs mode      → subtle bordered container with scrollable list
+   ============================================================ */
+
+.jobRecommendWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Outer float anchor — transparent, no box of its own */
+.jobRecommendPanel {
+  position: absolute;
+  left: calc(100% + 16px);
+  top: 0;
+  width: 220px;
+  z-index: 200;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  animation: jobPanelFadeIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@keyframes jobPanelFadeIn {
+  from { opacity: 0; transform: translateX(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0)   scale(1); }
+}
+
+/* ---- Individual position cards — styled like analysisSwitchButton active state ---- */
+.jobRecommendPositionBtn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 0.7rem 1.2rem !important;
+  margin-bottom: 0 !important;
+  text-align: center !important;
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.35) 0%,
+    rgba(139, 92, 246, 0.28) 50%,
+    rgba(109, 40, 217, 0.22) 100%) !important;
+  border: 1.5px solid rgba(139, 92, 246, 0.35) !important;
+  border-radius: 1rem !important;
+  cursor: pointer !important;
+  box-shadow:
+    0 8px 24px rgba(139, 92, 246, 0.35),
+    0 4px 12px rgba(124, 58, 237, 0.25),
+    0 2px 6px  rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.jobRecommendPositionBtn:hover {
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.52) 0%,
+    rgba(139, 92, 246, 0.44)  50%,
+    rgba(109, 40, 217, 0.36)  100%);
+  border-color: rgba(139, 92, 246, 0.55);
+  box-shadow:
+    0 12px 36px rgba(139, 92, 246, 0.45),
+    0 6px 18px  rgba(124, 58, 237, 0.35),
+    0 2px 8px   rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px) scale(1.02);
+}
+.jobRecommendPositionBtn:active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 0.08s;
+}
+
+/* Icon — hidden */
+.jobRecommendPositionIcon {
+  display: none;
+}
+
+/* Text inside the card */
+.jobRecommendPositionName {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #111111 !important;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Jobs list container (bordered card) ---- */
+.jobRecommendJobsContainer {
+  background: linear-gradient(160deg, #ffffff 0%, #fdf9f3 55%, #f9f5ee 100%);
+  border: 1.5px solid rgba(214, 191, 154, 0.62);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 28px rgba(155, 106, 16, 0.12),
+    0 2px 8px  rgba(155, 106, 16, 0.06);
+  overflow: hidden;
+}
+
+/* Header row inside jobs container */
+.jobRecommendHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.52rem 0.85rem;
+  background: rgba(155, 106, 16, 0.055);
+  border-bottom: 1px solid rgba(214, 191, 154, 0.38);
+}
+
+.jobRecommendHeaderTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5a5248;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jobRecommendBackBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9B6A10;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.25rem 0 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.jobRecommendBackBtn:hover { opacity: 1; }
+
+/* ---- Scrollable list (no scrollbar) ---- */
+.jobRecommendScrollList {
+  max-height: calc(5 * 54px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.jobRecommendScrollList::-webkit-scrollbar { display: none; }
+
+.jobRecommendJobItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.52rem 0.65rem 0.52rem 0.85rem;
+  border-bottom: 1px solid rgba(214, 191, 154, 0.2);
+  cursor: pointer;
+  transition: background 0.12s;
+  outline: none;
+}
+.jobRecommendJobItem:last-child { border-bottom: none; }
+.jobRecommendJobItem:hover,
+.jobRecommendJobItem:focus { background: rgba(155, 106, 16, 0.06); }
+
+.jobRecommendJobText { flex: 1; min-width: 0; }
+
+.jobRecommendJobTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2f2a26;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jobRecommendCompany {
+  font-size: 0.7rem;
+  color: #8a7a6a;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.08rem;
+}
+
+/* External link icon */
+.jobRecommendLinkBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #9B6A10;
+  opacity: 0.4;
+  transition: opacity 0.13s, background 0.13s, border-color 0.13s;
+}
+.jobRecommendLinkBtn:hover {
+  opacity: 1;
+  background: rgba(155, 106, 16, 0.1);
+  border-color: rgba(155, 106, 16, 0.28);
+}
+
+/* Loading spinner */
+.jobRecommendLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.4rem;
+}
+.jobRecommendSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(155, 106, 16, 0.2);
+  border-top-color: #9B6A10;
+  border-radius: 50%;
+  animation: jobSpinnerSpin 0.7s linear infinite;
+}
+@keyframes jobSpinnerSpin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.jobRecommendEmpty {
+  padding: 1.1rem 0.85rem;
+  font-size: 0.76rem;
+  color: #a09080;
+  text-align: center;
 }

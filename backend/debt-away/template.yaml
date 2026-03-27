@@ -44,6 +44,10 @@ Parameters:
     Type: String
   OpenaiApiKey:
     Type: String
+  JsearchApiKey:
+    Type: String
+  JsearchAppName:
+    Type: String
 
 
 Resources:
@@ -74,6 +78,99 @@ Resources:
             Resource:
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}"
               - !Sub "arn:aws:s3:::${ChatAiS3Bucket}/*"
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB: jobCache — stores pre-fetched job listings refreshed by the
+  # JobListingCacheFunction scheduler. Supports queries by job_type (main
+  # table PK), company_name (GSI), and position_name (GSI).
+  # ---------------------------------------------------------------------------
+  JobCacheTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain   # Preserve data on stack delete/update
+    Properties:
+      TableName: jobCache
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: job_type    # PK  e.g. "Software Engineering"
+          KeyType: HASH
+        - AttributeName: sk          # SK  e.g. "frontend_engineer#<job_id>"
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: job_type
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: company_name
+          AttributeType: S
+        - AttributeName: position_name
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        # Query by company_name, optionally narrow by job_type
+        - IndexName: company-index
+          KeySchema:
+            - AttributeName: company_name
+              KeyType: HASH
+            - AttributeName: job_type
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Query by position_name, optionally narrow by company_name
+        - IndexName: position-index
+          KeySchema:
+            - AttributeName: position_name
+              KeyType: HASH
+            - AttributeName: company_name
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ---------------------------------------------------------------------------
+  # Lambda: job_listing_cache — EventBridge-only scheduler function.
+  # Fetches job listings from JSearch and refreshes the jobCache DynamoDB table.
+  # NOT exposed via API Gateway.
+  # ---------------------------------------------------------------------------
+  JobListingCacheFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: job_listing_cache
+      CodeUri: job_listing_cache/
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      Timeout: 600       # 10 min — covers 51 position queries + DynamoDB writes
+      MemorySize: 256
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:BatchWriteItem
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/jobCache"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/jobCache/*"
+      Environment:
+        Variables:
+          JSEARCH_API_KEY:  !Ref JsearchApiKey
+          JSEARCH_APP_NAME: !Ref JsearchAppName
+      Events:
+        # 1st of every month at 03:00 UTC
+        ScheduleFirstOfMonth:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 3 1 * ? *)
+            Name: job-listing-cache-1st-of-month
+            Description: Refresh jobCache on the 1st of each month at 03:00 UTC
+            Enabled: true
+        # 15th of every month at 03:00 UTC
+        ScheduleFifteenth:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 3 15 * ? *)
+            Name: job-listing-cache-15th-of-month
+            Description: Refresh jobCache on the 15th of each month at 03:00 UTC
+            Enabled: true
 
   ApiGatewayApi:
       Type: AWS::Serverless::Api
@@ -142,6 +239,15 @@ Resources:
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/career_analysis_data/*"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ambit-dashboard-application-data"
                 - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/ambit-dashboard-application-data/*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/jobCache"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/jobCache/*"
         - AWSLambdaBasicExecutionRole
       Environment:
         Variables:
@@ -157,6 +263,8 @@ Resources:
           STRIPE_SECRET_KEY_AMBITOLOGY: !Ref StripeSecretKeyAmbitology
           OPENROUTER_APIKEY: !Ref OpenRouterApiKey
           OPENAI_APIKEY: !Ref OpenaiApiKey
+          JSEARCH_API_KEY: !Ref JsearchApiKey
+          JSEARCH_APP_NAME: !Ref JsearchAppName
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group

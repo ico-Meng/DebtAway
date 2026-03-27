@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import styles from '../dashboard.module.css';
 import { API_ENDPOINT } from '@/app/components/config';
+import JobRecommendPanel from '../JobRecommendPanel';
 
 interface JobTitle {
   id: string;
@@ -410,6 +411,16 @@ export default function ResumeSection({
   ]);
   const [industrySector, setIndustrySector] = useState('');
   const [targetJobPosition, setTargetJobPosition] = useState('');
+
+  // Job recommendation panel — Knowledge Base section
+  const [showJobRecommendPanelKB, setShowJobRecommendPanelKB] = useState(false);
+  const [pendingAutoFetchKB, setPendingAutoFetchKB] = useState(false);
+  const panelWrapperRefKB = useRef<HTMLDivElement>(null);
+
+  // Job recommendation panel — Existing Resume section
+  const [showJobRecommendPanelER, setShowJobRecommendPanelER] = useState(false);
+  const [pendingAutoFetchER, setPendingAutoFetchER] = useState(false);
+  const panelWrapperRefER = useRef<HTMLDivElement>(null);
   // Persisted fetched job data for display on refresh
   const [persistedFetchedJobData, setPersistedFetchedJobData] = useState<FetchedJobData | null>(null);
   
@@ -746,6 +757,48 @@ export default function ResumeSection({
     }
   };
   
+  // Auto-trigger Look Up after job selected from panel (Knowledge Base section)
+  useEffect(() => {
+    if (pendingAutoFetchKB && isJobUrlValidFromKnowledgeBase && !isJobUrlFetching) {
+      setPendingAutoFetchKB(false);
+      handleFetchJobUrlFromKnowledgeBase();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoFetchKB, isJobUrlValidFromKnowledgeBase, isJobUrlFetching]);
+
+  // Auto-trigger Look Up after job selected from panel (Existing Resume section)
+  useEffect(() => {
+    if (pendingAutoFetchER && isJobUrlValidFromExistingResume && !isJobUrlFetching) {
+      setPendingAutoFetchER(false);
+      handleFetchJobUrlFromExistingResume();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoFetchER, isJobUrlValidFromExistingResume, isJobUrlFetching]);
+
+  // Dismiss Knowledge Base panel on outside click
+  useEffect(() => {
+    if (!showJobRecommendPanelKB) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (panelWrapperRefKB.current && !panelWrapperRefKB.current.contains(e.target as Node)) {
+        setShowJobRecommendPanelKB(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showJobRecommendPanelKB]);
+
+  // Dismiss Existing Resume panel on outside click
+  useEffect(() => {
+    if (!showJobRecommendPanelER) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (panelWrapperRefER.current && !panelWrapperRefER.current.contains(e.target as Node)) {
+        setShowJobRecommendPanelER(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showJobRecommendPanelER]);
+
   // Load state on component mount
   useEffect(() => {
     loadResumeState();
@@ -2866,6 +2919,22 @@ export default function ResumeSection({
     }
   };
 
+  // Fill input + auto-trigger Look Up when user picks from recommendation panel (Existing Resume)
+  const handleJobSelectFromPanelER = (title: string, company: string) => {
+    const text = `${title} at ${company}`;
+    handleJobPositionChangeFromExistingResume(text);
+    setShowJobRecommendPanelER(false);
+    setPendingAutoFetchER(true);
+  };
+
+  // Fill input + auto-trigger Look Up when user picks from recommendation panel (Knowledge Base)
+  const handleJobSelectFromPanelKB = (title: string, company: string) => {
+    const text = `${title} at ${company}`;
+    handleJobPositionChangeFromKnowledgeBase(text);
+    setShowJobRecommendPanelKB(false);
+    setPendingAutoFetchKB(true);
+  };
+
   // Fetch job handler for "From Existing Resume" page
   // Handles 3 input types: URL, job title (<150 chars), job description (>150 chars)
   const handleFetchJobUrlFromExistingResume = async () => {
@@ -4562,6 +4631,7 @@ export default function ResumeSection({
                   />
                 </>
               ) : (
+                <div ref={panelWrapperRefER} className={styles.jobRecommendWrapper}>
                 <div
                   className={styles.jobUrlInputWrapper}
                   onMouseEnter={() => {
@@ -4586,7 +4656,11 @@ export default function ResumeSection({
                     type="text"
                     className={styles.formInput}
                     value={interestedJobPositionFromExistingResume}
-                    onChange={(e) => handleJobPositionChangeFromExistingResume(e.target.value)}
+                    onChange={(e) => {
+                      handleJobPositionChangeFromExistingResume(e.target.value);
+                      if (e.target.value) setShowJobRecommendPanelER(false);
+                    }}
+                    onFocus={() => { if (!interestedJobPositionFromExistingResume) setShowJobRecommendPanelER(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
                   />
                   {(isJobUrlValidFromExistingResume || fetchedJobDataFromExistingResume || isJobUrlBlockedFromExistingResume) && !isCheckmarkFadingOut ? (
@@ -4733,6 +4807,13 @@ export default function ResumeSection({
                       )}
                     </>
                   )}
+                </div>
+                <JobRecommendPanel
+                  show={showJobRecommendPanelER}
+                  careerFocus={careerFocus || ''}
+                  onJobSelect={handleJobSelectFromPanelER}
+                  onClose={() => setShowJobRecommendPanelER(false)}
+                />
                 </div>
               )}
               {jobUrlError && (
@@ -5107,7 +5188,8 @@ export default function ResumeSection({
                   />
                 </>
               ) : (
-                <div 
+                <div ref={panelWrapperRefKB} className={styles.jobRecommendWrapper}>
+                <div
                   className={styles.jobUrlInputWrapper}
                   onMouseEnter={() => {
                     if (fetchedJobDataFromKnowledgeBase) {
@@ -5133,7 +5215,11 @@ export default function ResumeSection({
                     type="text"
                     className={styles.formInput}
                     value={interestedJobPositionFromKnowledgeBase}
-                    onChange={(e) => handleJobPositionChangeFromKnowledgeBase(e.target.value)}
+                    onChange={(e) => {
+                      handleJobPositionChangeFromKnowledgeBase(e.target.value);
+                      if (e.target.value) setShowJobRecommendPanelKB(false);
+                    }}
+                    onFocus={() => { if (!interestedJobPositionFromKnowledgeBase) setShowJobRecommendPanelKB(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
                   />
                   {(isJobUrlValidFromKnowledgeBase || fetchedJobDataFromKnowledgeBase || isJobUrlBlockedFromKnowledgeBase) && !isCheckmarkFadingOut ? (
@@ -5282,6 +5368,13 @@ export default function ResumeSection({
                       )}
                     </>
                   )}
+                </div>
+                <JobRecommendPanel
+                  show={showJobRecommendPanelKB}
+                  careerFocus={careerFocus || ''}
+                  onJobSelect={handleJobSelectFromPanelKB}
+                  onClose={() => setShowJobRecommendPanelKB(false)}
+                />
                 </div>
               )}
               {jobUrlError && (
