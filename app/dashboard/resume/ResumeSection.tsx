@@ -416,11 +416,13 @@ export default function ResumeSection({
   const [showJobRecommendPanelKB, setShowJobRecommendPanelKB] = useState(false);
   const [pendingAutoFetchKB, setPendingAutoFetchKB] = useState(false);
   const panelWrapperRefKB = useRef<HTMLDivElement>(null);
+  const panelJobMetaRefKB = useRef<{ title: string; company: string; url: string } | null>(null);
 
   // Job recommendation panel — Existing Resume section
   const [showJobRecommendPanelER, setShowJobRecommendPanelER] = useState(false);
   const [pendingAutoFetchER, setPendingAutoFetchER] = useState(false);
   const panelWrapperRefER = useRef<HTMLDivElement>(null);
+  const panelJobMetaRefER = useRef<{ title: string; company: string; url: string } | null>(null);
   // Persisted fetched job data for display on refresh
   const [persistedFetchedJobData, setPersistedFetchedJobData] = useState<FetchedJobData | null>(null);
   
@@ -2920,17 +2922,17 @@ export default function ResumeSection({
   };
 
   // Fill input + auto-trigger Look Up when user picks from recommendation panel (Existing Resume)
-  const handleJobSelectFromPanelER = (title: string, company: string) => {
-    const text = `${title} at ${company}`;
-    handleJobPositionChangeFromExistingResume(text);
+  const handleJobSelectFromPanelER = (title: string, company: string, url: string) => {
+    panelJobMetaRefER.current = { title, company, url };
+    handleJobPositionChangeFromExistingResume(url);
     setShowJobRecommendPanelER(false);
     setPendingAutoFetchER(true);
   };
 
   // Fill input + auto-trigger Look Up when user picks from recommendation panel (Knowledge Base)
-  const handleJobSelectFromPanelKB = (title: string, company: string) => {
-    const text = `${title} at ${company}`;
-    handleJobPositionChangeFromKnowledgeBase(text);
+  const handleJobSelectFromPanelKB = (title: string, company: string, url: string) => {
+    panelJobMetaRefKB.current = { title, company, url };
+    handleJobPositionChangeFromKnowledgeBase(url);
     setShowJobRecommendPanelKB(false);
     setPendingAutoFetchKB(true);
   };
@@ -2950,11 +2952,18 @@ export default function ResumeSection({
       let result;
 
       if (currentInputType === 'url') {
-        // Type 1: URL - use existing API
+        // Type 1: URL - use existing API, with panel meta as fallback if available
+        const meta = panelJobMetaRefER.current;
+        if (meta && meta.url !== interestedJobPositionFromExistingResume) panelJobMetaRefER.current = null;
+        const fallbackMeta = panelJobMetaRefER.current;
+        panelJobMetaRefER.current = null;
         response = await fetch(`${API_ENDPOINT}/validate_and_fetch_job_url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: interestedJobPositionFromExistingResume })
+          body: JSON.stringify({
+            url: interestedJobPositionFromExistingResume,
+            ...(fallbackMeta ? { fallback_title: fallbackMeta.title, fallback_company: fallbackMeta.company } : {})
+          })
         });
         result = await response.json();
 
@@ -3098,11 +3107,18 @@ export default function ResumeSection({
       let result;
       
       if (currentInputType === 'url') {
-        // Type 1: URL - use existing API
+        // Type 1: URL - use existing API, with panel meta as fallback if available
+        const meta = panelJobMetaRefKB.current;
+        if (meta && meta.url !== interestedJobPositionFromKnowledgeBase) panelJobMetaRefKB.current = null;
+        const fallbackMeta = panelJobMetaRefKB.current;
+        panelJobMetaRefKB.current = null;
         response = await fetch(`${API_ENDPOINT}/validate_and_fetch_job_url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: interestedJobPositionFromKnowledgeBase })
+          body: JSON.stringify({
+            url: interestedJobPositionFromKnowledgeBase,
+            ...(fallbackMeta ? { fallback_title: fallbackMeta.title, fallback_company: fallbackMeta.company } : {})
+          })
         });
         result = await response.json();
 
@@ -4659,6 +4675,7 @@ export default function ResumeSection({
                     onChange={(e) => {
                       handleJobPositionChangeFromExistingResume(e.target.value);
                       if (e.target.value) setShowJobRecommendPanelER(false);
+                      else setShowJobRecommendPanelER(true);
                     }}
                     onFocus={() => { if (!interestedJobPositionFromExistingResume) setShowJobRecommendPanelER(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
@@ -4811,6 +4828,7 @@ export default function ResumeSection({
                 <JobRecommendPanel
                   show={showJobRecommendPanelER}
                   careerFocus={careerFocus || ''}
+                  userSkills={selectedTechnicalSkills}
                   onJobSelect={handleJobSelectFromPanelER}
                   onClose={() => setShowJobRecommendPanelER(false)}
                 />
@@ -5218,6 +5236,7 @@ export default function ResumeSection({
                     onChange={(e) => {
                       handleJobPositionChangeFromKnowledgeBase(e.target.value);
                       if (e.target.value) setShowJobRecommendPanelKB(false);
+                      else setShowJobRecommendPanelKB(true);
                     }}
                     onFocus={() => { if (!interestedJobPositionFromKnowledgeBase) setShowJobRecommendPanelKB(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
@@ -5372,6 +5391,7 @@ export default function ResumeSection({
                 <JobRecommendPanel
                   show={showJobRecommendPanelKB}
                   careerFocus={careerFocus || ''}
+                  userSkills={selectedTechnicalSkills}
                   onJobSelect={handleJobSelectFromPanelKB}
                   onClose={() => setShowJobRecommendPanelKB(false)}
                 />

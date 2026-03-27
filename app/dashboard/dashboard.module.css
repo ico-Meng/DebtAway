@@ -13185,13 +13185,13 @@ textarea.resumeItemCompanyInput {
   to   { opacity: 1; transform: translateX(0)   scale(1); }
 }
 
-/* ---- Individual position cards — styled like analysisSwitchButton active state ---- */
+/* ---- Individual position cards — same style as jobRecommendJobItem ---- */
 .jobRecommendPositionBtn {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
-  padding: 0.7rem 1.2rem !important;
+  padding: 0.6rem 0.9rem !important;
   margin-bottom: 0 !important;
   text-align: center !important;
   background: linear-gradient(135deg,
@@ -13201,33 +13201,23 @@ textarea.resumeItemCompanyInput {
   border: 1.5px solid rgba(139, 92, 246, 0.35) !important;
   border-radius: 1rem !important;
   cursor: pointer !important;
-  box-shadow:
-    0 8px 24px rgba(139, 92, 246, 0.35),
-    0 4px 12px rgba(124, 58, 237, 0.25),
-    0 2px 6px  rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .jobRecommendPositionBtn:hover {
   background: linear-gradient(135deg,
     rgba(167, 139, 250, 0.52) 0%,
-    rgba(139, 92, 246, 0.44)  50%,
-    rgba(109, 40, 217, 0.36)  100%);
-  border-color: rgba(139, 92, 246, 0.55);
-  box-shadow:
-    0 12px 36px rgba(139, 92, 246, 0.45),
-    0 6px 18px  rgba(124, 58, 237, 0.35),
-    0 2px 8px   rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px) scale(1.02);
+    rgba(139, 92, 246, 0.44) 50%,
+    rgba(109, 40, 217, 0.36) 100%) !important;
+  border-color: rgba(139, 92, 246, 0.55) !important;
+  box-shadow: none !important;
+  transform: translateY(-1px);
 }
 .jobRecommendPositionBtn:active {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(0);
   transition-duration: 0.08s;
 }
 
@@ -13238,121 +13228,161 @@ textarea.resumeItemCompanyInput {
 
 /* Text inside the card */
 .jobRecommendPositionName {
-  font-size: 1rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   color: #111111 !important;
   line-height: 1.3;
   letter-spacing: 0.01em;
 }
 
-/* ---- Jobs list container (bordered card) ---- */
+/* ---- Jobs list container — transparent, same flow as positions ---- */
 .jobRecommendJobsContainer {
-  background: linear-gradient(160deg, #ffffff 0%, #fdf9f3 55%, #f9f5ee 100%);
-  border: 1.5px solid rgba(214, 191, 154, 0.62);
-  border-radius: 16px;
-  box-shadow:
-    0 8px 28px rgba(155, 106, 16, 0.12),
-    0 2px 8px  rgba(155, 106, 16, 0.06);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
 }
 
-/* Header row inside jobs container */
+/* Back button row */
 .jobRecommendHeader {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.52rem 0.85rem;
-  background: rgba(155, 106, 16, 0.055);
-  border-bottom: 1px solid rgba(214, 191, 154, 0.38);
+  gap: 0.4rem;
+  padding: 0 0.2rem;
+  margin-bottom: 8px;
 }
 
 .jobRecommendHeaderTitle {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #5a5248;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #3b3b3b;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 }
 
 .jobRecommendBackBtn {
   flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #9B6A10;
-  font-size: 1rem;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 0.3rem 0 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  color: #6d28d9;
+  font-size: 1.1rem;
   line-height: 1;
-  padding: 0 0.25rem 0 0;
-  opacity: 0.6;
-  transition: opacity 0.15s;
+  opacity: 0.7;
+  transition: opacity 0.15s !important;
 }
 .jobRecommendBackBtn:hover { opacity: 1; }
 
-/* ---- Scrollable list (no scrollbar) ---- */
+/* ---- Scrollable positions list — 5 cards visible ---- */
+.jobRecommendPositionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(5 * 40px + 4 * 8px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  width: 100%;
+}
+.jobRecommendPositionsList::-webkit-scrollbar { display: none; }
+
+/* ---- Scrollable list — 5 cards visible, same card style as positions ---- */
 .jobRecommendScrollList {
-  max-height: calc(5 * 54px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(5 * 66px + 4 * 8px);
   overflow-y: auto;
   scrollbar-width: none;
 }
 .jobRecommendScrollList::-webkit-scrollbar { display: none; }
 
+/* Individual job card — mirrors .jobRecommendPositionBtn */
 .jobRecommendJobItem {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.52rem 0.65rem 0.52rem 0.85rem;
-  border-bottom: 1px solid rgba(214, 191, 154, 0.2);
-  cursor: pointer;
-  transition: background 0.12s;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 0.6rem 0.9rem !important;
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.35) 0%,
+    rgba(139, 92, 246, 0.28) 50%,
+    rgba(109, 40, 217, 0.22) 100%) !important;
+  border: 1.5px solid rgba(139, 92, 246, 0.35) !important;
+  border-radius: 1rem !important;
+  cursor: pointer !important;
+  box-shadow:
+    0 2px 8px rgba(139, 92, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease !important;
+  backdrop-filter: blur(6px);
   outline: none;
+  gap: 0.5rem;
+  box-sizing: border-box;
 }
-.jobRecommendJobItem:last-child { border-bottom: none; }
 .jobRecommendJobItem:hover,
-.jobRecommendJobItem:focus { background: rgba(155, 106, 16, 0.06); }
+.jobRecommendJobItem:focus {
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.52) 0%,
+    rgba(139, 92, 246, 0.44) 50%,
+    rgba(109, 40, 217, 0.36) 100%) !important;
+  border-color: rgba(139, 92, 246, 0.55) !important;
+  box-shadow:
+    0 5px 16px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
 
 .jobRecommendJobText { flex: 1; min-width: 0; }
 
 .jobRecommendJobTitle {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #2f2a26;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #111111;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .jobRecommendCompany {
-  font-size: 0.7rem;
-  color: #8a7a6a;
+  font-size: 0.72rem;
+  color: #3b3b3b;
+  font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 0.08rem;
+  margin-top: 0.1rem;
 }
 
 /* External link icon */
 .jobRecommendLinkBtn {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  cursor: pointer;
-  color: #9B6A10;
-  opacity: 0.4;
-  transition: opacity 0.13s, background 0.13s, border-color 0.13s;
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: none !important;
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  padding: 4px !important;
+  cursor: pointer !important;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s !important;
+}
+.jobRecommendLinkBtn img {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 .jobRecommendLinkBtn:hover {
   opacity: 1;
-  background: rgba(155, 106, 16, 0.1);
-  border-color: rgba(155, 106, 16, 0.28);
+  background: rgba(109, 40, 217, 0.12) !important;
 }
 
 /* Loading spinner */

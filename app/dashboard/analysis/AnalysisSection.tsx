@@ -135,6 +135,8 @@ export default function AnalysisSection({
   const [showJobRecommendPanel, setShowJobRecommendPanel] = useState(false);
   const [pendingAutoFetch, setPendingAutoFetch] = useState(false);
   const panelWrapperRefAnalysis = useRef<HTMLDivElement>(null);
+  // Stores title+company+url from a panel selection so the fetch can use them as fallback
+  const panelJobMetaRef = useRef<{ title: string; company: string; url: string } | null>(null);
 
   const previousInitialPropsRef = useRef<{
     initialResumeFile: File | null | undefined;
@@ -264,9 +266,9 @@ export default function AnalysisSection({
   };
 
   // Fill input from recommendation panel and auto-trigger Look Up
-  const handleJobSelectFromPanel = (title: string, company: string) => {
-    const text = `${title} at ${company}`;
-    handleJobPositionChange(text);
+  const handleJobSelectFromPanel = (title: string, company: string, url: string) => {
+    panelJobMetaRef.current = { title, company, url };
+    handleJobPositionChange(url);
     setShowJobRecommendPanel(false);
     setPendingAutoFetch(true);
   };
@@ -285,11 +287,18 @@ export default function AnalysisSection({
       let result;
       
       if (currentInputType === 'url') {
-        // Type 1: URL - use existing API
+        // Type 1: URL - use existing API, with panel meta as fallback if available
+        const meta = panelJobMetaRef.current;
+        if (meta && meta.url !== jobPosition) panelJobMetaRef.current = null;
+        const fallbackMeta = panelJobMetaRef.current;
+        panelJobMetaRef.current = null;
         response = await fetch(`${API_ENDPOINT}/validate_and_fetch_job_url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: jobPosition })
+          body: JSON.stringify({
+            url: jobPosition,
+            ...(fallbackMeta ? { fallback_title: fallbackMeta.title, fallback_company: fallbackMeta.company } : {})
+          })
         });
 
         if (!response.ok) {
@@ -1029,6 +1038,7 @@ export default function AnalysisSection({
                     onChange={(e) => {
                       handleJobPositionChange(e.target.value);
                       if (e.target.value) setShowJobRecommendPanel(false);
+                      else setShowJobRecommendPanel(true);
                     }}
                     onFocus={() => { if (!jobPosition) setShowJobRecommendPanel(true); }}
                     placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"

@@ -1722,18 +1722,60 @@ async def validate_and_fetch_job_url(request: Request):
     """
     try:
         logger.info("Received validate_and_fetch_job_url request")
-        
+
         # Parse request body
         body = await request.json()
         url = body.get('url', '').strip()
-        
+        fallback_title = body.get('fallback_title', '').strip()
+        fallback_company = body.get('fallback_company', '').strip()
+
+        # ------------------------------------------------------------------
+        # Helper: OpenAI fallback using known job title + company
+        # Called whenever URL fetch fails but we have panel-provided metadata.
+        # ------------------------------------------------------------------
+        async def openai_fallback(title: str, company: str) -> dict:
+            logger.info(f"Using OpenAI fallback for '{title}' at '{company}'")
+            fallback_prompt = f"""
+You are a job market expert with deep knowledge of technology companies and their hiring practices.
+
+Generate accurate, specific structured job information for the following position:
+
+Job Title: {title}
+Company: {company}
+
+Based on your knowledge of {company}'s technology stack, culture, and typical role requirements, provide:
+1. target_job_title: The exact standardized job title
+2. target_job_company: The company name
+3. target_job_description: A specific 2-3 sentence description of what this role involves at {company}, referencing their actual tech stack and work if known
+4. target_job_skill_keywords: List of 6-10 key technical skills, tools, and qualifications typically required for this exact role at {company}
+"""
+            fallback_response = client.responses.parse(
+                model="gpt-5-mini",
+                input=[
+                    {"role": "system", "content": "You are an expert job market analyst with knowledge of major tech companies and their hiring requirements."},
+                    {"role": "user", "content": fallback_prompt}
+                ],
+                text_format=JobUrlExtraction
+            )
+            d = fallback_response.output_parsed
+            return {
+                "success": True,
+                "fallback_used": True,
+                "data": {
+                    "target_job_title": d.target_job_title or title,
+                    "target_job_company": d.target_job_company or company,
+                    "target_job_description": d.target_job_description or "",
+                    "target_job_skill_keywords": d.target_job_skill_keywords or []
+                }
+            }
+
         if not url:
             return {
                 "success": False,
                 "error_code": "INVALID_URL",
                 "message": "URL is required"
             }
-        
+
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
             return {
@@ -1741,23 +1783,25 @@ async def validate_and_fetch_job_url(request: Request):
                 "error_code": "INVALID_URL",
                 "message": "Invalid URL format. URL must start with http:// or https://"
             }
-        
+
         # Check robots.txt to see if scraping is blocked
         logger.info(f"Checking robots.txt for: {url}")
         is_blocked, blocking_reason = await check_robots_txt(url)
-        
+
         if is_blocked:
-            logger.warning(f"Website blocks scraping or requires captcha for: {url} - {blocking_reason}")
+            logger.warning(f"Website blocks scraping for: {url} - {blocking_reason}")
+            if fallback_title and fallback_company:
+                return await openai_fallback(fallback_title, fallback_company)
             return {
                 "success": False,
                 "error_code": "BLOCKED_OR_AUTH_REQUIRED",
                 "message": blocking_reason or "The website blocks direct fetch or requires authentication/captcha"
             }
-        
+
         # Try to fetch web content
         logger.info(f"Fetching job posting content from: {url}")
         web_content = await fetch_web_page_content(url)
-        
+
         # Check if fetch was successful (fetch_web_page_content returns error messages as strings)
         error_indicators = [
             "Invalid URL format",
@@ -1770,20 +1814,22 @@ async def validate_and_fetch_job_url(request: Request):
             "Unexpected error",
             "Very little content extracted"
         ]
-        
+
         is_error = any(indicator in web_content for indicator in error_indicators)
-        
+
         if is_error or len(web_content.strip()) < 100:
             logger.warning(f"Failed to fetch valid content from URL: {url}")
+            if fallback_title and fallback_company:
+                return await openai_fallback(fallback_title, fallback_company)
             return {
                 "success": False,
                 "error_code": "FETCH_FAILED",
                 "message": web_content if is_error else "Unable to extract meaningful content from the URL"
             }
-        
+
         # Use OpenAI to extract structured job data
         logger.info("Extracting structured job data using OpenAI...")
-        
+
         prompt = f"""
         Extract structured job information from the following job posting content:
 
@@ -1798,7 +1844,7 @@ async def validate_and_fetch_job_url(request: Request):
 
         If any information is not clearly available, provide a reasonable inference or "Not specified".
         """
-        
+
         try:
             response = client.responses.parse(
                 model="gpt-5-mini",
@@ -1814,11 +1860,24 @@ async def validate_and_fetch_job_url(request: Request):
                 ],
                 text_format=JobUrlExtraction
             )
-            
+
             extracted_data = response.output_parsed
-            
+
+            # If the extracted content looks empty/thin, fall back to OpenAI knowledge
+            has_real_content = (
+                extracted_data.target_job_title and
+                extracted_data.target_job_description and
+                len(extracted_data.target_job_description) > 30 and
+                extracted_data.target_job_skill_keywords and
+                len(extracted_data.target_job_skill_keywords) >= 2
+            )
+
+            if not has_real_content and fallback_title and fallback_company:
+                logger.info("Extracted content is thin — switching to OpenAI fallback")
+                return await openai_fallback(fallback_title, fallback_company)
+
             logger.info(f"Successfully extracted job data: {extracted_data.target_job_title} at {extracted_data.target_job_company}")
-            
+
             return {
                 "success": True,
                 "data": {
@@ -1828,15 +1887,20 @@ async def validate_and_fetch_job_url(request: Request):
                     "target_job_skill_keywords": extracted_data.target_job_skill_keywords
                 }
             }
-            
+
         except Exception as openai_error:
             logger.error(f"OpenAI parsing error: {str(openai_error)}")
+            if fallback_title and fallback_company:
+                try:
+                    return await openai_fallback(fallback_title, fallback_company)
+                except Exception as fallback_error:
+                    logger.error(f"OpenAI fallback also failed: {str(fallback_error)}")
             return {
                 "success": False,
                 "error_code": "PARSE_FAILED",
                 "message": f"Failed to parse job posting content: {str(openai_error)}"
             }
-        
+
     except HTTPException as http_err:
         logger.error(f"HTTP error in validate_and_fetch_job_url: {http_err.status_code} - {http_err.detail}")
         raise
@@ -2810,14 +2874,22 @@ async def referral_application(file: UploadFile = File(...), form_data: str = Fo
         raise HTTPException(status_code=500, detail=f"Error processing referral application: {str(e)}")
 
 
-@app.get("/job-recommendations")
-async def get_job_recommendations(position_name: str = Query(...)):
+@app.post("/job-recommendations")
+async def get_job_recommendations(request: Request):
     """
-    Query the jobCache DynamoDB table using the position-index GSI.
-    Returns up to 30 job listings (title, company, url) for the given position name.
-    The position_name is normalised the same way the scheduler does it.
+    Load all cached job listings for a position from DynamoDB, then use OpenAI
+    to rank the top 20 most relevant jobs based on the user's career focus and
+    skills, with popular / well-known companies surfaced first.
     """
     try:
+        body = await request.json()
+        position_name = body.get("position_name", "").strip()
+        career_focus  = body.get("career_focus", "").strip()
+        user_skills   = body.get("user_skills", []) or []
+
+        if not position_name:
+            return {"success": False, "jobs": [], "error": "position_name is required"}
+
         normalized = (
             position_name.strip()
             .lower()
@@ -2825,15 +2897,94 @@ async def get_job_recommendations(position_name: str = Query(...)):
             .replace("/", "_")
             .replace("&", "and")
         )
+
+        # ------------------------------------------------------------------
+        # 1. Load ALL items for this position from DynamoDB (paginated)
+        # ------------------------------------------------------------------
         job_cache_table = boto3.resource("dynamodb", region_name="us-east-1").Table("jobCache")
-        response = job_cache_table.query(
+        all_jobs = []
+        query_kwargs = dict(
             IndexName="position-index",
             KeyConditionExpression=Key("position_name").eq(normalized),
             ProjectionExpression="job_title, company_name, job_url",
-            Limit=30,
         )
-        jobs = response.get("Items", [])
-        return {"success": True, "jobs": jobs}
+        while True:
+            resp = job_cache_table.query(**query_kwargs)
+            all_jobs.extend(resp.get("Items", []))
+            last_key = resp.get("LastEvaluatedKey")
+            if not last_key:
+                break
+            query_kwargs["ExclusiveStartKey"] = last_key
+
+        if not all_jobs:
+            return {"success": True, "jobs": []}
+
+        # If 20 or fewer items there is nothing to rank — return as-is
+        if len(all_jobs) <= 20:
+            return {"success": True, "jobs": all_jobs}
+
+        # ------------------------------------------------------------------
+        # 2. Ask OpenAI to rank the top 20 most relevant + reputable listings
+        # ------------------------------------------------------------------
+        job_list_text = "\n".join(
+            f"{i}: {j.get('job_title', '')} @ {j.get('company_name', '')}"
+            for i, j in enumerate(all_jobs)
+        )
+        skills_text = ", ".join(user_skills) if user_skills else "not specified"
+
+        ranking_prompt = f"""You are an expert career advisor and technical recruiter.
+
+User profile:
+- Career focus: {career_focus or 'not specified'}
+- Technical skills: {skills_text}
+
+Below is a numbered list of job listings for the position "{position_name}".
+Select the 20 most suitable listings for this user, prioritising:
+1. Relevance to the user's career focus and technical skills
+2. Company reputation and prestige (FAANG, top-tier tech companies, well-funded startups, unicorns)
+3. Variety — avoid returning duplicates from the same company
+
+Return ONLY a JSON array of the selected indices (0-based integers), ordered with the best match first.
+Example: [3, 0, 12, 7, ...]
+
+Job listings:
+{job_list_text}"""
+
+        class JobRanking(BaseModel):
+            ranked_indices: List[int]
+
+        ranking_resp = client.responses.parse(
+            model="gpt-5-mini",
+            input=[
+                {"role": "system", "content": "You are a concise JSON-only responder. Return only the JSON object requested."},
+                {"role": "user",   "content": ranking_prompt},
+            ],
+            text_format=JobRanking,
+        )
+
+        ranked_indices = ranking_resp.output_parsed.ranked_indices or []
+
+        # Validate and deduplicate indices, cap at 20
+        seen = set()
+        ordered = []
+        for idx in ranked_indices:
+            if isinstance(idx, int) and 0 <= idx < len(all_jobs) and idx not in seen:
+                seen.add(idx)
+                ordered.append(all_jobs[idx])
+                if len(ordered) == 20:
+                    break
+
+        # Pad with unranked items if OpenAI returned fewer than 20
+        if len(ordered) < 20:
+            for i, job in enumerate(all_jobs):
+                if i not in seen:
+                    ordered.append(job)
+                    if len(ordered) == 20:
+                        break
+
+        logger.info(f"Ranked {len(ordered)} jobs for position '{position_name}' (total pool: {len(all_jobs)})")
+        return {"success": True, "jobs": ordered}
+
     except Exception as e:
         logger.error(f"Error fetching job recommendations for '{position_name}': {e}")
         return {"success": False, "jobs": [], "error": str(e)}

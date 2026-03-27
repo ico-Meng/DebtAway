@@ -16,39 +16,56 @@ interface JobItem {
 // ---------------------------------------------------------------------------
 const CAREER_FOCUS_POSITIONS: Record<string, string[]> = {
   'software-engineering': [
+    'Full Stack Engineer',
     'Frontend Engineer',
     'Backend Engineer',
-    'Full Stack Engineer',
+    'Cloud Computing Engineer',
     'Platform Engineer',
+    'AI Engineer',
+    'Distributed System Engineer',
     'Site Reliability Engineer',
+    'Mobile Engineer',
+    'Infrastructure Engineer',
+    'Low Latency Engineer',
   ],
   'ai-machine-learning': [
-    'AI Engineer',
     'Machine Learning Engineer',
-    'LLM Engineer',
+    'AI Engineer',
+    'Deep Learning Engineer',
+    'Machine Learning Scientist',
+    'AI Research Scientist',
     'Generative AI Engineer',
+    'LLM Engineer',
+    'MLOps Engineer',
     'AI Platform Engineer',
   ],
   'ai-ml': [
-    'AI Engineer',
     'Machine Learning Engineer',
-    'LLM Engineer',
+    'AI Engineer',
+    'Deep Learning Engineer',
+    'Machine Learning Scientist',
+    'AI Research Scientist',
     'Generative AI Engineer',
+    'LLM Engineer',
+    'MLOps Engineer',
     'AI Platform Engineer',
   ],
   'data-engineering': [
     'Data Engineer',
-    'Data Pipeline Engineer',
     'Data Platform Engineer',
+    'Data Pipeline Engineer',
     'ETL Engineer',
     'Streaming Data Engineer',
+    'Data Warehouse Engineer',
+    'Data Infrastructure Engineer',
   ],
   'data-science': [
     'Data Scientist',
-    'ML Scientist',
     'Applied Scientist',
-    'Data Analyst',
     'Research Scientist',
+    'Data Analyst',
+    'Decision Scientist',
+    'ML Scientist',
   ],
   'ui-ux-product-design': [
     'Product Designer',
@@ -56,6 +73,7 @@ const CAREER_FOCUS_POSITIONS: Record<string, string[]> = {
     'UI Designer',
     'Interaction Designer',
     'Visual Designer',
+    'Design System Designer',
   ],
   'ui-ux': [
     'Product Designer',
@@ -63,29 +81,32 @@ const CAREER_FOCUS_POSITIONS: Record<string, string[]> = {
     'UI Designer',
     'Interaction Designer',
     'Visual Designer',
+    'Design System Designer',
   ],
   'financial-engineering': [
     'Quant Researcher',
-    'Financial Engineer',
     'Quant Developer',
+    'Financial Engineer',
     'Trading Engineer',
-    'Financial Data Scientist',
+    'Financial Scientist',
+    'Modeling Engineer',
   ],
   'cybersecurity': [
     'Security Engineer',
-    'Cloud Security Engineer',
     'Application Security Engineer',
+    'Cloud Security Engineer',
     'Security Architect',
     'IAM Engineer',
+    'GRC Analyst',
   ],
 };
 
 const DEFAULT_POSITIONS = [
-  'Software Engineer',
+  'Full Stack Engineer',
   'AI Engineer',
   'Data Scientist',
-  'Product Manager',
-  'UX Designer',
+  'Product Designer',
+  'Security Engineer',
 ];
 
 function getPositionsForFocus(careerFocus: string): string[] {
@@ -104,6 +125,8 @@ function getPositionsForFocus(careerFocus: string): string[] {
 interface JobRecommendPanelProps {
   show: boolean;
   careerFocus: string;
+  /** User's established technical skills — used to rank job recommendations */
+  userSkills?: string[];
   /** Called when user clicks a job row (title + company text area, not the link icon) */
   onJobSelect: (title: string, company: string, url: string) => void;
   onClose: () => void;
@@ -115,6 +138,7 @@ interface JobRecommendPanelProps {
 export default function JobRecommendPanel({
   show,
   careerFocus,
+  userSkills = [],
   onJobSelect,
   onClose,
 }: JobRecommendPanelProps) {
@@ -141,9 +165,15 @@ export default function JobRecommendPanel({
     setLoading(true);
     setMode('jobs');
     try {
-      const res = await fetch(
-        `${API_ENDPOINT}/job-recommendations?position_name=${encodeURIComponent(positionName)}`
-      );
+      const res = await fetch(`${API_ENDPOINT}/job-recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          position_name: positionName,
+          career_focus: careerFocus,
+          user_skills: userSkills,
+        }),
+      });
       const data = await res.json();
       setJobs(data.jobs || []);
     } catch {
@@ -168,16 +198,20 @@ export default function JobRecommendPanel({
   return (
     <div className={styles.jobRecommendPanel}>
       {/* ---- Positions list ---- */}
-      {mode === 'positions' && positions.map((pos) => (
-        <button
-          key={pos}
-          type="button"
-          className={styles.jobRecommendPositionBtn}
-          onClick={() => handlePositionClick(pos)}
-        >
-          <span className={styles.jobRecommendPositionName}>{pos}</span>
-        </button>
-      ))}
+      {mode === 'positions' && (
+        <div className={styles.jobRecommendPositionsList}>
+          {positions.map((pos) => (
+            <button
+              key={pos}
+              type="button"
+              className={styles.jobRecommendPositionBtn}
+              onClick={() => handlePositionClick(pos)}
+            >
+              <span className={styles.jobRecommendPositionName}>{pos}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ---- Jobs list ---- */}
       {mode === 'jobs' && (
@@ -224,11 +258,8 @@ export default function JobRecommendPanel({
                     aria-label="Open job posting in new tab"
                     title="Open job posting"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M15 3h6v6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/images/open_in_new.svg" width="16" height="16" alt="" />
                   </button>
                 </div>
               ))}
