@@ -565,6 +565,7 @@ export default function DashboardPage() {
     setShowProfileIntro(false);
     setActiveProfileStep('Career Focus');
     setShowAutoFillSuccessMessage(true);
+    setAutoFillDone(true);
   };
 
   // Call backend to extract structured data from the uploaded resume
@@ -2682,11 +2683,15 @@ export default function DashboardPage() {
   const expandingButtonGateHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredProjDescKey, setHoveredProjDescKey] = useState<string | null>(null);
   const projDescHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const projDescShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredIndustrySectorKey, setHoveredIndustrySectorKey] = useState<string | null>(null);
   const industrySectorHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const industrySectorShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredWorkExperienceKey, setHoveredWorkExperienceKey] = useState<string | null>(null);
   const workExperienceHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workExperienceShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [chatboxInject, setChatboxInject] = useState<{ text: string; seq: number; action?: Record<string, unknown> } | null>(null);
+  const [chatDocked, setChatDocked] = useState(false);
   // Plain-text snapshot of the currently displayed resume document, set by ResumeSection
   const [resumeSnapshot, setResumeSnapshot] = useState<string>('');
 
@@ -2881,6 +2886,7 @@ export default function DashboardPage() {
   
   // Auto-fill from resume state
   const [isAutoFillLoading, setIsAutoFillLoading] = useState<boolean>(false);
+  const [autoFillDone, setAutoFillDone] = useState<boolean>(false);
   const [showOverwriteConfirmModal, setShowOverwriteConfirmModal] = useState<boolean>(false);
   const [pendingAutoFillData, setPendingAutoFillData] = useState<AutoFillApiResponse | null>(null);
 
@@ -4836,7 +4842,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </aside>
-      <main className={styles.mainContent}>
+      <main className={`${styles.mainContent} ${chatDocked ? styles.mainContentDocked : ''}`}>
         <div className={styles.contentArea}>
           <div className={`${styles.sectionContent} ${styles.fadeIn}`}>
             <div className={styles.contentWrapper}>
@@ -4857,8 +4863,8 @@ export default function DashboardPage() {
                   <p className={styles.sectionText}>
                     Manage and organize your personal information and professional details.
                   </p>
-                  <div className={styles.resumeUploadContainer}>
-                    <div className={styles.resumeUploadArea}>
+                  <div className={styles.resumeUploadContainer} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className={styles.resumeUploadArea} style={{ flex: 1 }}>
                       <input
                         type="file"
                         id="resume-upload"
@@ -4961,6 +4967,28 @@ export default function DashboardPage() {
                         )}
                       </label>
                     </div>
+                    {resumeFile && (
+                      <div className={styles.improveResumeButtonWrapper}>
+                        <button
+                          type="button"
+                          className={styles.improveResumeButton}
+                          aria-label="Improve resume"
+                          onClick={() => {
+                            setActiveSection('resume');
+                            setResumeShowExistingResumePage(true);
+                          }}
+                        >
+                          <Image
+                            src="/edit_document.svg"
+                            alt="Improve resume"
+                            width={36}
+                            height={36}
+                            className={styles.improveResumeIcon}
+                          />
+                        </button>
+                        <span className={styles.improveResumeTooltip}>Improve resume</span>
+                      </div>
+                    )}
                   </div>
                   <div className={styles.nextButtonContainer} style={{ marginTop: '3rem', justifyContent: 'center', gap: '15rem', width: '100%' }}>
                     <button
@@ -4980,9 +5008,9 @@ export default function DashboardPage() {
                       type="button"
                       className={styles.nextButton}
                       onClick={() => setShowProfileIntro(false)}
-                      aria-label="Skip to Profile"
+                      aria-label="Next"
                     >
-                      <span className={styles.nextButtonText}>Skip</span>
+                      <span className={styles.nextButtonText}>Next</span>
                       <svg
                         className={styles.nextButtonIcon}
                         width="18"
@@ -7535,7 +7563,7 @@ export default function DashboardPage() {
                                   />
                                 </div>
                                 <div className={styles.knowledgeFormField} style={{ maxWidth: '300px', minWidth: '200px' }}>
-                                  <label htmlFor="project-description" className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`pe-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                  <label htmlFor="project-description" className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); if (projDescShowTimer.current) clearTimeout(projDescShowTimer.current); projDescShowTimer.current = setTimeout(() => setHoveredProjDescKey(`pe-${project.id}`), 600); }} onMouseLeave={() => { if (projDescShowTimer.current) { clearTimeout(projDescShowTimer.current); projDescShowTimer.current = null; } projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
                                     <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
                                     <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `pe-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `pe-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                   </label>
@@ -7677,7 +7705,7 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); setHoveredIndustrySectorKey(`ind-${project.id}`); }} onMouseLeave={() => { industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
+                                    <label htmlFor={`industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); if (industrySectorShowTimer.current) clearTimeout(industrySectorShowTimer.current); industrySectorShowTimer.current = setTimeout(() => setHoveredIndustrySectorKey(`ind-${project.id}`), 600); }} onMouseLeave={() => { if (industrySectorShowTimer.current) { clearTimeout(industrySectorShowTimer.current); industrySectorShowTimer.current = null; } industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
                                       <span>Industry Sector</span>
                                       <button type="button" aria-label="Industry Sector info" onClick={() => setChatboxInject(prev => ({ text: "Select an Industry Sector to tag this project with the most relevant industry. This helps tailor your resume when you're targeting roles in a specific sector.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorKey === `ind-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorKey === `ind-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
@@ -9114,7 +9142,7 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                           <div className={styles.knowledgeFormField}>
-                            <label htmlFor={`professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`prof-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                            <label htmlFor={`professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); if (projDescShowTimer.current) clearTimeout(projDescShowTimer.current); projDescShowTimer.current = setTimeout(() => setHoveredProjDescKey(`prof-${project.id}`), 600); }} onMouseLeave={() => { if (projDescShowTimer.current) { clearTimeout(projDescShowTimer.current); projDescShowTimer.current = null; } projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
                               <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
                               <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `prof-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `prof-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                             </label>
@@ -9254,7 +9282,7 @@ export default function DashboardPage() {
                                   </div>
                                   
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey(`we-${project.id}`); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                    <label htmlFor={`professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); if (workExperienceShowTimer.current) clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = setTimeout(() => setHoveredWorkExperienceKey(`we-${project.id}`), 600); }} onMouseLeave={() => { if (workExperienceShowTimer.current) { clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = null; } workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
                                       <span>Work Experience <span className={styles.requiredIndicator}>*</span></span>
                                       <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === `we-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === `we-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
@@ -10421,7 +10449,7 @@ export default function DashboardPage() {
                             </div>
                             <div className={styles.knowledgeFormRow}>
                               <div className={styles.knowledgeFormField}>
-                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey('initializing'); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); if (projDescShowTimer.current) clearTimeout(projDescShowTimer.current); projDescShowTimer.current = setTimeout(() => setHoveredProjDescKey('initializing'), 600); }} onMouseLeave={() => { if (projDescShowTimer.current) { clearTimeout(projDescShowTimer.current); projDescShowTimer.current = null; } projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
                                   <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
                                   <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === 'initializing' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === 'initializing' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                 </label>
@@ -10454,7 +10482,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                               <div className={styles.knowledgeFormField}>
-                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey('we-init'); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); if (workExperienceShowTimer.current) clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = setTimeout(() => setHoveredWorkExperienceKey('we-init'), 600); }} onMouseLeave={() => { if (workExperienceShowTimer.current) { clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = null; } workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
                                   <span>Work Experience</span>
                                   <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === 'we-init' ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === 'we-init' ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                 </label>
@@ -12193,7 +12221,7 @@ export default function DashboardPage() {
                                   />
                                 </div>
                                 <div className={styles.knowledgeFormField} style={{ maxWidth: '300px', minWidth: '200px' }}>
-                                  <label htmlFor={`future-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`pp-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                                  <label htmlFor={`future-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); if (projDescShowTimer.current) clearTimeout(projDescShowTimer.current); projDescShowTimer.current = setTimeout(() => setHoveredProjDescKey(`pp-${project.id}`), 600); }} onMouseLeave={() => { if (projDescShowTimer.current) { clearTimeout(projDescShowTimer.current); projDescShowTimer.current = null; } projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
                                     <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
                                     <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `pp-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `pp-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                   </label>
@@ -12335,7 +12363,7 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`future-industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); setHoveredIndustrySectorKey(`ind-future-${project.id}`); }} onMouseLeave={() => { industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
+                                    <label htmlFor={`future-industry-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (industrySectorHideTimer.current) clearTimeout(industrySectorHideTimer.current); if (industrySectorShowTimer.current) clearTimeout(industrySectorShowTimer.current); industrySectorShowTimer.current = setTimeout(() => setHoveredIndustrySectorKey(`ind-future-${project.id}`), 600); }} onMouseLeave={() => { if (industrySectorShowTimer.current) { clearTimeout(industrySectorShowTimer.current); industrySectorShowTimer.current = null; } industrySectorHideTimer.current = setTimeout(() => setHoveredIndustrySectorKey(null), 2000); }}>
                                       <span>Industry Sector</span>
                                       <button type="button" aria-label="Industry Sector info" onClick={() => setChatboxInject(prev => ({ text: "Select an Industry Sector to tag this project with the most relevant industry. This helps tailor your resume when you're targeting roles in a specific sector.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredIndustrySectorKey === `ind-future-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredIndustrySectorKey === `ind-future-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
@@ -13750,7 +13778,7 @@ export default function DashboardPage() {
                         
                         <div className={styles.knowledgeFormRow}>
                           <div className={styles.knowledgeFormField}>
-                            <label htmlFor={`future-professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); setHoveredProjDescKey(`ppf-${project.id}`); }} onMouseLeave={() => { projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
+                            <label htmlFor={`future-professional-project-description-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (projDescHideTimer.current) clearTimeout(projDescHideTimer.current); if (projDescShowTimer.current) clearTimeout(projDescShowTimer.current); projDescShowTimer.current = setTimeout(() => setHoveredProjDescKey(`ppf-${project.id}`), 600); }} onMouseLeave={() => { if (projDescShowTimer.current) { clearTimeout(projDescShowTimer.current); projDescShowTimer.current = null; } projDescHideTimer.current = setTimeout(() => setHoveredProjDescKey(null), 2000); }}>
                               <span>Project Description <span className={styles.requiredIndicator}>*</span></span>
                               <button type="button" aria-label="Project Description info" onClick={() => setChatboxInject(prev => ({ text: "The Project Description field is where you capture key bullet points and highlights to showcase this project on your resume. You can write them manually, or add a project URL or paste the project requirements and click Extract—I'll generate polished, resume-ready bullets for you.", seq: (prev?.seq ?? 0) + 1 }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredProjDescKey === `ppf-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredProjDescKey === `ppf-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                             </label>
@@ -13890,7 +13918,7 @@ export default function DashboardPage() {
                                   </div>
                                   
                                   <div className={styles.knowledgeFormField}>
-                                    <label htmlFor={`future-professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); setHoveredWorkExperienceKey(`we-future-${project.id}`); }} onMouseLeave={() => { workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
+                                    <label htmlFor={`future-professional-work-experience-${project.id}`} className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onMouseEnter={() => { if (workExperienceHideTimer.current) clearTimeout(workExperienceHideTimer.current); if (workExperienceShowTimer.current) clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = setTimeout(() => setHoveredWorkExperienceKey(`we-future-${project.id}`), 600); }} onMouseLeave={() => { if (workExperienceShowTimer.current) { clearTimeout(workExperienceShowTimer.current); workExperienceShowTimer.current = null; } workExperienceHideTimer.current = setTimeout(() => setHoveredWorkExperienceKey(null), 2000); }}>
                                       <span>Work Experience <span className={styles.requiredIndicator}>*</span></span>
                                       <button type="button" aria-label="Work Experience info" onClick={() => setChatboxInject(prev => ({ text: "Please choose the work experience you'd like to associate with this project. If you don't have one yet, please add it on the Professional Work Experience page.", seq: (prev?.seq ?? 0) + 1, action: { type: 'navigate_to_professional_step' } }))} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 1, opacity: hoveredWorkExperienceKey === `we-future-${project.id}` ? 1 : 0, transition: 'opacity 0.25s ease', pointerEvents: hoveredWorkExperienceKey === `we-future-${project.id}` ? 'auto' : 'none' }}><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#9B6A10"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
                                     </label>
@@ -16196,6 +16224,7 @@ onClick={() => {
                   }}
                   onInjectChatMessage={(message, action) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1, action: action as Record<string, unknown> | undefined }))}
                   onResumeSnapshotUpdate={setResumeSnapshot}
+                  initialResumeFileForExisting={resumeFile}
                 />
               )}
               {activeSection === 'account' && (
@@ -16590,6 +16619,7 @@ onClick={() => {
         }}
         onShowPricing={() => setIsUpgradeModalOpen(true)}
         injectMessage={chatboxInject}
+        onDockedChange={setChatDocked}
       />
     </div>
   );

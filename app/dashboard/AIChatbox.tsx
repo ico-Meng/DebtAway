@@ -91,6 +91,7 @@ interface AIChatboxProps {
     section: string;
     data?: Record<string, unknown>;
   };
+  onDockedChange?: (isDocked: boolean) => void;
 }
 
 export default function AIChatbox({
@@ -115,8 +116,10 @@ export default function AIChatbox({
   injectMessage,
   cognitoSub,
   pageContext,
+  onDockedChange,
 }: AIChatboxProps) {
   const [isBarOpen, setIsBarOpen] = useState(false);
+  const [isDocked, setIsDocked] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -140,9 +143,15 @@ export default function AIChatbox({
     }
   }, [isBarOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close bar when clicking outside
+  // When docking, always show the history panel (full-column mode)
   useEffect(() => {
-    if (!isBarOpen) return;
+    if (isDocked) setHistoryOpen(true);
+    onDockedChange?.(isDocked);
+  }, [isDocked]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close bar when clicking outside (disabled when docked — panel stays persistent)
+  useEffect(() => {
+    if (!isBarOpen || isDocked) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsBarOpen(false);
@@ -151,7 +160,7 @@ export default function AIChatbox({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isBarOpen]);
+  }, [isBarOpen, isDocked]);
 
   // Scroll to latest message when a new message arrives or history is toggled open
   useEffect(() => {
@@ -265,6 +274,7 @@ export default function AIChatbox({
   const handleClose = useCallback(() => {
     setIsBarOpen(false);
     setIsFocused(false);
+    setIsDocked(false);
   }, []);
 
   // Helper: dismiss card on a specific message
@@ -442,12 +452,12 @@ export default function AIChatbox({
   );
 
   return (
-    <div className={styles.chatboxWrapper}>
-      <div className={styles.chatboxContainer} ref={containerRef}>
+    <div className={`${styles.chatboxWrapper} ${isDocked ? styles.chatboxWrapperDocked : ''}`}>
+      <div className={`${styles.chatboxContainer} ${isDocked ? styles.chatboxContainerDocked : ''}`} ref={containerRef}>
 
         {/* Message history panel */}
-        {isBarOpen && historyOpen && messages.length > 0 && (
-          <div className={styles.chatboxWindow}>
+        {isBarOpen && (isDocked || (historyOpen && messages.length > 0)) && (
+          <div className={`${styles.chatboxWindow} ${isDocked ? styles.chatboxWindowDocked : ''}`}>
             <div className={styles.chatboxHeader}>
               <div className={styles.chatboxHeaderLeft}>
                 <div className={styles.chatboxAvatarDot} />
@@ -457,29 +467,77 @@ export default function AIChatbox({
                 </div>
               </div>
               <div className={styles.chatboxHeaderActions}>
+                {/* Dock / undock toggle */}
                 <button
                   className={styles.chatboxCloseBtn}
-                  onClick={() => setHistoryOpen(false)}
-                  aria-label="Minimise chat"
-                  title="Minimise"
+                  onClick={() => setIsDocked(prev => !prev)}
+                  aria-label={isDocked ? 'Move to center' : 'Move to right side'}
+                  title={isDocked ? 'Move to center' : 'Dock right'}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  {isDocked ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M5 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M19 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  )}
                 </button>
-                <button
-                  className={styles.chatboxCloseBtn}
-                  onClick={handleClearHistory}
-                  aria-label="Clear chat"
-                  title="Clear"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+                {/* Minimize (center mode only) */}
+                {!isDocked && (
+                  <button
+                    className={styles.chatboxCloseBtn}
+                    onClick={() => setHistoryOpen(false)}
+                    aria-label="Minimise chat"
+                    title="Minimise"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+                {/* Clear history (center mode only) */}
+                {!isDocked && (
+                  <button
+                    className={styles.chatboxCloseBtn}
+                    onClick={handleClearHistory}
+                    aria-label="Clear chat"
+                    title="Clear"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+                {/* Close panel (docked mode only) */}
+                {isDocked && (
+                  <button
+                    className={styles.chatboxCloseBtn}
+                    onClick={handleClose}
+                    aria-label="Close chat panel"
+                    title="Close"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
             <div className={styles.chatboxMessages}>
+              {isDocked && messages.length === 0 && (
+                <div className={styles.chatboxDockedEmpty}>
+                  <div className={styles.chatboxDockedEmptyIcon}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.06L2 22l4.94-1.38A9.96 9.96 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className={styles.chatboxDockedEmptyText}>How can I help you today?</p>
+                </div>
+              )}
               {messages.flatMap(msg => {
                 const messageEl = (
                   <div
@@ -1143,8 +1201,8 @@ export default function AIChatbox({
           </div>
         )}
 
-        {/* Collapsed history indicator */}
-        {isBarOpen && !historyOpen && messages.length > 0 && (
+        {/* Collapsed history indicator — hidden in docked mode */}
+        {isBarOpen && !isDocked && !historyOpen && messages.length > 0 && (
           <button className={styles.chatboxHistoryPill} onClick={() => setHistoryOpen(true)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
@@ -1178,7 +1236,7 @@ export default function AIChatbox({
 
         {/* ── Full input bar (open state) ── */}
         {isBarOpen && (
-          <div className={`${styles.chatboxBar} ${isFocused ? styles.chatboxBarFocused : ''}`}>
+          <div className={`${styles.chatboxBar} ${isFocused ? styles.chatboxBarFocused : ''} ${isDocked ? styles.chatboxBarDocked : ''}`}>
             <textarea
               ref={inputRef}
               className={styles.chatboxBarInput}
@@ -1208,7 +1266,7 @@ export default function AIChatbox({
         )}
 
         {isBarOpen && (
-          <p className={styles.chatboxBarHint}>Enter to send · Shift+Enter for new line</p>
+          <p className={`${styles.chatboxBarHint} ${isDocked ? styles.chatboxBarHintDocked : ''}`}>Enter to send · Shift+Enter for new line</p>
         )}
       </div>
     </div>

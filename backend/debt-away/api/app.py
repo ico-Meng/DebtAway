@@ -118,6 +118,7 @@ class JobUrlExtraction(BaseModel):
     target_job_company: str
     target_job_description: str
     target_job_skill_keywords: List[str]
+    target_job_url: Optional[str] = None
 
 # Pydantic models for craft_resume_from_knowledge_base
 class CraftResumeEducation(BaseModel):
@@ -1884,7 +1885,8 @@ Based on your knowledge of {company}'s technology stack, culture, and typical ro
                     "target_job_title": extracted_data.target_job_title,
                     "target_job_company": extracted_data.target_job_company,
                     "target_job_description": extracted_data.target_job_description,
-                    "target_job_skill_keywords": extracted_data.target_job_skill_keywords
+                    "target_job_skill_keywords": extracted_data.target_job_skill_keywords,
+                    "target_job_url": url
                 }
             }
 
@@ -2183,6 +2185,7 @@ async def parse_job_description(request: Request):
         2. target_job_company: The company name if mentioned, otherwise "Not specified"
         3. target_job_description: A concise summary of the job description (2-3 sentences)
         4. target_job_skill_keywords: List of key skills, technologies, and requirements mentioned
+        5. target_job_url: If an explicit job posting URL or application link (starting with http:// or https://) appears in the text, extract it. Otherwise use null.
 
         If any information is not clearly available, provide a reasonable inference.
         """
@@ -2206,14 +2209,15 @@ async def parse_job_description(request: Request):
             extracted_data = response.output_parsed
             
             logger.info(f"Successfully extracted job data: {extracted_data.target_job_title} at {extracted_data.target_job_company}")
-            
+
             return {
                 "success": True,
                 "data": {
                     "target_job_title": extracted_data.target_job_title,
                     "target_job_company": extracted_data.target_job_company,
                     "target_job_description": extracted_data.target_job_description,
-                    "target_job_skill_keywords": extracted_data.target_job_skill_keywords
+                    "target_job_skill_keywords": extracted_data.target_job_skill_keywords,
+                    "target_job_url": extracted_data.target_job_url or None
                 }
             }
             
