@@ -13284,7 +13284,7 @@ textarea.resumeItemCompanyInput {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: calc(5 * 58px + 4 * 8px);
+  max-height: calc(5 * 50px + 4 * 8px);
   overflow-y: auto;
   scrollbar-width: none;
   width: 100%;

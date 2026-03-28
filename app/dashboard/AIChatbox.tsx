@@ -86,6 +86,11 @@ interface AIChatboxProps {
   onShowPricing?: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   injectMessage?: { text: string; seq: number; action?: any } | null;
+  cognitoSub?: string;
+  pageContext?: {
+    section: string;
+    data?: Record<string, unknown>;
+  };
 }
 
 export default function AIChatbox({
@@ -108,6 +113,8 @@ export default function AIChatbox({
   onNavigateToCareerFocus,
   onShowPricing,
   injectMessage,
+  cognitoSub,
+  pageContext,
 }: AIChatboxProps) {
   const [isBarOpen, setIsBarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -193,6 +200,8 @@ export default function AIChatbox({
           email: userEmail || '',
           name: userName || '',
           career_focus: careerFocus || '',
+          cognito_sub: cognitoSub || '',
+          page_context: pageContext || {},
           history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
         }),
       });
@@ -228,7 +237,7 @@ export default function AIChatbox({
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, apiEndpoint, userEmail, userName, careerFocus, messages]);
+  }, [input, isLoading, apiEndpoint, userEmail, userName, careerFocus, cognitoSub, pageContext, messages]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -333,6 +342,8 @@ export default function AIChatbox({
           email: userEmail || '',
           name: userName || '',
           career_focus: careerFocus || '',
+          cognito_sub: cognitoSub || '',
+          page_context: pageContext || {},
           history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
         }),
       });
@@ -352,7 +363,7 @@ export default function AIChatbox({
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, apiEndpoint, userEmail, userName, careerFocus, messages]);
+  }, [isLoading, apiEndpoint, userEmail, userName, careerFocus, cognitoSub, pageContext, messages]);
 
   // Mark a choice card as selected and auto-send the choice text
   const selectChoice = useCallback((msgId: string, choiceLabel: string) => {

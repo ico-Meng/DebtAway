@@ -2687,6 +2687,38 @@ export default function DashboardPage() {
   const [hoveredWorkExperienceKey, setHoveredWorkExperienceKey] = useState<string | null>(null);
   const workExperienceHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [chatboxInject, setChatboxInject] = useState<{ text: string; seq: number; action?: Record<string, unknown> } | null>(null);
+  // Plain-text snapshot of the currently displayed resume document, set by ResumeSection
+  const [resumeSnapshot, setResumeSnapshot] = useState<string>('');
+
+  // Page context passed to AI chatbox so the assistant knows which section the user is on
+  const chatPageContext = useMemo(() => {
+    const data: Record<string, unknown> = {};
+    if (activeSection === 'resume') {
+      data.resumeMode = resumeShowExistingResumePage ? 'existing' : 'knowledge_base';
+      data.targetJobTitle = resumeShowExistingResumePage
+        ? resumeInterestedJobPositionFromExistingResume
+        : resumeInterestedJobPositionFromKnowledgeBase;
+      if (resumeSnapshot) data.resumeContent = resumeSnapshot;
+    } else if (activeSection === 'analyzer') {
+      data.targetJobTitle = analysisJobPosition;
+    } else if (activeSection === 'knowledge') {
+      data.knowledgeType = showEstablishedExpertise
+        ? 'established'
+        : showExpandingKnowledgeBase
+        ? 'expanding'
+        : '';
+    }
+    return { section: activeSection as string, data };
+  }, [
+    activeSection,
+    resumeShowExistingResumePage,
+    resumeInterestedJobPositionFromExistingResume,
+    resumeInterestedJobPositionFromKnowledgeBase,
+    resumeSnapshot,
+    analysisJobPosition,
+    showEstablishedExpertise,
+    showExpandingKnowledgeBase,
+  ]);
 
   // Check if career focus has been selected
   const isCareerFocusSelected = useMemo(() => !!careerFocus, [careerFocus]);
@@ -16163,6 +16195,7 @@ onClick={() => {
                     setTimeout(() => setShowDownloadLimitToast(false), 9000);
                   }}
                   onInjectChatMessage={(message, action) => setChatboxInject(prev => ({ text: message, seq: (prev?.seq ?? 0) + 1, action: action as Record<string, unknown> | undefined }))}
+                  onResumeSnapshotUpdate={setResumeSnapshot}
                 />
               )}
               {activeSection === 'account' && (
@@ -16527,6 +16560,8 @@ onClick={() => {
         userName={`${firstName} ${lastName}`.trim() || undefined}
         apiEndpoint={API_ENDPOINT}
         careerFocus={careerFocus}
+        cognitoSub={user?.profile?.sub}
+        pageContext={chatPageContext}
         onNavigateToExistingResume={() => {
           setActiveSection('resume');
           setResumeShowExistingResumePage(true);

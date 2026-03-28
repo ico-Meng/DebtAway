@@ -1041,7 +1041,7 @@ export default function AnalysisSection({
                       else setShowJobRecommendPanel(true);
                     }}
                     onFocus={() => { if (!jobPosition) setShowJobRecommendPanel(true); }}
-                    placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
+                    placeholder="Enter job URL, job title, or paste job details"
                   />
                   {(isJobUrlValid || fetchedJobData) && !isCheckmarkFadingOut ? (
                     <div className={`${styles.jobUrlFetchButtonWrapper}`}>

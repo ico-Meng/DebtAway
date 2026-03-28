@@ -5728,29 +5728,309 @@ RESUME_TOOLS = [
 ]
 
 
+# ── AI Chat user-context cache (in-memory, 5-min TTL) ────────────────────────
+import time as _time
+
+_ai_ctx_cache: dict = {}
+_AI_CTX_TTL = 300  # seconds
+
+
+def _get_ai_ctx(cognito_sub: str):
+    entry = _ai_ctx_cache.get(cognito_sub)
+    if entry and (_time.time() - entry["ts"]) < _AI_CTX_TTL:
+        return entry["ctx"]
+    return None
+
+
+def _set_ai_ctx(cognito_sub: str, ctx: str) -> None:
+    _ai_ctx_cache[cognito_sub] = {"ctx": ctx, "ts": _time.time()}
+
+
+async def _build_ai_user_context(cognito_sub: str, career_focus: str) -> str:
+    """
+    Fetch profile + established/expanding knowledge from DynamoDB in a single
+    BatchGetItem call and return a compact plain-text summary for the system prompt.
+    Results are cached per user for 5 minutes so repeated chat messages are fast.
+    """
+    cached = _get_ai_ctx(cognito_sub)
+    if cached is not None:
+        return cached
+
+    try:
+        dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        cf = (career_focus or "software-engineering").strip() or "software-engineering"
+
+        keys = [
+            {"PK": cognito_sub, "SK": "PROFILE#MAIN"},
+            {"PK": cognito_sub, "SK": f"KNOWLEDGE#ESTABLISHED#{cf}"},
+            {"PK": cognito_sub, "SK": f"KNOWLEDGE#EXPANDING#{cf}"},
+        ]
+        resp = dynamodb.batch_get_item(
+            RequestItems={"ambit-dashboard-application-data": {"Keys": keys}}
+        )
+        raw_items = resp.get("Responses", {}).get("ambit-dashboard-application-data", [])
+        items = {it["SK"]: it for it in raw_items}
+
+        parts: list = []
+
+        # ── Profile ──────────────────────────────────────────────────────────
+        profile = items.get("PROFILE#MAIN", {}).get("data", {})
+        if profile:
+            edu_list = profile.get("education", [])
+            edu_parts = []
+            for c in edu_list[:2]:
+                degs = c.get("degrees", [])
+                d = degs[0] if degs else {}
+                school = c.get("collegeName", "")
+                degree = d.get("degree", "")
+                major = d.get("major", "")
+                if school:
+                    label = f"{degree} in {major} from {school}" if degree and major else school
+                    edu_parts.append(label)
+            if edu_parts:
+                parts.append(f"Education: {'; '.join(edu_parts)}")
+
+            companies = profile.get("professional", {}).get("companies", [])
+            job_parts = []
+            for co in companies[:3]:
+                title = co.get("jobTitle", "")
+                company = co.get("companyName", "")
+                if title and company:
+                    suffix = " (current)" if co.get("isPresent") else ""
+                    job_parts.append(f"{title} at {company}{suffix}")
+            if job_parts:
+                parts.append(f"Work experience: {'; '.join(job_parts)}")
+
+            achievements = profile.get("professional", {}).get("achievements", [])
+            ach_vals = [a.get("value", "") for a in achievements[:3] if a.get("value")]
+            if ach_vals:
+                parts.append(f"Notable achievements: {'; '.join(ach_vals)}")
+
+        # ── Established knowledge ─────────────────────────────────────────────
+        est = items.get(f"KNOWLEDGE#ESTABLISHED#{cf}", {}).get("data", {})
+        if est:
+            projs = est.get("personal_project", []) + est.get("professional_project", [])
+            proj_names = [p.get("projectName", "") for p in projs[:5] if p.get("projectName")]
+            if proj_names:
+                parts.append(f"Projects built: {', '.join(proj_names)}")
+
+            skills_obj = est.get("technical_skills", {})
+            selected_skills = skills_obj.get("selectedSkills", [])
+            if selected_skills:
+                parts.append(f"Technical skills: {', '.join(selected_skills[:15])}")
+
+        # ── Expanding knowledge ───────────────────────────────────────────────
+        exp = items.get(f"KNOWLEDGE#EXPANDING#{cf}", {}).get("data", {})
+        if exp:
+            future_projs = (
+                exp.get("future_personal_project", []) +
+                exp.get("future_professional_project", [])
+            )
+            future_names = [p.get("projectName", "") for p in future_projs[:3] if p.get("projectName")]
+            if future_names:
+                parts.append(f"Planned projects: {', '.join(future_names)}")
+
+            future_skills_obj = exp.get("future_technical_skills", {})
+            future_skills = future_skills_obj.get("selectedSkills", [])
+            if future_skills:
+                parts.append(f"Learning goals: {', '.join(future_skills[:10])}")
+
+        ctx = "\n".join(parts)
+        _set_ai_ctx(cognito_sub, ctx)
+        return ctx
+
+    except Exception as exc:
+        logger.warning(f"_build_ai_user_context failed for {cognito_sub}: {exc}")
+        return ""
+
+
+# ── Resume evaluation intent detection ───────────────────────────────────────
+
+_RESUME_EVAL_KEYWORDS = [
+    "evaluat", "review", "analyz", "assess", "critique",
+    "improve", "enhanc", "better", "strengthen", "boost", "optimiz",
+    "issue", "mistake", "problem", "error", "wrong", "fix",
+    "good", "bad", "weak", "strong", "quality", "rate", "score", "grade",
+    "suggest", "tip", "advice", "feedback", "recommend",
+    "missing", "gap", "lack", "need", "stand out",
+    "ats", "keyword", "tailor", "align", "compelling", "impressive", "effective",
+    "how is", "what do you think", "what's wrong", "check",
+]
+
+
+def _is_resume_evaluation_query(message: str, page_context: dict) -> bool:
+    """True when the user is asking to evaluate/review/improve their resume."""
+    section = (page_context.get("section") or "").strip()
+    resume_content = (page_context.get("data") or {}).get("resumeContent", "") or ""
+    if section != "resume" or not resume_content.strip():
+        return False
+    if "Your Name" in resume_content:           # placeholder, not yet crafted
+        return False
+    ml = message.lower()
+    return any(kw in ml for kw in _RESUME_EVAL_KEYWORDS)
+
+
+async def _handle_resume_evaluation(
+    message: str,
+    user_context_block: str,
+    resume_content: str,
+    target_job: str,
+    history: list,
+) -> dict:
+    """
+    Dedicated evaluation chain.
+    Returns ≤5 structured, actionable suggestions — no tool calls, no re-craft suggestions.
+    Uses a strict format so the frontend renders it cleanly.
+    """
+    target_line = f"Target role this resume is tailored for: {target_job}\n\n" if target_job else ""
+
+    eval_system = (
+        user_context_block
+        + "You are a professional and friendly career coach AI for Ambitology — "
+        "a trusted senior resume reviewer with deep expertise in tech hiring. "
+        "Speak directly, honestly, and with genuine care for the user's growth.\n\n"
+        "TASK: Review the resume provided below and deliver a concise, honest assessment.\n\n"
+        "STRICT RULES:\n"
+        "- Give EXACTLY 3 to 5 actionable suggestions — no more, no fewer.\n"
+        "- Every suggestion must be specific to THIS resume (reference real content by name).\n"
+        "- Do NOT suggest to re-craft, regenerate, or rebuild the resume through any tool.\n"
+        "- Do NOT say you cannot see, access, or view the resume or any page.\n"
+        "- Do NOT mention AI, tools, or this system.\n\n"
+        "OUTPUT FORMAT (follow exactly, no deviations):\n"
+        "<One concise overall verdict sentence.>\n\n"
+        "① **[Category]** — Specific observation from the resume + clear, actionable improvement step.\n\n"
+        "② **[Category]** — Specific observation + clear improvement step.\n\n"
+        "③ **[Category]** — Specific observation + clear improvement step.\n\n"
+        "(Add ④ and ⑤ only if genuinely needed — never pad to reach 5)\n\n"
+        "Category labels to use (pick the most fitting): "
+        "Impact & Metrics | Skill Alignment | Bullet Strength | ATS Keywords | "
+        "Project Depth | Formatting | Achievement Visibility | Career Narrative | "
+        "Quantified Results | Role Relevance\n\n"
+        f"{target_line}"
+        f"RESUME:\n{resume_content[:3500]}"
+    )
+
+    eval_messages = [
+        {"role": "system", "content": eval_system},
+        *[{"role": m["role"], "content": m["content"]} for m in history[-4:]],
+        {"role": "user", "content": message},
+    ]
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=eval_messages,
+            temperature=0.35,
+            # No `tools` parameter → tool calls are impossible
+        )
+        reply = response.choices[0].message.content or "I'd be happy to review your resume in detail."
+    except Exception as exc:
+        logger.error(f"_handle_resume_evaluation error: {exc}")
+        reply = "I encountered an issue while reviewing your resume. Please try again in a moment."
+
+    logger.info(f"Resume evaluation reply generated ({len(reply)} chars)")
+    return {"status": "success", "reply": reply}
+
+
 @app.post("/ai-chat")
 async def ai_chat(request: Request):
     try:
         data = await request.json()
-        message = data.get("message", "")
-        email   = data.get("email", "")
-        name    = data.get("name", "")
-        history = data.get("history", [])   # list of {role, content} dicts
+        message      = data.get("message", "")
+        email        = data.get("email", "")
+        name         = data.get("name", "")
+        history      = data.get("history", [])
         career_focus = data.get("career_focus", "software engineering")
+        cognito_sub  = data.get("cognito_sub", "")
+        page_context = data.get("page_context", {}) or {}
 
         logger.info(f"AI chat question from {name} ({email}): {message}")
+
+        # ── Fetch & cache user profile + knowledge context ────────────────────
+        user_db_ctx = ""
+        if cognito_sub:
+            cf_for_db = career_focus.replace(" ", "-").lower() if " " in career_focus else career_focus
+            user_db_ctx = await _build_ai_user_context(cognito_sub, cf_for_db)
+
+        # ── Build the context block prepended to the system prompt ────────────
+        context_lines: list = []
+        cf_display = career_focus.replace("-", " ").title() if career_focus else ""
+        if name:
+            context_lines.append(f"User: {name}")
+        if cf_display:
+            context_lines.append(f"Career focus: {cf_display}")
+        if user_db_ctx:
+            context_lines.append(user_db_ctx)
+
+        section = (page_context.get("section") or "").strip()
+        pdata   = page_context.get("data") or {}
+        section_labels = {
+            "profile":  "Profile — editing personal info, education, and work history",
+            "knowledge":"Knowledge Base — managing established skills, projects, and future learning goals",
+            "resume":   "Resume Builder — crafting a tailored resume for a target role",
+            "analyzer": "Job Analysis — analyzing how well the user fits a target job",
+            "account":  "Account — viewing billing info and feature usage",
+        }
+        if section:
+            context_lines.append(f"Current page: {section_labels.get(section, section)}")
+
+        if section == "resume":
+            mode = pdata.get("resumeMode", "")
+            job_title = pdata.get("targetJobTitle", "")
+            if mode:
+                context_lines.append(
+                    "Resume mode: " + ("from existing resume" if mode == "existing"
+                                       else "built from knowledge base profile")
+                )
+            if job_title:
+                context_lines.append(f"Target role: {job_title}")
+        elif section == "analyzer":
+            job_title = pdata.get("targetJobTitle", "")
+            if job_title:
+                context_lines.append(f"Target role being analyzed: {job_title}")
+        elif section == "knowledge":
+            kt = pdata.get("knowledgeType", "")
+            if kt:
+                context_lines.append(f"Active knowledge tab: {kt} expertise")
+
+        user_context_block = ""
+        if context_lines:
+            user_context_block = (
+                "━━━ USER CONTEXT ━━━\n"
+                + "\n".join(context_lines)
+                + "\n\n"
+                "Use this context to personalize every reply:\n"
+                "• Generic career questions → draw on the user's career focus, background, skills, and projects above.\n"
+                "• Page-specific questions → use the Current page and its data above to give precise, relevant answers.\n"
+                "━━━━━━━━━━━━━━━━━━━\n\n"
+            )
+
+        # ── Resume evaluation — dedicated handler, bypasses all tool calls ────
+        if _is_resume_evaluation_query(message, page_context):
+            return await _handle_resume_evaluation(
+                message=message,
+                user_context_block=user_context_block,
+                resume_content=pdata.get("resumeContent", ""),
+                target_job=pdata.get("targetJobTitle", ""),
+                history=history,
+            )
 
         messages = [
             {
                 "role": "system",
                 "content": (
-                    "You are a career coach AI for Ambitology. Be warm, direct, and easy to read.\n\n"
+                    user_context_block
+                    + "You are a professional and friendly career coach AI for Ambitology — "
+                    "a trusted mentor who brings both expertise and genuine warmth to every interaction. "
+                    "Always be encouraging, specific, and actionable.\n\n"
                     "FORMATTING RULES (always follow):\n"
                     "- Keep every reply under 50 words total.\n"
                     "- Never write a wall of text. Use short sentences.\n"
                     "- When listing steps or items, put each on its own line starting with ① ② ③ or • — never run them together.\n"
                     "- Separate distinct thoughts with a blank line.\n"
-                    "- No unnecessary filler phrases like 'Great question!' or 'Of course!'.\n\n"
+                    "- No unnecessary filler phrases like 'Great question!' or 'Of course!'.\n"
+                    "- Never say you cannot see, access, or view any page, document, or resume. "
+                    "If context is missing, ask the user to share the relevant details directly.\n\n"
                     "RESUME CRAFTING:\n"
                     "- User has a general or ambiguous resume request ('make my resume', 'build my resume', 'write a resume', 'help with my resume', 'I need a resume', 'create my resume') → use ask_resume_intent. Show option cards so user can choose their path.\n"
                     "- User explicitly wants to improve/polish/fix/enhance an existing resume they already have → use navigate_to_existing_resume.\n"

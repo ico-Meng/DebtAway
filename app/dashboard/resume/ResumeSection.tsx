@@ -243,6 +243,9 @@ interface ResumeSectionProps {
   onDownloadLimitExceeded?: () => void;
   careerFocus?: string;
   onInjectChatMessage?: (message: string, action?: { type: string; sanityData?: { issues: Array<{ severity: 'High' | 'Mid' | 'Low'; ordinal: string; message: string }>; currentIndex: number; matchedCount: number } }) => void;
+  /** Called whenever the resume document becomes visible or its content changes.
+   *  Receives a plain-text snapshot of the resume for AI context. */
+  onResumeSnapshotUpdate?: (snapshot: string) => void;
 }
 
 export default function ResumeSection({
@@ -278,6 +281,7 @@ export default function ResumeSection({
   onDownloadLimitExceeded,
   careerFocus,
   onInjectChatMessage,
+  onResumeSnapshotUpdate,
 }: ResumeSectionProps) {
   const [hoveredJobPosLabel, setHoveredJobPosLabel] = useState<string | null>(null);
   const jobPosHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -912,6 +916,71 @@ export default function ResumeSection({
   }, [savedName, savedContactFields, savedProfessionalExperiences, savedEducation,
       savedProjectsEstablished, savedProjectsExpanding, savedSkills, savedAchievements,
       showResumePage, resumeMode]);
+
+  // Push a plain-text resume snapshot to the AI chatbox whenever the document
+  // is visible or its content changes, so the assistant can answer questions
+  // about the resume without needing to "access" any external page.
+  useEffect(() => {
+    if (!showResumePage || !onResumeSnapshotUpdate) return;
+    if (!savedName || savedName === 'Your Name') return; // placeholder — not yet crafted
+
+    const lines: string[] = [];
+    lines.push(`Name: ${savedName}`);
+
+    const contactStr = savedContactFields
+      .filter(f => f.value && f.value !== 'your.email@example.com' && f.value !== '+1 (555) 123-4567' && f.value !== 'City, State, Country' && f.value !== 'linkedin.com/in/yourprofile')
+      .map(f => `${f.label}: ${f.value}`)
+      .join(' | ');
+    if (contactStr) lines.push(`Contact: ${contactStr}`);
+
+    if (savedProfessionalExperiences.length) {
+      lines.push('\nWORK EXPERIENCE:');
+      for (const exp of savedProfessionalExperiences) {
+        for (const jt of exp.jobTitles) {
+          lines.push(`  ${exp.company} — ${jt.title}${jt.date ? ` (${jt.date})` : ''}`);
+          const realBullets = jt.bullets.filter(b => !b.startsWith(PROJECT_HEADER_PREFIX));
+          for (const b of realBullets.slice(0, 4)) lines.push(`    • ${b}`);
+        }
+      }
+    }
+
+    const allProjects = [...savedProjectsEstablished, ...savedProjectsExpanding];
+    if (allProjects.length) {
+      lines.push('\nPROJECTS:');
+      for (const p of allProjects) {
+        lines.push(`  ${p.name}${p.date ? ` (${p.date})` : ''}`);
+        for (const b of p.bullets.slice(0, 3)) lines.push(`    • ${b}`);
+        if (p.technologies?.length) lines.push(`    Technologies: ${p.technologies.slice(0, 8).join(', ')}`);
+      }
+    }
+
+    if (savedEducation.length) {
+      lines.push('\nEDUCATION:');
+      for (const edu of savedEducation) {
+        lines.push(`  ${edu.university}${edu.date ? ` (${edu.date})` : ''}`);
+        for (const d of edu.degrees) lines.push(`    ${d.degree}${d.description ? `: ${d.description}` : ''}`);
+      }
+    }
+
+    if (savedSkills.length) {
+      lines.push('\nTECHNICAL SKILLS:');
+      for (const s of savedSkills) {
+        if (s.keywords) lines.push(`  ${s.topic}: ${s.keywords}`);
+      }
+    }
+
+    if (savedAchievements.length) {
+      lines.push('\nACHIEVEMENTS:');
+      for (const a of savedAchievements) {
+        if (a.value) lines.push(`  • ${a.value}`);
+      }
+    }
+
+    onResumeSnapshotUpdate(lines.join('\n'));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResumePage, savedName, savedContactFields, savedProfessionalExperiences,
+      savedEducation, savedProjectsEstablished, savedProjectsExpanding,
+      savedSkills, savedAchievements]);
 
   // Save state whenever relevant state changes
   useEffect(() => {
@@ -4678,7 +4747,7 @@ export default function ResumeSection({
                       else setShowJobRecommendPanelER(true);
                     }}
                     onFocus={() => { if (!interestedJobPositionFromExistingResume) setShowJobRecommendPanelER(true); }}
-                    placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
+                    placeholder="Enter job URL, job title, or paste job details"
                   />
                   {(isJobUrlValidFromExistingResume || fetchedJobDataFromExistingResume || isJobUrlBlockedFromExistingResume) && !isCheckmarkFadingOut ? (
                     <div className={`${styles.jobUrlFetchButtonWrapper}`}>
@@ -5239,7 +5308,7 @@ export default function ResumeSection({
                       else setShowJobRecommendPanelKB(true);
                     }}
                     onFocus={() => { if (!interestedJobPositionFromKnowledgeBase) setShowJobRecommendPanelKB(true); }}
-                    placeholder="Enter job URL, job title (e.g., Software Engineer at Meta), or paste job description"
+                    placeholder="Enter job URL, job title, or paste job details"
                   />
                   {(isJobUrlValidFromKnowledgeBase || fetchedJobDataFromKnowledgeBase || isJobUrlBlockedFromKnowledgeBase) && !isCheckmarkFadingOut ? (
                     <div className={`${styles.jobUrlFetchButtonWrapper}`}>
