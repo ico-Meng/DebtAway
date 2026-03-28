@@ -1917,6 +1917,106 @@ Based on your knowledge of {company}'s technology stack, culture, and typical ro
         }
 
 
+@app.post("/resolve_job_url")
+async def resolve_job_url(request: Request):
+    """
+    Check whether a job posting URL is reachable.
+    - If reachable (HTTP < 400), return it unchanged.
+    - If not (4xx/5xx, timeout, connection error), use OpenAI web search to
+      find the current live job listing for that title at that company and
+      return the discovered URL instead.
+
+    Input:  { url: str, job_title: str, company_name: str }
+    Output: { url: str, fallback_used: bool }
+    """
+    body = {}
+    try:
+        body = await request.json()
+        url          = (body.get("url")          or "").strip()
+        job_title    = (body.get("job_title")    or "").strip()
+        company_name = (body.get("company_name") or "").strip()
+
+        if not url:
+            return {"url": url, "fallback_used": False}
+
+        # ------------------------------------------------------------------
+        # Step 1: Quick reachability check — HEAD, then GET fallback
+        # ------------------------------------------------------------------
+        _headers = {"User-Agent": "Mozilla/5.0 (compatible; JobChecker/1.0)"}
+        url_ok = False
+
+        try:
+            head_resp = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: requests.head(url, timeout=5, allow_redirects=True, headers=_headers),
+            )
+            url_ok = head_resp.status_code < 400
+        except Exception:
+            pass
+
+        if not url_ok:
+            # Some servers reject HEAD — try a streaming GET without downloading the body
+            try:
+                get_resp = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: requests.get(url, timeout=5, allow_redirects=True,
+                                         headers=_headers, stream=True),
+                )
+                url_ok = get_resp.status_code < 400
+                get_resp.close()
+            except Exception:
+                pass
+
+        if url_ok:
+            return {"url": url, "fallback_used": False}
+
+        # ------------------------------------------------------------------
+        # Step 2: URL is dead — use OpenAI web search to find the live posting
+        # ------------------------------------------------------------------
+        logger.info(f"resolve_job_url: '{url}' unreachable — OpenAI fallback for '{job_title}' at '{company_name}'")
+
+        if not (job_title and company_name):
+            # No metadata to search with — return original and let the browser handle it
+            return {"url": url, "fallback_used": False}
+
+        oa_client = openai.OpenAI(api_key=OPENAI_APIKEY)
+        prompt = (
+            f'Find the current, live job application page for the "{job_title}" position '
+            f"at {company_name} on their official careers website.\n\n"
+            "Return ONLY a single raw URL — no markdown, no explanation, nothing else. "
+            "The URL must point to a real, currently open job posting or to the company's "
+            f'careers search page filtered for "{job_title}". '
+            f"If you cannot find a specific open posting, return {company_name}'s main careers page URL."
+        )
+
+        oa_response = oa_client.responses.create(
+            model="gpt-4o-mini",
+            tools=[{"type": "web_search_preview"}],
+            input=prompt,
+        )
+
+        found_url = ""
+        for item in oa_response.output:
+            if getattr(item, "type", None) == "message":
+                for block in getattr(item, "content", []):
+                    if getattr(block, "type", None) == "output_text":
+                        found_url += block.text
+
+        # The model should return just a URL; take the first whitespace-separated token
+        found_url = (found_url.strip().split()[0] if found_url.strip() else "")
+
+        if found_url.startswith(("http://", "https://")):
+            logger.info(f"resolve_job_url: found fallback URL '{found_url}'")
+            return {"url": found_url, "fallback_used": True}
+
+        # Model didn't return a usable URL — open original so user still gets something
+        return {"url": url, "fallback_used": False}
+
+    except Exception as e:
+        logger.error(f"resolve_job_url unexpected error: {e}")
+        return {"url": body.get("url", ""), "fallback_used": False}
+
+
 @app.post("/fetch_with_job_title")
 async def fetch_with_job_title(request: Request):
     """

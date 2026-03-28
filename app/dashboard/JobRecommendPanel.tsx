@@ -146,6 +146,7 @@ export default function JobRecommendPanel({
   const [selectedPosition, setSelectedPosition] = useState('');
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [linkCheckingIdx, setLinkCheckingIdx] = useState<number | null>(null);
 
   // Reset to positions list whenever the panel becomes visible again
   useEffect(() => {
@@ -187,9 +188,27 @@ export default function JobRecommendPanel({
     onJobSelect(job.job_title, job.company_name, job.job_url);
   };
 
-  const handleLinkIconClick = (e: React.MouseEvent, url: string) => {
+  const handleLinkIconClick = async (e: React.MouseEvent, job: JobItem, idx: number) => {
     e.stopPropagation();
-    window.open(url, '_blank', 'noopener,noreferrer');
+    setLinkCheckingIdx(idx);
+    try {
+      const res = await fetch(`${API_ENDPOINT}/resolve_job_url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: job.job_url,
+          job_title: job.job_title,
+          company_name: job.company_name,
+        }),
+      });
+      const data = await res.json();
+      window.open(data.url || job.job_url, '_blank', 'noopener,noreferrer');
+    } catch {
+      // Network/server failure — open original URL anyway
+      window.open(job.job_url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setLinkCheckingIdx(null);
+    }
   };
 
   // -------------------------------------------------------------------------
@@ -253,13 +272,18 @@ export default function JobRecommendPanel({
                   </div>
                   <button
                     type="button"
-                    className={styles.jobRecommendLinkBtn}
-                    onClick={(e) => handleLinkIconClick(e, job.job_url)}
+                    className={`${styles.jobRecommendLinkBtn}${linkCheckingIdx === i ? ` ${styles.checking}` : ''}`}
+                    onClick={(e) => handleLinkIconClick(e, job, i)}
                     aria-label="Open job posting in new tab"
-                    title="Open job posting"
+                    title={linkCheckingIdx === i ? 'Checking link…' : 'Open job posting'}
+                    disabled={linkCheckingIdx !== null}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/open_in_new.svg" width="16" height="16" alt="" />
+                    {linkCheckingIdx === i ? (
+                      <span className={styles.jobRecommendLinkSpinner} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/images/open_in_new.svg" width="16" height="16" alt="" />
+                    )}
                   </button>
                 </div>
               ))}

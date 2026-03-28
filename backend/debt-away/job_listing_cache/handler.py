@@ -1,4 +1,6 @@
 import boto3
+import hashlib
+import json
 import os
 import time
 import logging
@@ -6,13 +8,37 @@ from datetime import datetime, timezone
 import requests
 from boto3.dynamodb.conditions import Key, Attr
 
+try:
+    import openai
+except ImportError:
+    openai = None
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 JSEARCH_API_KEY = os.environ.get("JSEARCH_API_KEY", "")
 JSEARCH_APP_NAME = os.environ.get("JSEARCH_APP_NAME", "")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 TABLE_NAME = "jobCache"
 JSEARCH_BASE_URL = "https://jsearch.p.rapidapi.com/search"
+
+# ---------------------------------------------------------------------------
+# Target companies for OpenAI-powered job search. For each position in
+# JOB_CATEGORIES, the OpenAI Responses API (web_search_preview tool) will
+# search for open roles at these companies and return up to
+# OPENAI_MAX_JOBS_PER_POSITION results, structured identically to JSearch.
+# ---------------------------------------------------------------------------
+TARGET_COMPANIES = [
+    "Nvidia", "Microsoft", "Salesforce", "Adobe", "Databricks", "OpenAI",
+    "Anthropic", "Jane Street", "Hudson River Trading", "JPMorganChase",
+    "Google", "Apple", "Meta", "Amazon", "Snowflake", "Stripe", "Oracle",
+    "xAI", "Perplexity", "Clean", "Harvey", "CoreWeave", "Waymo",
+    "Citadel Securities", "IMC Trading", "Optiver", "Two Sigma",
+    "Tower Research Capital", "Goldman Sachs", "Capital One",
+    "American Express", "Bloomberg", "Jump Trading", "Uber", "Airbnb",
+    "Netflix",
+]
+OPENAI_MAX_JOBS_PER_POSITION = 5
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(TABLE_NAME)
@@ -96,6 +122,105 @@ JOB_CATEGORIES = {
 def normalize_position_name(name: str) -> str:
     """Convert a position name to a consistent lowercase_underscore key."""
     return name.strip().lower().replace(" ", "_").replace("/", "_").replace("&", "and")
+
+
+def generate_openai_job_id(company_name: str, job_title: str, job_url: str) -> str:
+    """
+    Generate a deterministic, collision-resistant job_id for OpenAI-sourced
+    listings. Prefixed with 'oa_' to distinguish from JSearch IDs.
+    """
+    raw = f"{company_name.lower()}|{job_title.lower()}|{job_url}"
+    return "oa_" + hashlib.md5(raw.encode()).hexdigest()[:16]
+
+
+def fetch_jobs_from_openai(position_name: str, max_results: int = OPENAI_MAX_JOBS_PER_POSITION) -> list:
+    """
+    Use the OpenAI Responses API with the web_search_preview tool to find
+    open job listings for `position_name` at TARGET_COMPANIES.
+
+    Returns a list of dicts matching the JSearch structure:
+      {job_id, job_title, company_name, job_url, is_direct_apply}
+    is_direct_apply is always True because results link to company career pages.
+    """
+    if not OPENAI_API_KEY:
+        logger.warning("OPENAI_API_KEY not set — skipping OpenAI job fetch.")
+        return []
+    if openai is None:
+        logger.warning("openai package not installed — skipping OpenAI job fetch.")
+        return []
+
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    companies_str = ", ".join(TARGET_COMPANIES)
+
+    prompt = (
+        f'Search for currently open "{position_name}" job listings at these companies: {companies_str}.\n\n'
+        f"Return up to {max_results} real, currently open positions as a JSON array. "
+        "Each element must have exactly these keys:\n"
+        '  "job_title"   — the exact title shown in the job posting\n'
+        '  "company_name" — the company name (must be one from the list above)\n'
+        '  "job_url"     — the direct URL to the job application or job detail page\n\n'
+        "Rules:\n"
+        "- Only include positions that are verifiably open right now.\n"
+        "- Do not invent or guess URLs; every URL must lead to a real job posting.\n"
+        "- Return ONLY a valid JSON array with no markdown fences, no explanation."
+    )
+
+    try:
+        response = client.responses.create(
+            model="gpt-4o-mini",
+            tools=[{"type": "web_search_preview"}],
+            input=prompt,
+        )
+
+        # Extract the assistant's text output from the Responses API payload.
+        text_content = ""
+        for item in response.output:
+            if getattr(item, "type", None) == "message":
+                for block in getattr(item, "content", []):
+                    if getattr(block, "type", None) == "output_text":
+                        text_content += block.text
+
+        if not text_content.strip():
+            logger.warning(f"OpenAI returned empty content for '{position_name}'")
+            return []
+
+        # Strip optional markdown code fences (```json ... ```)
+        text_content = text_content.strip()
+        if text_content.startswith("```"):
+            lines = text_content.splitlines()
+            text_content = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+
+        raw_jobs = json.loads(text_content)
+        if not isinstance(raw_jobs, list):
+            logger.warning(f"OpenAI response for '{position_name}' was not a JSON array.")
+            return []
+
+        jobs = []
+        for job in raw_jobs[:max_results]:
+            title   = (job.get("job_title")    or "").strip()
+            company = (job.get("company_name") or "").strip()
+            url     = (job.get("job_url")      or "").strip()
+
+            if not (title and company and url):
+                continue
+
+            jobs.append({
+                "job_id":         generate_openai_job_id(company, title, url),
+                "job_title":      title,
+                "company_name":   company,
+                "job_url":        url,
+                "is_direct_apply": True,
+            })
+
+        logger.info(f"OpenAI returned {len(jobs)} jobs for '{position_name}'")
+        return jobs
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse OpenAI JSON for '{position_name}': {e}")
+        return []
+    except Exception as e:
+        logger.error(f"OpenAI API error for '{position_name}': {e}")
+        return []
 
 
 def fetch_jobs_for_query(query: str, max_pages: int = 2) -> list:
@@ -287,6 +412,59 @@ def lambda_handler(event, context):
     logger.info(f"Phase 1 complete — {total_written} items written, {len(failed_positions)} failed.")
 
     # ------------------------------------------------------------------
+    # Phase 1b: Fetch company-targeted jobs via OpenAI web search and
+    #           write them to DynamoDB alongside JSearch results.
+    #
+    # For each unique position name, the OpenAI Responses API uses its
+    # web_search_preview tool to find up to OPENAI_MAX_JOBS_PER_POSITION
+    # open roles at TARGET_COMPANIES. Results share the same batch_id and
+    # DynamoDB schema as Phase 1 data so Phase 2 stale-deletion handles
+    # cleanup automatically. job_ids are prefixed with "oa_" to avoid
+    # collisions with JSearch IDs.
+    # ------------------------------------------------------------------
+    logger.info("Phase 1b: Fetching company-targeted jobs via OpenAI web search...")
+    openai_cache: dict = {}  # keyed by normalized position name, same dedup logic as JSearch
+    openai_written = 0
+
+    for job_type, positions in JOB_CATEGORIES.items():
+        logger.info(f"--- OpenAI: Processing job_type: '{job_type}' ({len(positions)} positions) ---")
+
+        for position_name in positions:
+            cache_key = normalize_position_name(position_name)
+
+            if cache_key not in openai_cache:
+                logger.info(f"OpenAI API call: '{position_name}'")
+                oa_jobs = fetch_jobs_from_openai(position_name)
+                openai_cache[cache_key] = oa_jobs
+                time.sleep(1.0)  # Respect OpenAI rate limits between queries
+            else:
+                logger.info(
+                    f"OpenAI cache hit: '{position_name}' "
+                    f"(reusing {len(openai_cache[cache_key])} results)"
+                )
+                oa_jobs = openai_cache[cache_key]
+
+            if not oa_jobs:
+                logger.warning(f"No OpenAI jobs for '{position_name}' — skipping write.")
+                continue
+
+            try:
+                count = write_jobs_to_dynamo(job_type, position_name, oa_jobs, batch_id)
+                openai_written += count
+                total_written += count
+            except Exception as e:
+                logger.error(
+                    f"DynamoDB write failed (OpenAI) — "
+                    f"job_type='{job_type}', position='{position_name}': {e}"
+                )
+                failed_positions.append(f"openai:{job_type}/{position_name}")
+
+    logger.info(
+        f"Phase 1b complete — {openai_written} OpenAI items written, "
+        f"{len(openai_cache)} unique API calls made."
+    )
+
+    # ------------------------------------------------------------------
     # Phase 2: Delete stale data from previous batch
     # ------------------------------------------------------------------
     logger.info("Phase 2: Deleting stale items from previous batch...")
@@ -301,7 +479,9 @@ def lambda_handler(event, context):
         "batch_id": batch_id,
         "total_jobs_written": total_written,
         "categories_processed": len(JOB_CATEGORIES),
-        "unique_api_calls": len(api_cache),
+        "jsearch_unique_api_calls": len(api_cache),
+        "openai_unique_api_calls": len(openai_cache),
+        "openai_jobs_written": openai_written,
         "failed_positions": failed_positions,
     }
     logger.info(f"Refresh complete: {result}")
