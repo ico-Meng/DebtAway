@@ -21,6 +21,16 @@ const globalReset = `
 
 const ARTICLES = [
   {
+    slug: "emotional-burnout-from-repeated-rejection",
+    title: "Emotional Burnout from Repeated Rejection: How to Stay Strategic and Keep Moving",
+    excerpt:
+      "Hundreds of applications, near-zero callbacks, zero feedback. Job search burnout is real — but the mental battle is a strategy problem, not a personal failing. Here's how to fight it with data and systems.",
+    category: "Job Search Strategy",
+    date: "March 16, 2026",
+    readTime: "8 min read",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80",
+  },
+  {
     slug: "do-i-need-to-tailor-resumes-to-specific-roles",
     title: "Do I Need to Tailor Resumes to Specific Roles? Here's an Easy Way!",
     excerpt:
